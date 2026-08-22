@@ -95,10 +95,22 @@ def create_app() -> FastAPI:
                         "run_id": None,
                     },
                 )
-            candidate = FRONTEND_DIST / path
-            if path and candidate.is_file():
+            index = FRONTEND_DIST / "index.html"
+            if not path:
+                return FileResponse(index)
+
+            # 요청 경로가 빌드 폴더 밖을 가리키면 파일을 읽지 않는다.
+            # `..`, 퍼센트 인코딩, 절대 경로로 .env 같은 파일을 가져가지 못하게 막는다.
+            dist_root = FRONTEND_DIST.resolve()
+            try:
+                candidate = (FRONTEND_DIST / path).resolve()
+            except (OSError, ValueError):
+                return FileResponse(index)
+            if not candidate.is_relative_to(dist_root):
+                return FileResponse(index)
+            if candidate.is_file():
                 return FileResponse(candidate)
-            return FileResponse(FRONTEND_DIST / "index.html")
+            return FileResponse(index)
 
     return app
 

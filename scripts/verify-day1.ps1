@@ -146,6 +146,8 @@ Write-Head "D1G-02 한 주소에서 시작·종료"
 $c2 = New-Check "D1G-02" "127.0.0.1 한 주소의 health와 첫 화면"
 $c3 = New-Check "D1G-03" "사용자 입력 네 가지"
 $c4 = New-Check "D1G-04" "Harness 상태와 가짜 AI"
+# D1G-07은 실행 중인 서버에서도 검사하므로 여기서 미리 만든다.
+$c7 = New-Check "D1G-07" "비밀값·네트워크·도메인 청정성"
 
 $listener = Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction SilentlyContinue
 if ($listener) {
@@ -244,12 +246,35 @@ if ($listener) {
 
         Invoke-RestMethod -Uri "$BaseUrl/api/runs/$badId" -Method Delete -WebSession $session -TimeoutSec 5 | Out-Null
 
-        # 요청 쿠키 없이는 상태 변경이 거부되는지
+        # 요청 쿠키 없이는 상태 변경이 거부되는지. 403이 아닌 오류는 통과로 보지 않는다.
         try {
             Invoke-RestMethod -Uri "$BaseUrl/api/runs" -Method Post -Body $badBody -ContentType "application/json" -TimeoutSec 5 | Out-Null
             Fail-Check $c3 "요청 쿠키 없이도 작업이 만들어졌습니다."
         } catch {
-            Add-Evidence $c3 "쿠키 없는 요청은 거부됨"
+            $status = $null
+            if ($_.Exception.Response -ne $null) { $status = [int]$_.Exception.Response.StatusCode }
+            if ($status -eq 403) { Add-Evidence $c3 "쿠키 없는 요청은 403으로 거부됨" }
+            else { Fail-Check $c3 "쿠키 없는 요청이 403이 아닌 결과로 끝났습니다: $status" }
+        }
+
+        # 실행 중인 서버에서 경로 탈출로 파일이 새어 나가는지 (정적 검사로는 못 잡는다)
+        $indexLength = $index.Content.Length
+        $escapePaths = @(
+            "/../../.env", "/../../.gitignore", "/../../backend/app/main.py",
+            "/%2e%2e/%2e%2e/.env", "/..%2f..%2f.env", "/assets/../../../.env"
+        )
+        $leaked = @()
+        foreach ($p in $escapePaths) {
+            try {
+                $r = Invoke-WebRequest -Uri "$BaseUrl$p" -TimeoutSec 5 -UseBasicParsing
+                # 첫 화면으로 되돌려 보내면 안전하다. 다른 내용이면 파일이 새어 나온 것이다.
+                if ($r.StatusCode -eq 200 -and $r.Content -notmatch '<div id="root"') { $leaked += $p }
+            } catch { }  # 404·403은 안전
+        }
+        if ($leaked.Count -gt 0) {
+            Fail-Check $c7 ("경로 탈출로 빌드 폴더 밖 파일이 노출됩니다: " + ($leaked -join ", "))
+        } else {
+            Add-Evidence $c7 "경로 탈출 $($escapePaths.Count)종 모두 차단 (첫 화면 $indexLength bytes로 되돌림)"
         }
     }
 
@@ -258,7 +283,7 @@ if ($listener) {
         Stop-Process -Id $ServerProcess.Id -Force -ErrorAction SilentlyContinue
         Start-Sleep -Milliseconds 800
         $still = Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction SilentlyContinue
-        if ($still) { [void]$Warnings.Add("검증 서버 종료 뒤에도 $Port 포트가 열려 있습니다.") }
+        if ($still) { Fail-Check $c2 "검증 서버 종료 뒤에도 $Port 포트가 열려 있습니다." }
         else { Add-Evidence $c2 "자신이 시작한 프로세스만 정상 종료" }
     }
 }
@@ -270,7 +295,6 @@ if ($listener) {
 # D1G-07 비밀·네트워크·기록
 # ---------------------------------------------------------------------------
 Write-Head "D1G-07 비밀·네트워크·기록"
-$c7 = New-Check "D1G-07" "비밀값·네트워크·도메인 청정성"
 
 $scanRoots = @("backend\app", "frontend\src", "frontend\dist", "tests", "scripts", "verification")
 $scanFiles = @()
@@ -282,6 +306,13 @@ foreach ($rel in $scanRoots) {
     }
 }
 
+# 빌드 결과물이 없으면 bundle을 검사하지 못한 것이므로 차단한다.
+if (-not (Test-Path (Join-Path $Frontend "dist\index.html"))) {
+    Fail-Check $c7 "frontend\dist가 없어 브라우저 bundle의 비밀값을 검사하지 못했습니다."
+} else {
+    Add-Evidence $c7 "브라우저 bundle 포함 검사"
+}
+
 # API 키 패턴
 $keyHits = $scanFiles | Select-String -Pattern "sk-[A-Za-z0-9_\-]{20,}", "gho_[A-Za-z0-9]{20,}" -List -ErrorAction SilentlyContinue
 if ($keyHits) { Fail-Check $c7 ("API 키 패턴 발견: " + (($keyHits | ForEach-Object { $_.Path }) -join ", ")) }
@@ -290,7 +321,7 @@ else { Add-Evidence $c7 "소스·bundle·보고서의 API 키 패턴 0건" }
 # .env 를 코드가 읽지 않는지 (예시 파일과 이름 안내는 허용)
 $envReaders = $scanFiles | Where-Object { $_.Extension -in @(".py", ".ts", ".tsx") } |
     Select-String -Pattern "load_dotenv|dotenv" -List -ErrorAction SilentlyContinue
-if ($envReaders) { [void]$Warnings.Add("코드가 .env를 직접 읽습니다: " + (($envReaders | ForEach-Object { $_.Path }) -join ", ")) }
+if ($envReaders) { Fail-Check $c7 ("코드가 .env를 직접 읽습니다: " + (($envReaders | ForEach-Object { $_.Path }) -join ", ")) }
 else { Add-Evidence $c7 "1일차 코드는 .env를 열지 않음" }
 
 # wildcard CORS
@@ -362,7 +393,7 @@ if ($Blockers.Count -gt 0) { $verdict = "BLOCKED" }
 if ($Checks.Count -lt 7) { $verdict = "BLOCKED" }
 
 $readmeVersion = "unknown"
-$readmeHead = Get-Content (Join-Path $Root "README.md") -TotalCount 5
+$readmeHead = Get-Content (Join-Path $Root "README.md") -TotalCount 5 -Encoding UTF8
 foreach ($line in $readmeHead) {
     if ($line -match "문서 버전:\s*(\S+)") { $readmeVersion = $Matches[1] }
 }

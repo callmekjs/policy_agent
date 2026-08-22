@@ -30,6 +30,7 @@ from app.harness.contracts import (
     CreateRunRequest,
     Run,
 )
+from app.harness.orchestrator import payload_hash
 from app.harness.runtime import BusyError
 from app.harness.states import DELETABLE_STATES, RunState, user_facing_status
 from app.infrastructure.model_gateway import CONFIGURED_MODEL, CONFIGURED_PROVIDER
@@ -228,9 +229,18 @@ async def create_run(request: Request, body: CreateRunRequest) -> Any:
     orchestrator = request.app.state.orchestrator
 
     async with store.lock:
-        # 같은 멱등 키면 기존 응답을 재사용한다. 중복 클릭이 두 번 과금되지 않는다.
+        # 같은 키·같은 내용이면 기존 응답을 재사용한다. 중복 클릭이 두 번 과금되지 않는다.
+        # 같은 키인데 내용이 다르면 거부한다 (README §2.13).
         existing = store.find_by_client_request_id(body.client_request_id)
         if existing is not None:
+            if existing.request_payload_sha256 != payload_hash(body):
+                return error_response(
+                    409,
+                    "IDEMPOTENCY_KEY_REUSED",
+                    "같은 요청 번호로 다른 내용을 보냈습니다.",
+                    "화면을 새로 고친 뒤 새 작업으로 다시 시작해 주세요.",
+                    existing.run_id,
+                )
             return run_view(existing)
 
         if runtime.busy_run_id() is not None:

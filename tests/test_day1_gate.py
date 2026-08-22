@@ -67,6 +67,30 @@ def test_script가_7개_검사를_모두_실행한다(script_text: str) -> None:
         assert f'"{check_id}"' in script_text, f"{check_id} 검사가 없습니다."
 
 
+def test_script가_실행_중_서버의_경로_탈출을_검사한다(script_text: str) -> None:
+    """정적 문자열 검사만으로는 비밀 노출을 못 잡는다.
+
+    2026-08-22 첫 검증에서 `/../../.env`로 파일이 새어 나가는데도 script가
+    PASS를 냈다. 같은 실수를 반복하지 않도록 살아 있는 서버를 찔러 보는
+    검사를 고정한다.
+    """
+    assert "escapePaths" in script_text, "경로 탈출 검사가 없습니다."
+    for path in ("/../../.env", "/%2e%2e/%2e%2e/.env", "/..%2f..%2f.env"):
+        assert path in script_text, f"경로 탈출 검사에 {path}가 없습니다."
+    assert "Fail-Check $c7" in script_text, "경로 탈출을 차단 문제로 처리하지 않습니다."
+
+
+def test_env_읽기와_잔여_포트는_경고가_아니라_차단이다(script_text: str) -> None:
+    """계약의 `.env 접근 0건`·`자신이 시작한 프로세스만 종료`가 실질 기준이어야 한다."""
+    assert 'Fail-Check $c7 ("코드가 .env를 직접 읽습니다' in script_text
+    assert 'Fail-Check $c2 "검증 서버 종료 뒤에도' in script_text
+
+
+def test_빌드_결과물이_없으면_통과시키지_않는다(script_text: str) -> None:
+    """dist가 없으면 브라우저 bundle을 검사하지 못한 것이므로 차단해야 한다."""
+    assert "브라우저 bundle의 비밀값을 검사하지 못했습니다" in script_text
+
+
 def test_script가_외부_네트워크를_쓰지_않는다(script_text: str) -> None:
     """127.0.0.1 외의 주소를 부르지 않아야 한다."""
     for banned in ("api.openai.com", "https://", "Invoke-WebRequest -Uri \"http://localhost"):

@@ -11,6 +11,7 @@ Harness는 글을 쓰는 AI가 아니라 코드 기반 진행 관리자다. 순�
 from __future__ import annotations
 
 import hashlib
+import json
 import uuid
 from datetime import UTC, date, datetime
 
@@ -48,6 +49,18 @@ def new_run_id() -> str:
 
 def sha256_text(text: str) -> str:
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+
+def payload_hash(request: CreateRunRequest) -> str:
+    """멱등 키 비교에 쓸 요청 내용 해시 (README §2.13).
+
+    멱등 키 자체는 빼고 나머지 입력만 정규화해서 센다. 같은 키인데 내용이
+    달라지면 이 값이 달라지므로 거부할 수 있다.
+    """
+    payload = request.model_dump(mode="json", exclude={"client_request_id"})
+    return hashlib.sha256(
+        json.dumps(payload, ensure_ascii=False, sort_keys=True).encode("utf-8")
+    ).hexdigest()
 
 
 class Orchestrator:
@@ -122,6 +135,7 @@ class Orchestrator:
             updated_at=now,
             last_user_action_at=now,
             client_request_id=request.client_request_id,
+            request_payload_sha256=payload_hash(request),
             purpose=request.purpose.strip(),
             disclosure=request.disclosure,
             basis_date=request.basis_date,

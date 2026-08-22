@@ -304,6 +304,10 @@ class Run(BaseModel):
     finished_at: datetime | None = None
 
     client_request_id: str
+    request_payload_sha256: str = Field(
+        default="",
+        description="정규화한 요청 payload의 해시. 같은 키·다른 내용을 거부하는 데 쓴다",
+    )
     purpose: str
     disclosure: Disclosure
     basis_date: date

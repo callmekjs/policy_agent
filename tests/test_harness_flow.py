@@ -333,11 +333,19 @@ def test_정상_입력은_1일차_범위에서_정직하게_멈춘다(client: Te
     assert body["actual_model_calls"] == 0
 
 
-def test_같은_멱등키로_두_번_눌러도_한_번만_만들어진다(client: TestClient) -> None:
+def test_같은_멱등키_같은_내용은_한_번만_만들어진다(client: TestClient) -> None:
     _bootstrap(client)
     first = _create(client)
     second = _create(client)
     assert first["run_id"] == second["run_id"]
+
+
+def test_같은_멱등키_다른_내용은_거부한다(client: TestClient) -> None:
+    """README §2.13 — 같은 키·다른 payload는 409 IDEMPOTENCY_KEY_REUSED."""
+    _bootstrap(client)
+    _create(client)
+    body = _create(client, purpose="완전히 다른 보도 목적을 적어 같은 키로 다시 보냅니다.")
+    assert body["error_code"] == "IDEMPOTENCY_KEY_REUSED"
 
 
 def test_없는_Run은_404를_돌려준다(client: TestClient) -> None:
@@ -376,6 +384,36 @@ def test_승인_배포_경로가_없다(client: TestClient) -> None:
     assert "/api/runs" in paths, "실행 API 경로를 찾지 못했습니다."
     for banned in ("approve", "publish", "final", "distribute", "send"):
         assert not any(banned in p for p in paths), f"금지된 경로가 있습니다: {banned}"
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        "/../../.env",
+        "/../../.gitignore",
+        "/../../backend/app/main.py",
+        "/%2e%2e/%2e%2e/.env",
+        "/..%2f..%2f.env",
+        "/assets/../../../.env",
+        "/C:/Windows/win.ini",
+    ],
+)
+def test_빌드_폴더_밖의_파일을_돌려주지_않는다(client: TestClient, path: str) -> None:
+    """경로 탈출로 .env·소스 파일이 새어 나가면 안 된다.
+
+    화면이 빌드되어 있지 않으면 catch-all 자체가 없으므로 404가 정상이다.
+    빌드되어 있으면 첫 화면(index.html)으로 되돌려 보내야 한다.
+    """
+    response = client.get(path)
+    assert response.status_code in (200, 404, 405)
+    if response.status_code != 200:
+        return
+
+    body = response.content
+    # 디스크의 실제 파일 내용이 그대로 나오면 안 된다.
+    for leaked in (b"OPENAI_API_KEY", b"FastAPI", b"node_modules", b"[extensions]"):
+        assert leaked not in body, f"{path}에서 파일이 새어 나갔습니다."
+    assert b'<div id="root">' in body, f"{path}가 첫 화면으로 되돌아가지 않았습니다."
 
 
 def test_contract_API가_읽은_설정을_보여준다(client: TestClient) -> None:
