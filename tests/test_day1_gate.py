@@ -86,6 +86,27 @@ def test_env_읽기와_잔여_포트는_경고가_아니라_차단이다(script_
     assert 'Fail-Check $c2 "검증 서버 종료 뒤에도' in script_text
 
 
+def test_script가_문서화된_실행법을_실제로_돌린다(script_text: str) -> None:
+    """`start-local.cmd`는 비전공자가 쓰는 유일한 진입점이다.
+
+    2026-08-22 재검증에서 이 파일이 아예 실행되지 않는데도 script는
+    uvicorn을 직접 띄워 PASS를 냈다. 같은 구멍을 막는다.
+    """
+    assert "cmd /c start-local.cmd" in script_text, "실행 바로가기를 돌리지 않습니다."
+    assert "cmd /c stop-local.cmd" in script_text, "종료 바로가기를 돌리지 않습니다."
+    assert "CRLF가 아닌 줄이" in script_text, "줄바꿈 검사가 없습니다."
+
+
+def test_실행_바로가기는_CRLF여야_한다() -> None:
+    """LF만 있으면 cmd.exe가 한글이 섞인 줄에서 명령을 잘라 읽는다."""
+    for name in ("start-local.cmd", "stop-local.cmd"):
+        data = (ROOT / name).read_bytes()
+        crlf = data.count(b"\r\n")
+        lf_only = data.count(b"\n") - crlf
+        assert lf_only == 0, f"{name}에 CRLF가 아닌 줄이 {lf_only}개 있습니다."
+        assert crlf > 0, f"{name}이 비어 있습니다."
+
+
 def test_빌드_결과물이_없으면_통과시키지_않는다(script_text: str) -> None:
     """dist가 없으면 브라우저 bundle을 검사하지 못한 것이므로 차단해야 한다."""
     assert "브라우저 bundle의 비밀값을 검사하지 못했습니다" in script_text

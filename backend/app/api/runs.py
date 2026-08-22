@@ -73,8 +73,12 @@ def _origin_ok(request: Request) -> bool:
     return origin in allowed
 
 
-def guard_state_change(request: Request) -> JSONResponse | None:
-    """상태 변경 요청의 공통 검사. 통과하면 None."""
+def guard_local_host(request: Request) -> JSONResponse | None:
+    """이 컴퓨터에서 온 요청인지 확인한다. 통과하면 None.
+
+    조회에도 적용한다. 다른 이름으로 이 서버를 가리키게 만든 웹페이지가
+    작업 내용을 읽어 가지 못하게 막는다.
+    """
     if not _is_local_host(request):
         return error_response(
             403,
@@ -82,6 +86,14 @@ def guard_state_change(request: Request) -> JSONResponse | None:
             "이 프로그램은 이 컴퓨터에서만 사용할 수 있습니다.",
             "127.0.0.1 주소로 다시 열어 주세요.",
         )
+    return None
+
+
+def guard_state_change(request: Request) -> JSONResponse | None:
+    """상태 변경 요청의 공통 검사. 통과하면 None."""
+    host_guard = guard_local_host(request)
+    if host_guard is not None:
+        return host_guard
     if not _origin_ok(request):
         return error_response(
             403,
@@ -282,6 +294,10 @@ async def create_run(request: Request, body: CreateRunRequest) -> Any:
 @router.get("/runs/{run_id}")
 async def get_run(request: Request, run_id: str) -> Any:
     """현재 상태를 돌려준다. 이 조회는 2시간 만료 시간을 늘리지 않는다."""
+    guard = guard_local_host(request)
+    if guard is not None:
+        return guard
+
     store = request.app.state.store
     async with store.lock:
         run = store.get(run_id)

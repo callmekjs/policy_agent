@@ -50,7 +50,7 @@ REM 4) 서버가 응답할 때까지 기다립니다.
 set "READY="
 for /l %%i in (1,1,30) do (
     if not defined READY (
-        timeout /t 1 /nobreak >nul
+        ping -n 2 127.0.0.1 >nul
         curl -s -o nul -w "%%{http_code}" "%URL%/api/health" 2>nul | findstr /C:"200" >nul
         if not errorlevel 1 set "READY=1"
     )

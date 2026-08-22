@@ -149,9 +149,89 @@ $c4 = New-Check "D1G-04" "Harness 상태와 가짜 AI"
 # D1G-07은 실행 중인 서버에서도 검사하므로 여기서 미리 만든다.
 $c7 = New-Check "D1G-07" "비밀값·네트워크·도메인 청정성"
 
+# 문서화된 실행법(start-local.cmd)이 실제로 도는지 확인한다.
+# 비전공자가 쓰는 유일한 진입점이므로 여기서 깨지면 나머지가 다 소용없다.
+#
+# 실행기 프로세스가 콘솔을 붙잡고 안 끝나는 환경이 있으므로, 이 검사는
+# 시간 제한이 걸린 별도 작업에서 돌린다. 검사기 자체가 멈추면 안 된다.
+$startCmd = Join-Path $Root "start-local.cmd"
+$stopCmd = Join-Path $Root "stop-local.cmd"
+
+$cmdBytes = [System.IO.File]::ReadAllBytes($startCmd)
+$crlf = 0
+for ($i = 0; $i -lt $cmdBytes.Length - 1; $i++) {
+    if ($cmdBytes[$i] -eq 13 -and $cmdBytes[$i + 1] -eq 10) { $crlf++ }
+}
+$lfTotal = ($cmdBytes | Where-Object { $_ -eq 10 }).Count
+$lfOnly = $lfTotal - $crlf
+if ($lfOnly -gt 0) {
+    Fail-Check $c2 "start-local.cmd에 CRLF가 아닌 줄이 $($lfOnly)개 있습니다. cmd.exe가 한글 줄을 잘라 읽습니다."
+} else {
+    Add-Evidence $c2 "start-local.cmd 줄바꿈 CRLF $($crlf)개, LF 단독 0개"
+}
+
+$shortcutJob = Start-Job -ScriptBlock {
+    param($root, $startCmd, $stopCmd, $logDir)
+    $log = Join-Path $logDir "shortcut-out.log"
+    $err = Join-Path $logDir "shortcut-err.log"
+    $proc = Start-Process -FilePath "cmd.exe" -ArgumentList "/c", "`"$startCmd`"" `
+        -WorkingDirectory $root -WindowStyle Hidden -PassThru `
+        -RedirectStandardOutput $log -RedirectStandardError $err
+    $ready = $false
+    for ($k = 0; $k -lt 60; $k++) {
+        try {
+            $h = Invoke-RestMethod -Uri "http://127.0.0.1:8765/api/health" -TimeoutSec 2
+            if ($h.status -eq "ok") { $ready = $true; break }
+        } catch { }
+        Start-Sleep -Milliseconds 1000
+    }
+    $text = ""
+    foreach ($f in @($log, $err)) {
+        if (Test-Path $f) { $text += (Get-Content $f -Raw -Encoding UTF8 -ErrorAction SilentlyContinue) }
+    }
+    if (-not $proc.HasExited) { Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue }
+
+    # 문서화된 방법으로만 끈다.
+    $stopProc = Start-Process -FilePath "cmd.exe" -ArgumentList "/c", "`"$stopCmd`"" `
+        -WorkingDirectory $root -WindowStyle Hidden -PassThru
+    $stopProc.WaitForExit(30000) | Out-Null
+    Start-Sleep -Milliseconds 1500
+    $left = @(Get-NetTCPConnection -LocalPort 8765 -State Listen -ErrorAction SilentlyContinue).Count
+
+    [pscustomobject]@{ Ready = $ready; Output = $text; PortLeft = $left }
+} -ArgumentList $Root, $startCmd, $stopCmd, $env:TEMP
+
+$shortcut = $null
+if (Wait-Job -Job $shortcutJob -Timeout 180) {
+    $shortcut = Receive-Job -Job $shortcutJob
+}
+Remove-Job -Job $shortcutJob -Force -ErrorAction SilentlyContinue
+
+if ($shortcut -eq $null) {
+    Fail-Check $c2 "start-local.cmd 검사가 180초 안에 끝나지 않았습니다."
+} else {
+    [void]$c2.commands.Add([ordered]@{
+        command   = "cmd /c start-local.cmd; cmd /c stop-local.cmd"
+        exit_code = $(if ($shortcut.Ready) { 0 } else { 1 })
+        summary   = ($shortcut.Output -split "`r?`n" | Where-Object { $_.Trim() -ne "" } | Select-Object -Last 1)
+    })
+    if ($shortcut.Output -match "is not recognized|\[멈춤\]") {
+        Fail-Check $c2 "start-local.cmd 실행 중 오류 메시지가 나왔습니다."
+    } elseif (-not $shortcut.Ready) {
+        Fail-Check $c2 "start-local.cmd 뒤에도 8765가 응답하지 않습니다."
+    } else {
+        Add-Evidence $c2 "실행 바로가기로 8765의 /api/health 200"
+    }
+    if ($shortcut.PortLeft -gt 0) {
+        Fail-Check $c2 "stop-local.cmd 뒤에도 8765 포트가 열려 있습니다."
+    } else {
+        Add-Evidence $c2 "stop-local.cmd로 자신이 시작한 서버만 정상 종료"
+    }
+}
+
 $listener = Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction SilentlyContinue
 if ($listener) {
-    Fail-Check $c2 "$Port 포트를 이미 다른 프로그램이 쓰고 있습니다."
+    Fail-Check $c2 "$($Port) 포트를 이미 다른 프로그램이 쓰고 있습니다."
 } else {
     $ServerProcess = Start-Process -FilePath "python" `
         -ArgumentList @("-m", "uvicorn", "app.main:app", "--host", "127.0.0.1", "--port", "$Port", "--workers", "1") `

@@ -2,3 +2,7 @@
 # Git이 줄바꿈(LF <-> CRLF)을 바꾸면 test_sets/CHECKSUMS.sha256과
 # README의 PG-001 해시가 전부 어긋나므로, 모든 파일을 그대로 보존합니다.
 * -text
+
+# Windows 실행 바로가기는 CRLF여야 cmd.exe가 한글이 섞인 줄을 바르게 읽는다.
+# LF만 있으면 findstr 같은 명령이 잘려서 실행이 통째로 실패한다.
+*.cmd text eol=crlf

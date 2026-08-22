@@ -1,0 +1,458 @@
+{
+  "gate_id": "DEMO-DAY1-GATE",
+  "run_id": "day1-recheck-20260822-131620",
+  "readme_version": "0.23.0-draft",
+  "started_at": "2026-08-22T13:04:00Z",
+  "completed_at": "2026-08-22T13:20:00Z",
+  "verifier": {
+    "context": "구현 담당자와 다른 새 문맥의 DayGateVerifier. 재검증(2차)이며 직전 PASS 보고서는 코드 변경으로 STALE 처리했다. 코드·테스트·README를 고치지 않았고 패키지 설치·인터넷·OpenAI 호출·.env 열람을 하지 않았다.",
+    "is_separate_from_implementer": true
+  },
+  "source_snapshot": {
+    "file_count": 36,
+    "combined_sha256": "258a6047098bb388992663700e0198edfd952fe9be16496fcc0c38ff43265ac2",
+    "files": [
+      {
+        "path": "backend/app/api/runs.py",
+        "sha256": "ddb7e439eef7ce51f2a507932e9b3c7f6297ca61817a2c6e9f9b57d8646e786a"
+      },
+      {
+        "path": "backend/app/api/__init__.py",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "backend/app/gates/input_gate.py",
+        "sha256": "69faf53ee7f63da367c6c510f85549b0edf181f0237f59ada7ed9cf06e3f824e"
+      },
+      {
+        "path": "backend/app/gates/__init__.py",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "backend/app/harness/contracts.py",
+        "sha256": "c4e080ae32746d9effde2092784eff33b0e097c01a5d682c3d7a37ebdb80394e"
+      },
+      {
+        "path": "backend/app/harness/contract_loader.py",
+        "sha256": "a49a8ed1b9d204d4fdfdef91fab4d914f0ececca971bdd5630cbfa9a8d33383a"
+      },
+      {
+        "path": "backend/app/harness/orchestrator.py",
+        "sha256": "da9b27bc6056a0dc1205037ca6a1f0c68b738faf4bdb6d49ca78ea7533eef1d0"
+      },
+      {
+        "path": "backend/app/harness/runtime.py",
+        "sha256": "adb8394f5c16e73ad4969e14f62940d7a82c6177fb7f328422e1cbd417a24b2c"
+      },
+      {
+        "path": "backend/app/harness/states.py",
+        "sha256": "a75afd52f696b966b507326ba31e1dc42976986ec50b1dfb015cd2c428adad03"
+      },
+      {
+        "path": "backend/app/harness/__init__.py",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "backend/app/infrastructure/model_gateway.py",
+        "sha256": "50163687bd071636c68f6007d847c196c1c502e009e2f0f6e5578a07181719e9"
+      },
+      {
+        "path": "backend/app/infrastructure/run_store.py",
+        "sha256": "518fea31c2af082ca83333c03bcf6ae4563131135dda07455d67cc337fac984a"
+      },
+      {
+        "path": "backend/app/infrastructure/__init__.py",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "backend/app/main.py",
+        "sha256": "e5b6bb9719b1acc89f337e4d7c569fd2d836d95c3c9049c598d1ccf408ce6c76"
+      },
+      {
+        "path": "backend/app/writing_contracts/assembly_law_amendment_v1/contract.yaml",
+        "sha256": "9065fa6d7d3f31d8d487517ef43c770a1003aec034d099ab21eadf579a5af6bc"
+      },
+      {
+        "path": "backend/app/writing_contracts/assembly_law_amendment_v1/profile.yaml",
+        "sha256": "29c13548a7504677bf12dd80016c989071d8fb1b37cd557527b812f5237a507c"
+      },
+      {
+        "path": "backend/app/writing_contracts/assembly_law_amendment_v1/style.yaml",
+        "sha256": "13434349ee3564b2fd389889eb4e1cd286ca4d618466435ceef4fc57dd7cb9ba"
+      },
+      {
+        "path": "backend/app/writing_contracts/assembly_law_amendment_v1/template.yaml",
+        "sha256": "0fe4f17dd0d01e1cb6255fd4e541a102ccedde6891f9a6933749b7e5e980c7ef"
+      },
+      {
+        "path": "backend/app/writing_contracts/assembly_law_amendment_v1/validation.yaml",
+        "sha256": "fa672e462157407ab4edb70965cbbf34ce69febdc4e87a2c079419fb0b2246bf"
+      },
+      {
+        "path": "backend/app/__init__.py",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "frontend/src/api/client.ts",
+        "sha256": "d7642940572b68e3f8fcf4f495584f8bb3817bad4a861a0f9b0688513765d401"
+      },
+      {
+        "path": "frontend/src/App.test.tsx",
+        "sha256": "b5c31e9a8452d99f437900732bfdf1f8d1d6ee238e3ccd8520d2b17d8375c24f"
+      },
+      {
+        "path": "frontend/src/App.tsx",
+        "sha256": "dd865cd5e5f5eeb30a9d0f1072439a27f0c0ca1de4037c8603a6d50d4ebd43cc"
+      },
+      {
+        "path": "frontend/src/main.tsx",
+        "sha256": "8070aefba6d43f5300a919f02adb3071318bee89f10cffe07c64df74e85a1635"
+      },
+      {
+        "path": "frontend/src/screens/NewRunScreen.tsx",
+        "sha256": "77f78e0e37846568b2058a34e1f32a743feb8c461f0a1bd1bf14dcdd9a96ddaf"
+      },
+      {
+        "path": "frontend/src/screens/RunStatusScreen.tsx",
+        "sha256": "9927d6fcf52ca682b37859956d3832c2b76aa556da82afe6ee4d57f1cf905f41"
+      },
+      {
+        "path": "frontend/src/styles.css",
+        "sha256": "13fdcb43c3281fa8d6456322c82d9d96cb760842cb3ef0256e8125aa7d42d97d"
+      },
+      {
+        "path": "frontend/src/test-setup.ts",
+        "sha256": "977afde26bba6a51325908cd7713cbfdc87d18f06b78b237c8f364c44864b7de"
+      },
+      {
+        "path": "frontend/src/types.ts",
+        "sha256": "448463f49694646f2254d3ab29c99036b0af7a8d248a1c7425be56a4b2d51b8f"
+      },
+      {
+        "path": "scripts/verify-day1.ps1",
+        "sha256": "2c9e54a510b76bad6fee25e7b3e413ebe00224a9382f52ceaf6193b4fadd1f5b"
+      },
+      {
+        "path": "start-local.cmd",
+        "sha256": "b0431f7b5b1f1bf9549e6e9d1a383945acb959c244d26b703f9bb7612a7ce222"
+      },
+      {
+        "path": "stop-local.cmd",
+        "sha256": "73b27639def9673d8bbb55033594d329b4eb3f58e13a9fada2517d9bdf1b60cb"
+      },
+      {
+        "path": "tests/test_day1_gate.py",
+        "sha256": "9fd53ca8b996b5209d5f1165493f6e2f0bc3c07b26519e25d151963198f9a688"
+      },
+      {
+        "path": "tests/test_harness_flow.py",
+        "sha256": "195fcf4017b00900eaf3e8b6242fc01bb0e7a1c1a21a8400d8ce851a456cf082"
+      },
+      {
+        "path": "verification/day-gate-result.schema.json",
+        "sha256": "1c0f59930f119be9f8d725e5c1c848725f02b76c674298e9d31b97e202773dd7"
+      },
+      {
+        "path": "verification/day-gate-verifier.md",
+        "sha256": "0987e8720e7461e2883a195219c419f193743dada3107c6afe9c960f8c427814"
+      }
+    ]
+  },
+  "verdict": "BLOCKED",
+  "checks": [
+    {
+      "check_id": "D1G-01",
+      "title": "1일차 필수 파일과 실행 진입점",
+      "status": "PASS",
+      "commands": [
+        {
+          "command": "powershell -ExecutionPolicy Bypass -File scripts\\verify-day1.ps1",
+          "exit_code": 0,
+          "summary": "D1G-01 -> 필수 파일 28개 모두 존재, 백엔드 모듈 로드 exit 0"
+        },
+        {
+          "command": "python -c \"import app.main, app.api.runs, app.harness.orchestrator\" (cwd=backend)",
+          "exit_code": 0,
+          "summary": "modules ok"
+        },
+        {
+          "command": "python -m compileall -q backend/app tests",
+          "exit_code": 0,
+          "summary": "구문 오류 0건"
+        }
+      ],
+      "evidence": [
+        "script D1G-01: 필수 파일 28개 모두 존재 + 백엔드 모듈 로드 exit 0",
+        "검사원 독립 확인: React(main.tsx/App.tsx/NewRunScreen.tsx/RunStatusScreen.tsx/client.ts/types.ts), FastAPI(main.py/api/runs.py), Harness 뼈대(states.py/contracts.py/orchestrator.py/runtime.py/contract_loader.py/gates/input_gate.py/infrastructure/model_gateway.py/run_store.py), 검증 도구(day-gate-verifier.md/day-gate-result.schema.json/verify-day1.ps1), 실행 진입점(start-local.cmd/stop-local.cmd) 모두 실재",
+        "python -m compileall backend/app tests exit 0 (구문 오류 0건)",
+        "소스 snapshot 36개 파일 SHA-256 기록, 통합 해시 258a6047098bb388..."
+      ]
+    },
+    {
+      "check_id": "D1G-02",
+      "title": "한 주소에서 시작·종료 (문서화된 실행법)",
+      "status": "FAIL",
+      "commands": [
+        {
+          "command": "cmd.exe /c C:\\policy_agent\\start-local.cmd",
+          "exit_code": 255,
+          "summary": "'indstr' is not recognized as an internal or external command. 배너 미출력, 서버 미기동, 브라우저 미개방. 4회 재현"
+        },
+        {
+          "command": "Get-NetTCPConnection -LocalPort 8765 -State Listen",
+          "exit_code": 0,
+          "summary": "listener 0건 - start-local.cmd 실행 뒤에도 서버가 뜨지 않음"
+        },
+        {
+          "command": "cmd.exe /c C:\\policy_agent\\stop-local.cmd",
+          "exit_code": 0,
+          "summary": "3줄의 'is not recognized' 오류 뒤 PID 파일이 없는데도 '[멈춤] 서버를 종료하지 못했습니다' 오탐 출력"
+        },
+        {
+          "command": "cmd.exe /c <scratch>\\repro_lf.cmd  (start-local.cmd 앞 25줄, LF 그대로)",
+          "exit_code": 0,
+          "summary": "'lth'/'erver.pid\"'/'...이고' 등 5건 오류, 한글 배너 깨짐"
+        },
+        {
+          "command": "cmd.exe /c <scratch>\\repro_crlf.cmd  (같은 내용, 줄바꿈만 CRLF)",
+          "exit_code": 0,
+          "summary": "한글 배너 정상 출력, 오류 0건, PORT-FREE / REACHED-END 정상 도달"
+        },
+        {
+          "command": "python -c \"open('start-local.cmd','rb').read()\" (줄바꿈 계수만)",
+          "exit_code": 0,
+          "summary": "start-local.cmd 2618 bytes CRLF 0 LF 76 / stop-local.cmd 1132 bytes CRLF 0 LF 40"
+        },
+        {
+          "command": "GET http://127.0.0.1:8799/api/health (script가 uvicorn 직접 기동)",
+          "exit_code": 0,
+          "summary": "status=ok - 명령을 직접 입력하는 경로는 정상"
+        }
+      ],
+      "evidence": [
+        "차단: 문서화된 실행법(README 3.7 '실행 바로가기', 3.8, 3.9의 start-local.cmd)이 동작하지 않는다. cmd.exe /c start-local.cmd 가 exit 255로 끝나고 'indstr' is not recognized 한 줄만 남긴다. 한글 배너조차 출력되지 않고 8765 포트에 listener 0건, 브라우저도 열리지 않는다. 4회 재현했다.",
+        "차단: 문서화된 종료 방법 stop-local.cmd 도 3건의 'is not recognized' 오류를 내고, PID 파일이 없는데도 '[멈춤] 서버를 종료하지 못했습니다'라는 잘못된 안내를 출력한다.",
+        "원인 확인: 두 .cmd 파일이 CRLF 0건, LF 76/40건으로 저장되어 있다. chcp 65001 뒤 여러 바이트 한글이 섞인 배치 파일을 LF만으로 저장하면 cmd.exe의 바이트 오프셋 추적이 어긋나 명령이 잘려 실행된다.",
+        "대조 실험: start-local.cmd 앞 25줄을 바이트 그대로 복사해 LF본과 CRLF본을 만들어 실행했다. LF본은 'lth', 'erver.pid\"' 등 5건의 잘린 명령 오류를 내고 한글 배너가 깨졌으며, 줄바꿈만 CRLF로 바꾼 본은 배너를 정상 출력하고 오류 0건으로 끝까지 도달했다. 내용이 아니라 줄바꿈이 원인이다.",
+        "확산 조건: .gitattributes 의 `* -text` 가 LF 바이트를 그대로 고정하므로 어느 checkout에서도 같은 실패가 재현된다.",
+        "부수 피해: start-local.cmd 실행 중 프로젝트 루트에 0바이트 파일 `같은` 이 생성됐다(REM 주석의 `-> 같은 주소로` 조각이 리디렉션으로 실행된 것으로 보인다). 검사원이 제거했다.",
+        "참고: uvicorn을 직접 실행하는 경로 자체는 정상이다. script가 띄운 8799 서버는 /api/health 200, 첫 화면 200(#root 포함), 종료 뒤 잔여 listener 0건이었다. 즉 서버 코드가 아니라 문서화된 실행 진입점이 깨져 있다.",
+        "script 한계: scripts/verify-day1.ps1 은 start-local.cmd / stop-local.cmd 를 한 번도 실행하지 않고 uvicorn을 직접 띄운다. 그래서 이 결함이 2회 연속 PASS로 통과했다."
+      ]
+    },
+    {
+      "check_id": "D1G-03",
+      "title": "사용자 입력 네 가지와 거짓 성공 없는 차단",
+      "status": "PASS",
+      "commands": [
+        {
+          "command": "grep -n '보도 목적|공개 범위|자료 확인 기준일|공식 자료' frontend/src/screens/NewRunScreen.tsx",
+          "exit_code": 0,
+          "summary": "네 라벨 모두 <label>로 존재, 전부 필수 표시"
+        },
+        {
+          "command": "POST /api/runs (purpose='', sources=[]) 뒤 GET /api/runs/{id} 폴링",
+          "exit_code": 0,
+          "summary": "state=NEEDS_INPUT, draft_version=0, actual_model_calls=0, issues 2건"
+        },
+        {
+          "command": "POST /api/runs (쿠키 없음)",
+          "exit_code": 0,
+          "summary": "403 REQUEST_TOKEN_INVALID"
+        },
+        {
+          "command": "POST /api/runs (Host: evil.example.com)",
+          "exit_code": 0,
+          "summary": "403 NON_LOCAL_HOST"
+        },
+        {
+          "command": "POST /api/runs (Origin: http://evil.example.com)",
+          "exit_code": 0,
+          "summary": "403 ORIGIN_NOT_ALLOWED"
+        },
+        {
+          "command": "POST /api/runs (잘못된 JSON / 필드 누락)",
+          "exit_code": 0,
+          "summary": "422, 응답 본문에 절대경로·Traceback·site-packages·키 패턴 0건"
+        }
+      ],
+      "evidence": [
+        "화면: NewRunScreen.tsx 에 '보도 목적', '공개 범위', '자료 확인 기준일', '공식 자료' 네 입력이 모두 필수 라벨로 존재",
+        "API 계약: CreateRunRequest 에 purpose / disclosure / basis_date / sources 네 필드가 있고 extra='forbid'",
+        "빈 입력 실제 요청 결과: NEEDS_INPUT, 초안 0건, AI 호출 0회, 안내 Issue 2건 - 거짓 성공 없음",
+        "입력 Gate 단위시험: 목적 공백·자료 없음·EMBARGO·전송 미확인·정책 버전 불일치·미래 기준일·자료 개수 초과·분량 초과 모두 차단 확인 (pytest 57건 통과)",
+        "쿠키·Host·Origin 검사가 모두 403으로 거부되고, 오류 본문에 내부 경로나 비밀이 없음"
+      ]
+    },
+    {
+      "check_id": "D1G-04",
+      "title": "Harness 상태 계약과 가짜 ModelGateway, 멱등 계약",
+      "status": "PASS",
+      "commands": [
+        {
+          "command": "POST /api/runs (raw socket, 같은 키 + 같은 내용)",
+          "exit_code": 0,
+          "summary": "1회차 202 RUN-1FD11A0C74C8 / 2회차 202 같은 run_id - 최초 HTTP 상태와 응답 재사용"
+        },
+        {
+          "command": "POST /api/runs (같은 키 + purpose 변경)",
+          "exit_code": 0,
+          "summary": "409 IDEMPOTENCY_KEY_REUSED"
+        },
+        {
+          "command": "POST /api/runs (같은 키 + sources 변경)",
+          "exit_code": 0,
+          "summary": "409 IDEMPOTENCY_KEY_REUSED"
+        },
+        {
+          "command": "POST /api/runs (다른 키, 진행 중 Run 존재)",
+          "exit_code": 0,
+          "summary": "409 RUN_ALREADY_EXISTS"
+        },
+        {
+          "command": "GET /api/health",
+          "exit_code": 0,
+          "summary": "model_gateway=fake, external_api_calls=0"
+        }
+      ],
+      "evidence": [
+        "실행 ID 형식 RUN-[A-Z0-9]{12} 확인 (RUN-1FD11A0C74C8), 초기 상태 CREATED",
+        "1일차 최소 전이 확인: CREATED -> VALIDATING_INPUT -> NEEDS_INPUT(입력 부족) / -> FAILED(failure_kind=TECHNICAL, code=DAY1_SCOPE_LIMIT). 아직 만들지 않은 단계를 성공으로 보여주지 않음",
+        "README 664줄 멱등 계약 실제 확인: 같은 키+같은 hash는 최초 상태 202와 같은 run_id 재사용, 같은 키+다른 hash(purpose 변경, sources 변경 각각)는 409 IDEMPOTENCY_KEY_REUSED",
+        "검증 내내 FakeModelGateway만 사용. actual_model_calls=0, estimated_cost_usd=0.0, /api/health external_api_calls=0",
+        "상태 머신 단위시험: 전이표 전체 커버, 종료 상태 전이 0건, 허용되지 않은 전이 InvalidTransition"
+      ]
+    },
+    {
+      "check_id": "D1G-05",
+      "title": "Writing Contract manifest 1개 + 설정 4개",
+      "status": "PASS",
+      "commands": [
+        {
+          "command": "dir backend/app/writing_contracts/assembly_law_amendment_v1",
+          "exit_code": 0,
+          "summary": "contract.yaml/profile.yaml/template.yaml/style.yaml/validation.yaml 물리적 파일 5개"
+        },
+        {
+          "command": "python -c \"from app.harness.contract_loader import load_writing_contract as l; print(l().full_id)\"",
+          "exit_code": 0,
+          "summary": "assembly_member_partial_amendment_plenary_v1@1.0.0"
+        },
+        {
+          "command": "GET /api/contract",
+          "exit_code": 0,
+          "summary": "files 5개, components 4개 모두 @1.0.0, required_sections에 DRAFT_MARK 포함"
+        }
+      ],
+      "evidence": [
+        "물리적 파일 5개 존재, 서버 lifespan이 시작 전에 읽고 실패하면 기동하지 않음",
+        "loader가 contract_id/version/components 필수 필드, 컴포넌트별 필수 필드(profile_id·template_id·style_id·validation_id·version 등), manifest 선언 id@version 과 실제 파일 값 일치를 검사",
+        "manifest와 실제 버전이 다르면 ContractLoadError로 거부되는 시험이 통과",
+        "제외 규칙이 검사기 실행 목록과 서로소이고, 금지 표현을 validation 한 곳에서만 정의하는 시험이 통과"
+      ]
+    },
+    {
+      "check_id": "D1G-06",
+      "title": "반복 가능한 코드 검사 전부 exit 0",
+      "status": "PASS",
+      "commands": [
+        {
+          "command": "python -m pytest ../tests -q (cwd=backend)",
+          "exit_code": 0,
+          "summary": "57 passed, 0 skipped, 0 failed"
+        },
+        {
+          "command": "npx tsc --noEmit -p tsconfig.app.json (cwd=frontend)",
+          "exit_code": 0,
+          "summary": "타입 오류 0건"
+        },
+        {
+          "command": "npm test --silent (cwd=frontend)",
+          "exit_code": 0,
+          "summary": "vitest 1 file / 6 tests passed"
+        },
+        {
+          "command": "npm run build --silent (cwd=frontend)",
+          "exit_code": 0,
+          "summary": "production build 성공, dist 산출물이 형상관리 값과 동일"
+        },
+        {
+          "command": "python -m compileall -q backend/app tests",
+          "exit_code": 0,
+          "summary": "구문 오류 0건"
+        }
+      ],
+      "evidence": [
+        "필수 명령 5종이 모두 exit 0이고 SKIP·누락 0건 (pytest 57 passed / vitest 6 passed)",
+        "검사원이 script와 별도로 pytest·tsc·vitest를 다시 실행해 같은 결과를 얻음",
+        "production build 뒤 frontend/dist 가 형상관리 상태와 동일해 bundle이 현재 소스에서 나온 것임을 확인"
+      ]
+    },
+    {
+      "check_id": "D1G-07",
+      "title": "비밀·네트워크·기록 (직전 차단 문제 재확인 포함)",
+      "status": "PASS",
+      "commands": [
+        {
+          "command": "raw socket GET 43종 (경로 탈출 + 대조군), 자체 기동 서버 port 8811",
+          "exit_code": 0,
+          "summary": "탈출 시도 전부 404 이거나 index.html 446 bytes(sha256 5056b7ea...)와 바이트 단위 동일. 유출 0건"
+        },
+        {
+          "command": "GET /assets/../../../.env 외 assets mount 탈출 4종",
+          "exit_code": 0,
+          "summary": "전부 404 - StaticFiles mount도 탈출 차단"
+        },
+        {
+          "command": "grep -rE 'sk-[A-Za-z0-9_-]{20,}|gho_|AKIA|xox[baprs]-' backend/app frontend/src frontend/dist tests scripts verification",
+          "exit_code": 1,
+          "summary": "일치 0건"
+        },
+        {
+          "command": "grep -rn 'dotenv|load_dotenv' backend/app frontend/src",
+          "exit_code": 1,
+          "summary": "일치 0건 - 1일차 코드는 .env를 열지 않음"
+        },
+        {
+          "command": "grep -rn 'from openai|import openai|api.openai.com' backend/app frontend/src frontend/dist",
+          "exit_code": 1,
+          "summary": "일치 0건"
+        },
+        {
+          "command": "grep -rn 'allow_origins' backend/app",
+          "exit_code": 0,
+          "summary": "DEV_ORIGINS(127.0.0.1:5173, localhost:5173)만, wildcard 0건. POLICY_AGENT_DEV=1일 때만 미들웨어 부착"
+        },
+        {
+          "command": "grep -rEi 'pubmed|pubtator|scispacy|biopython|assay|fasta|mesh_term' backend/app frontend/src frontend/dist",
+          "exit_code": 1,
+          "summary": "생명과학 전용 잔재 0건"
+        }
+      ],
+      "evidence": [
+        "직전 차단 문제 해소 확인: HTTP 클라이언트가 URL을 정규화하지 못하도록 raw socket으로 요청 줄을 직접 써서 43종을 보냈다. /../../.env, /%2e%2e/%2e%2e/.env, /..%2f..%2f.env, /assets/../../../.env, /../../backend/app/main.py, /..\\..\\.env, /..%5c..%5c.env, /%252e%252e/..., /....//....//.env, /..;/..;/.env, /C:/policy_agent/.env, //127.0.0.1/C$/..., /..%c0%af..%c0%af.env, /..%ef%bc%8f...(전각 슬래시), /../../.env%00.html, /../../.env::$DATA(ADS), /../../.git/config, /../../README.md 등 전부 유출 0건",
+        "판정 방식: .env를 열지 않고 응답 본문이 index.html 446 bytes와 SHA-256까지 동일한지, 그리고 응답 길이가 디스크 .env(378 bytes)·README(290119)·main.py(4319) 크기와 일치하는지만 비교했다. 일치 0건",
+        "대조군이 살아 있음: /assets/index-DntkmZcf.js 는 206868 bytes로 정상 서빙되고 /api/health·/api/contract 는 자기 JSON을 반환하므로, 모든 응답이 무조건 index.html인 위양성이 아니다",
+        "정적 검사: API 키 패턴 0건, dotenv 사용 0건, OpenAI SDK·엔드포인트 0건, wildcard CORS 0건, 생명과학 잔재 0건, dangerouslySetInnerHTML 0건",
+        "오류 본문 유출 검사: 422·404 응답에 절대경로·Traceback·site-packages·키 패턴 0건",
+        "이 보고서에는 API 키·사용자 원문·AI 응답 전문·숨은 사고과정을 기록하지 않았다"
+      ]
+    }
+  ],
+  "blockers": [
+    {
+      "check_id": "D1G-02",
+      "message": "문서화된 실행법인 start-local.cmd 가 cmd.exe에서 exit 255로 실패한다. 'indstr' is not recognized 한 줄만 출력하고 한글 배너도 나오지 않으며, 8765 포트에 listener 0건, 브라우저도 열리지 않는다. stop-local.cmd 도 3건의 잘린 명령 오류를 내고 PID 파일이 없는데도 '[멈춤] 서버를 종료하지 못했습니다'를 출력한다. 원인은 두 .cmd 파일이 CRLF 0건·LF만으로 저장된 것이고, chcp 65001 뒤 여러 바이트 한글이 섞이면 cmd.exe의 바이트 오프셋이 어긋나 명령이 잘린다. 줄바꿈만 CRLF로 바꾼 대조본은 같은 내용으로 정상 동작했다. README 3.7의 1일차 종료 조건 '실행 바로가기에서 브라우저가 열리고'와 D1G-02의 '문서화된 실행법으로 /api/health 200·첫 화면 로드·자신이 시작한 프로세스만 정상 종료'를 만족하지 못한다."
+    }
+  ],
+  "warnings": [
+    "script의 경로 탈출 검사 6종 중 4종이 형식적이다. 일부러 취약하게 만든 미끼 서버(decoy)에 script와 똑같은 Invoke-WebRequest 검사를 돌린 결과, /../../.env, /../../.gitignore, /../../backend/app/main.py, /assets/../../../.env 는 .NET System.Uri가 클라이언트에서 점 세그먼트를 먼저 정규화해 서버에 `..`가 도달하지 않아 유출을 놓쳤다. 실제로 탐지한 것은 /%2e%2e/%2e%2e/.env 와 /..%2f..%2f.env 2종뿐이다(2/6). 결함 자체는 잡히지만 검사 목록의 3분의 2는 위안용이다.",
+    "tests/test_harness_flow.py 의 경로 탈출 회귀 시험 7종도 같은 이유로 4종이 형식적이다. 같은 미끼 서버에 httpx TestClient로 돌린 결과 /%2e%2e/%2e%2e/.env, /..%2f..%2f.env, /C:/Windows/win.ini 3종만 탐지했다(3/7). 진짜 회귀 방어를 원하면 raw socket 요청을 한 건이라도 넣는 것이 좋다.",
+    "멱등 메타데이터가 Run 객체에만 있다. 같은 키+다른 내용은 Run이 살아 있는 동안만 409로 막히고, DELETE 뒤에는 같은 키+다른 내용이 202로 통과해 새 Run이 만들어졌다. README 2.13의 '멱등 메타데이터는 원문 없이 2시간 보관'은 아직 구현되지 않았다. 1일차 차단 사유는 아니지만 2일차 이후에 남는다.",
+    "localhost Host 검사가 상태 변경 요청에만 걸려 있다. GET /api/contract, GET /api/bootstrap, GET /api/runs/{run_id} 는 Host: evil.example.com 으로도 200을 돌려준다. DNS rebinding으로 진행 중 Run의 purpose와 자료 이름·글자 수가 읽힐 수 있다. 원문·초안은 노출되지 않고 상태 변경은 403으로 막히므로 1일차 차단 사유는 아니다.",
+    "scripts/verify-day1.ps1 이 D1G-02에서 문서화된 실행법(start-local.cmd/stop-local.cmd)을 한 번도 실행하지 않는다. 이번 차단 문제가 2회 연속 PASS로 통과한 직접 원인이므로 script에 실행 바로가기 자체를 돌려 보는 단계를 넣어야 한다.",
+    "script의 통합 해시(6acbc294...)와 검사원 계산값(258a6047...)이 다르다. 파일별 SHA-256 36건은 동일하며, 차이는 PowerShell Sort-Object 의 문화권 정렬과 Python 정렬 순서 차이 때문이다. staleness 판정은 파일별 해시를 기준으로 한다."
+  ],
+  "external_api_calls": 0,
+  "estimated_cost_usd": 0
+}

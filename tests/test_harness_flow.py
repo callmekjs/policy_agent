@@ -348,6 +348,18 @@ def test_같은_멱등키_다른_내용은_거부한다(client: TestClient) -> N
     assert body["error_code"] == "IDEMPOTENCY_KEY_REUSED"
 
 
+def test_조회도_다른_주소에서는_거부한다(client: TestClient) -> None:
+    """다른 이름으로 이 서버를 가리키는 페이지가 작업 내용을 읽어 가면 안 된다."""
+    _bootstrap(client)
+    created = _create(client)
+    response = client.get(
+        f"/api/runs/{created['run_id']}",
+        headers={"host": "evil.example.com"},
+    )
+    assert response.status_code == 403
+    assert response.json()["error_code"] == "NON_LOCAL_HOST"
+
+
 def test_없는_Run은_404를_돌려준다(client: TestClient) -> None:
     body = client.get("/api/runs/RUN-없음")
     assert body.status_code == 404
@@ -386,34 +398,101 @@ def test_승인_배포_경로가_없다(client: TestClient) -> None:
         assert not any(banned in p for p in paths), f"금지된 경로가 있습니다: {banned}"
 
 
+#: 경로 탈출 시험 경로.
+#
+#: 주의: `..`가 그대로 들어 있는 경로는 HTTP 클라이언트가 **보내기 전에 스스로
+#: 정리**해 버려서 서버까지 도달하지 않는다. 그래서 아래 목록은 클라이언트가
+#: 건드리지 않는 인코딩 형태를 중심으로 두고, 원시 형태는 별도의 raw socket
+#: 시험에서 확인한다.
+ESCAPE_PATHS = [
+    "/%2e%2e/%2e%2e/.env",
+    "/%2e%2e%2f%2e%2e%2f.env",
+    "/..%2f..%2f.env",
+    "/..%5c..%5c.env",
+    "/assets/%2e%2e/%2e%2e/%2e%2e/.env",
+    "/%2e%2e/%2e%2e/backend/app/main.py",
+    "/%2e%2e/%2e%2e/.gitignore",
+]
+
+#: 디스크 파일이 그대로 나왔는지 알아보는 표시. `.env`는 열지 않는다.
+LEAK_MARKERS = (b"OPENAI_API_KEY", b"FastAPI", b"node_modules", b"__pycache__")
+
+
+def _assert_no_leak(status: int, body: bytes, path: str) -> None:
+    """응답이 파일 내용이 아니라 첫 화면이어야 한다."""
+    assert status in (200, 400, 403, 404, 405), f"{path} 응답 상태: {status}"
+    if status != 200:
+        return
+    for leaked in LEAK_MARKERS:
+        assert leaked not in body, f"{path}에서 파일이 새어 나갔습니다."
+    assert b'<div id="root">' in body, f"{path}가 첫 화면으로 되돌아가지 않았습니다."
+
+
+@pytest.mark.parametrize("path", ESCAPE_PATHS)
+def test_빌드_폴더_밖의_파일을_돌려주지_않는다(client: TestClient, path: str) -> None:
+    """경로 탈출로 .env·소스 파일이 새어 나가면 안 된다."""
+    response = client.get(path)
+    _assert_no_leak(response.status_code, response.content, path)
+
+
 @pytest.mark.parametrize(
-    "path",
+    "raw_path",
     [
         "/../../.env",
         "/../../.gitignore",
         "/../../backend/app/main.py",
-        "/%2e%2e/%2e%2e/.env",
-        "/..%2f..%2f.env",
+        "/....//....//.env",
+        "/..\\..\\.env",
         "/assets/../../../.env",
         "/C:/Windows/win.ini",
     ],
 )
-def test_빌드_폴더_밖의_파일을_돌려주지_않는다(client: TestClient, path: str) -> None:
-    """경로 탈출로 .env·소스 파일이 새어 나가면 안 된다.
+def test_정규화되지_않은_원시_요청도_막는다(raw_path: str) -> None:
+    """HTTP 클라이언트를 거치지 않고 요청 줄을 직접 써서 보낸다.
 
-    화면이 빌드되어 있지 않으면 catch-all 자체가 없으므로 404가 정상이다.
-    빌드되어 있으면 첫 화면(index.html)으로 되돌려 보내야 한다.
+    `httpx` 같은 클라이언트는 `..`를 보내기 전에 정리하므로, 그 경로만으로는
+    서버가 실제로 막는지 확인할 수 없다. 소켓으로 직접 보내 확인한다.
     """
-    response = client.get(path)
-    assert response.status_code in (200, 404, 405)
-    if response.status_code != 200:
-        return
+    import socket
+    import threading
+    import time
 
-    body = response.content
-    # 디스크의 실제 파일 내용이 그대로 나오면 안 된다.
-    for leaked in (b"OPENAI_API_KEY", b"FastAPI", b"node_modules", b"[extensions]"):
-        assert leaked not in body, f"{path}에서 파일이 새어 나갔습니다."
-    assert b'<div id="root">' in body, f"{path}가 첫 화면으로 되돌아가지 않았습니다."
+    import uvicorn
+
+    app = create_app()
+    config = uvicorn.Config(app, host="127.0.0.1", port=0, log_level="error")
+    server = uvicorn.Server(config)
+    thread = threading.Thread(target=server.run, daemon=True)
+    thread.start()
+    try:
+        deadline = time.time() + 15
+        while time.time() < deadline:
+            if server.started and server.servers:
+                break
+            time.sleep(0.05)
+        assert server.started, "검증용 서버가 시작되지 않았습니다."
+        port = server.servers[0].sockets[0].getsockname()[1]
+
+        with socket.create_connection(("127.0.0.1", port), timeout=5) as sock:
+            request = (
+                f"GET {raw_path} HTTP/1.1\r\n"
+                "Host: 127.0.0.1\r\n"
+                "Connection: close\r\n\r\n"
+            )
+            sock.sendall(request.encode("ascii"))
+            chunks: list[bytes] = []
+            while True:
+                data = sock.recv(65536)
+                if not data:
+                    break
+                chunks.append(data)
+        raw = b"".join(chunks)
+        head, _, body = raw.partition(b"\r\n\r\n")
+        status = int(head.split(b" ")[1])
+        _assert_no_leak(status, body, raw_path)
+    finally:
+        server.should_exit = True
+        thread.join(timeout=10)
 
 
 def test_contract_API가_읽은_설정을_보여준다(client: TestClient) -> None:
