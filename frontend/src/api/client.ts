@@ -1,0 +1,81 @@
+// FastAPI 호출만 담당한다. 화면 로직과 AI 공급자는 여기 들어오지 않는다.
+// 브라우저는 외부 AI를 직접 부르지 않는다.
+
+import type { ApiError, Bootstrap, RunView } from '../types'
+
+export class ApiCallError extends Error {
+  readonly detail: ApiError
+
+  constructor(detail: ApiError) {
+    super(detail.message)
+    this.name = 'ApiCallError'
+    this.detail = detail
+  }
+}
+
+const FALLBACK_ERROR: ApiError = {
+  error_code: 'NETWORK_ERROR',
+  message: '서버에 연결하지 못했습니다.',
+  next_action: '서버가 켜져 있는지 확인한 뒤 다시 시도해 주세요.',
+  run_id: null,
+}
+
+async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  let response: Response
+  try {
+    response = await fetch(path, {
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      ...init,
+    })
+  } catch {
+    throw new ApiCallError(FALLBACK_ERROR)
+  }
+
+  let body: unknown = null
+  try {
+    body = await response.json()
+  } catch {
+    body = null
+  }
+
+  if (!response.ok) {
+    const detail = body as Partial<ApiError> | null
+    throw new ApiCallError({
+      error_code: detail?.error_code ?? `HTTP_${response.status}`,
+      message: detail?.message ?? '요청을 처리하지 못했습니다.',
+      next_action: detail?.next_action ?? '잠시 뒤 다시 시도해 주세요.',
+      run_id: detail?.run_id ?? null,
+    })
+  }
+  return body as T
+}
+
+export interface CreateRunPayload {
+  client_request_id: string
+  purpose: string
+  disclosure: string
+  basis_date: string
+  sources: {
+    display_name: string
+    text: string
+    role: string
+  }[]
+  announcement_subject: string | null
+  external_ai_policy_version: string
+  external_ai_transfer_confirmed: boolean
+}
+
+export const api = {
+  bootstrap: () => request<Bootstrap>('/api/bootstrap'),
+  createRun: (payload: CreateRunPayload) =>
+    request<RunView>('/api/runs', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+  getRun: (runId: string) => request<RunView>(`/api/runs/${runId}`),
+  deleteRun: (runId: string) =>
+    request<{ run_id: string; deleted: boolean }>(`/api/runs/${runId}`, {
+      method: 'DELETE',
+    }),
+}

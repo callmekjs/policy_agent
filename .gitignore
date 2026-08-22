@@ -33,3 +33,6 @@ verification/**/tmp/
 # OS
 .DS_Store
 Thumbs.db
+
+# TypeScript 증분 빌드 부산물
+*.tsbuildinfo

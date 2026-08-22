@@ -1,0 +1,124 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://policy-agent.local/verification/day-gate-result.schema.json",
+  "title": "개발 단계 문지기 검증 보고서",
+  "description": "README §2.14.1의 PASS/BLOCKED 보고서 계약. API 키·사용자 원문·AI 응답 전문·숨은 사고과정은 기록하지 않는다.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "gate_id",
+    "run_id",
+    "readme_version",
+    "started_at",
+    "completed_at",
+    "source_snapshot",
+    "verdict",
+    "checks",
+    "blockers",
+    "warnings",
+    "external_api_calls",
+    "estimated_cost_usd"
+  ],
+  "properties": {
+    "gate_id": { "const": "DEMO-DAY1-GATE" },
+    "run_id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9._-]{6,64}$",
+      "description": "보고서마다 새로 만드는 ID. 기존 보고서를 덮어쓰지 않는다."
+    },
+    "readme_version": { "type": "string", "minLength": 1 },
+    "started_at": { "type": "string", "format": "date-time" },
+    "completed_at": { "type": "string", "format": "date-time" },
+    "verifier": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "context": { "type": "string", "description": "구현 담당자와 다른 새 문맥임을 밝힘" },
+        "is_separate_from_implementer": { "type": "boolean" }
+      }
+    },
+    "source_snapshot": {
+      "type": "object",
+      "description": "검토 대상 소스 파일의 SHA-256 목록. .env·비밀 파일·node_modules·가상환경·build/cache/log·기존 보고서는 포함하지 않는다.",
+      "additionalProperties": false,
+      "required": ["file_count", "files"],
+      "properties": {
+        "file_count": { "type": "integer", "minimum": 1 },
+        "combined_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "files": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["path", "sha256"],
+            "properties": {
+              "path": { "type": "string", "minLength": 1 },
+              "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+            }
+          }
+        }
+      }
+    },
+    "verdict": {
+      "enum": ["PASS", "BLOCKED"],
+      "description": "필수 검사 7개 전부 PASS이고 차단 문제 0건일 때만 PASS."
+    },
+    "checks": {
+      "type": "array",
+      "minItems": 7,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["check_id", "status", "evidence"],
+        "properties": {
+          "check_id": {
+            "enum": ["D1G-01", "D1G-02", "D1G-03", "D1G-04", "D1G-05", "D1G-06", "D1G-07"]
+          },
+          "title": { "type": "string" },
+          "status": { "enum": ["PASS", "FAIL", "ERROR", "SKIP"] },
+          "commands": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["command", "exit_code"],
+              "properties": {
+                "command": { "type": "string" },
+                "exit_code": { "type": "integer" },
+                "summary": { "type": "string", "description": "비밀값 없는 요약" }
+              }
+            }
+          },
+          "evidence": {
+            "type": "array",
+            "minItems": 1,
+            "items": { "type": "string" },
+            "description": "명령 결과 없이 설명만 있으면 증거로 인정하지 않는다."
+          }
+        }
+      }
+    },
+    "blockers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["check_id", "message"],
+        "properties": {
+          "check_id": { "type": "string" },
+          "message": { "type": "string" }
+        }
+      }
+    },
+    "warnings": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "external_api_calls": {
+      "const": 0,
+      "description": "검증 중 제품 ModelGateway·OpenAI API 호출은 0회여야 한다."
+    },
+    "estimated_cost_usd": { "const": 0 }
+  }
+}

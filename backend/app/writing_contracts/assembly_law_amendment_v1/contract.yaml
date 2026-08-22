@@ -1,0 +1,79 @@
+# Writing Contract manifest (README §2.15.7).
+# 이 파일은 다섯 번째 규칙 구성요소가 아니라, 네 설정 파일의 버전과
+# 기준 문서 해시·규칙 채택 상태를 묶는 목록이다.
+contract_id: assembly_member_partial_amendment_plenary_v1
+version: 1.0.0
+status: README_APPROVED
+institution_certified: false
+readme_version: 0.23.0-draft
+
+components:
+  profile: assembly_member_office_common_profile@1.0.0
+  template: assembly_member_partial_amendment_plenary_template@1.0.0
+  style: assembly_press_public_language_style@1.0.0
+  validation: assembly_member_partial_amendment_plenary_validation@1.0.0
+
+active_scope:
+  institution: 대한민국 국회
+  announcer_type: 국회의원실 공통형
+  amendment_kind: 일부개정
+  procedure_stage: PLENARY_DECIDED
+  effect_status: NOT_A_LAW
+
+# 기준 문서. 본문은 실행할 명령이 아니라 읽기 전용 참고자료다.
+reference_documents:
+  - id: PG-001
+    file: 보도자료작성요령교육.pdf
+    pages: 7
+    sha256: 365D4FFC092FF2513D893EE0D451F730CD1F73F147A2737E6E2FF969E8749CDA
+    role: 주요 공통 작성 기준
+    usable_as_fact: false
+    note: 저장소에는 두지 않고 로컬 파일로만 확인한다.
+  - id: PG-002
+    role: NON_RUNTIME_REFERENCE
+    usable_as_fact: false
+  - id: LG-001
+    role: NON_RUNTIME_REFERENCE
+    usable_as_fact: false
+  - id: LG-002
+    role: NON_RUNTIME_REFERENCE
+    usable_as_fact: false
+  - id: LG-003
+    role: NON_RUNTIME_REFERENCE
+    usable_as_fact: false
+
+# 규칙 정의 owner는 한 곳뿐이다. check_ref는 ID로 불러 검사만 한다.
+rules:
+  - {id: PRG-H-001, decision: ADOPT_HARD, owner: template, source_ref: "PG-001 1~2쪽"}
+  - {id: PRG-H-002, decision: ADOPT_HARD, owner: template, source_ref: "PG-001 1·2·6쪽"}
+  - {id: PRG-H-003, decision: ADOPT_HARD, owner: validation, source_ref: "PG-001 1·6·7쪽"}
+  - {id: PRG-H-004, decision: ADOPT_HARD, owner: validation, source_ref: "프로젝트 안전 규칙"}
+  - {id: PRG-H-005, decision: ADOPT_HARD, owner: validation, source_ref: "PG-001 2·3·6·7쪽"}
+  - {id: TPL-H-001, decision: ADOPT_HARD, owner: template, source_ref: "README §2.7"}
+  - {id: TPL-C-001, decision: CONDITIONAL, owner: template, source_ref: "README §2.7"}
+  - {id: TPL-C-002, decision: CONDITIONAL, owner: template, source_ref: "README §2.7"}
+  - {id: PRG-S-001, decision: ADOPT_SOFT, owner: style, source_ref: "PG-001 5쪽"}
+  - {id: PRG-S-002, decision: ADOPT_SOFT, owner: style, source_ref: "PG-001 2·4쪽"}
+  - {id: PRG-S-003, decision: ADOPT_SOFT, owner: style, source_ref: "PG-001 2·6쪽"}
+  - {id: PRG-S-004, decision: ADOPT_SOFT, owner: style, source_ref: "PG-001 1·2·5·6쪽"}
+  - {id: PRG-S-005, decision: ADOPT_SOFT, owner: style, source_ref: "PG-001 1·4·6쪽"}
+  - {id: PRG-S-006, decision: ADOPT_SOFT, owner: style, source_ref: "PG-001 2·3·6쪽"}
+  - {id: TPL-S-001, decision: ADOPT_SOFT, owner: style, source_ref: "README §2.7"}
+  - {id: PRG-C-001, decision: CONDITIONAL, owner: template, source_ref: "PG-001 1·3쪽", active: false}
+  - {id: PRG-C-002, decision: CONDITIONAL, owner: template, source_ref: "PG-001 2·4·7쪽", active: false}
+  - {id: PRG-C-003, decision: CONDITIONAL, owner: validation, source_ref: "PG-001 4·7쪽"}
+  - {id: LEG-H-001, decision: ADOPT_HARD, owner: validation, source_ref: "README §2.16.1"}
+  - {id: LEG-H-002, decision: ADOPT_HARD, owner: validation, source_ref: "README §2.16.2~3"}
+  - {id: LEG-H-003, decision: ADOPT_HARD, owner: validation, source_ref: "README §2.16.3"}
+  - {id: LEG-H-004, decision: ADOPT_HARD, owner: validation, source_ref: "README §2.16.4"}
+  - {id: LEG-H-005, decision: ADOPT_HARD, owner: validation, source_ref: "README §2.16.5"}
+
+# 제외한 규칙은 검사기로 실행하지 않고 이력만 남긴다. Finding을 만들 수 없다.
+excluded_rules:
+  - {id: PRG-X-001, source_ref: "PG-001 2쪽", reason: 비판 가능 내용·심각한 문제를 빼라는 규칙}
+  - {id: PRG-X-002, source_ref: "PG-001 3쪽", reason: 결재·제출·언론 송부·지역 연락처·마감 시각}
+  - {id: PRG-X-003, source_ref: "PG-001 4쪽", reason: 2007년 예시 사실·인용·연락처·옛 글꼴 크기}
+  - {id: PRG-X-004, source_ref: "PG-001 2쪽", reason: 사진 필수·300KB 이상 규칙}
+
+# 문체만 참고하는 사례. 전문과 과거 사실은 Agent에 전달하지 않는다.
+style_reference_ids: [NA-STYLE-001, NA-STYLE-002, NA-STYLE-003]

@@ -1,0 +1,310 @@
+﻿{
+    "gate_id":  "DEMO-DAY1-GATE",
+    "run_id":  "day1-20260822-214206",
+    "readme_version":  "unknown",
+    "started_at":  "2026-08-22T12:42:06Z",
+    "completed_at":  "2026-08-22T12:42:24Z",
+    "verifier":  {
+                     "context":  "scripts/verify-day1.ps1 결정형 검사",
+                     "is_separate_from_implementer":  false
+                 },
+    "source_snapshot":  {
+                            "file_count":  36,
+                            "combined_sha256":  "cb20989c4b7d3837bafc6683d818f8fa4395ba609b7880e3e4d0c42abf8282dd",
+                            "files":  [
+                                          {
+                                              "path":  "backend/app/__init__.py",
+                                              "sha256":  "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+                                          },
+                                          {
+                                              "path":  "backend/app/api/__init__.py",
+                                              "sha256":  "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+                                          },
+                                          {
+                                              "path":  "backend/app/api/runs.py",
+                                              "sha256":  "25e31045875a3ac97473974fcdf06dbb2b882d47880e88e85dc0589d799b1004"
+                                          },
+                                          {
+                                              "path":  "backend/app/gates/__init__.py",
+                                              "sha256":  "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+                                          },
+                                          {
+                                              "path":  "backend/app/gates/input_gate.py",
+                                              "sha256":  "69faf53ee7f63da367c6c510f85549b0edf181f0237f59ada7ed9cf06e3f824e"
+                                          },
+                                          {
+                                              "path":  "backend/app/harness/__init__.py",
+                                              "sha256":  "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+                                          },
+                                          {
+                                              "path":  "backend/app/harness/contract_loader.py",
+                                              "sha256":  "a49a8ed1b9d204d4fdfdef91fab4d914f0ececca971bdd5630cbfa9a8d33383a"
+                                          },
+                                          {
+                                              "path":  "backend/app/harness/contracts.py",
+                                              "sha256":  "a7bb1b1ac8485e8fd13c6bd9c2227f925c69bc4423d7cbababa6f9cf1ab3a265"
+                                          },
+                                          {
+                                              "path":  "backend/app/harness/orchestrator.py",
+                                              "sha256":  "d92ccbf0b2fb6e652a6f0f063e5c8011c2b812844664ee3efb82fd50832e27f7"
+                                          },
+                                          {
+                                              "path":  "backend/app/harness/runtime.py",
+                                              "sha256":  "adb8394f5c16e73ad4969e14f62940d7a82c6177fb7f328422e1cbd417a24b2c"
+                                          },
+                                          {
+                                              "path":  "backend/app/harness/states.py",
+                                              "sha256":  "a75afd52f696b966b507326ba31e1dc42976986ec50b1dfb015cd2c428adad03"
+                                          },
+                                          {
+                                              "path":  "backend/app/infrastructure/__init__.py",
+                                              "sha256":  "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+                                          },
+                                          {
+                                              "path":  "backend/app/infrastructure/model_gateway.py",
+                                              "sha256":  "50163687bd071636c68f6007d847c196c1c502e009e2f0f6e5578a07181719e9"
+                                          },
+                                          {
+                                              "path":  "backend/app/infrastructure/run_store.py",
+                                              "sha256":  "518fea31c2af082ca83333c03bcf6ae4563131135dda07455d67cc337fac984a"
+                                          },
+                                          {
+                                              "path":  "backend/app/main.py",
+                                              "sha256":  "d92277d6af8413b01ee122d5c3b7d1b0646e987a6cd0b6826fdc94adc1907bd2"
+                                          },
+                                          {
+                                              "path":  "backend/app/writing_contracts/assembly_law_amendment_v1/contract.yaml",
+                                              "sha256":  "9065fa6d7d3f31d8d487517ef43c770a1003aec034d099ab21eadf579a5af6bc"
+                                          },
+                                          {
+                                              "path":  "backend/app/writing_contracts/assembly_law_amendment_v1/profile.yaml",
+                                              "sha256":  "29c13548a7504677bf12dd80016c989071d8fb1b37cd557527b812f5237a507c"
+                                          },
+                                          {
+                                              "path":  "backend/app/writing_contracts/assembly_law_amendment_v1/style.yaml",
+                                              "sha256":  "13434349ee3564b2fd389889eb4e1cd286ca4d618466435ceef4fc57dd7cb9ba"
+                                          },
+                                          {
+                                              "path":  "backend/app/writing_contracts/assembly_law_amendment_v1/template.yaml",
+                                              "sha256":  "0fe4f17dd0d01e1cb6255fd4e541a102ccedde6891f9a6933749b7e5e980c7ef"
+                                          },
+                                          {
+                                              "path":  "backend/app/writing_contracts/assembly_law_amendment_v1/validation.yaml",
+                                              "sha256":  "fa672e462157407ab4edb70965cbbf34ce69febdc4e87a2c079419fb0b2246bf"
+                                          },
+                                          {
+                                              "path":  "frontend/src/api/client.ts",
+                                              "sha256":  "d7642940572b68e3f8fcf4f495584f8bb3817bad4a861a0f9b0688513765d401"
+                                          },
+                                          {
+                                              "path":  "frontend/src/App.test.tsx",
+                                              "sha256":  "b5c31e9a8452d99f437900732bfdf1f8d1d6ee238e3ccd8520d2b17d8375c24f"
+                                          },
+                                          {
+                                              "path":  "frontend/src/App.tsx",
+                                              "sha256":  "dd865cd5e5f5eeb30a9d0f1072439a27f0c0ca1de4037c8603a6d50d4ebd43cc"
+                                          },
+                                          {
+                                              "path":  "frontend/src/main.tsx",
+                                              "sha256":  "8070aefba6d43f5300a919f02adb3071318bee89f10cffe07c64df74e85a1635"
+                                          },
+                                          {
+                                              "path":  "frontend/src/screens/NewRunScreen.tsx",
+                                              "sha256":  "77f78e0e37846568b2058a34e1f32a743feb8c461f0a1bd1bf14dcdd9a96ddaf"
+                                          },
+                                          {
+                                              "path":  "frontend/src/screens/RunStatusScreen.tsx",
+                                              "sha256":  "9927d6fcf52ca682b37859956d3832c2b76aa556da82afe6ee4d57f1cf905f41"
+                                          },
+                                          {
+                                              "path":  "frontend/src/styles.css",
+                                              "sha256":  "13fdcb43c3281fa8d6456322c82d9d96cb760842cb3ef0256e8125aa7d42d97d"
+                                          },
+                                          {
+                                              "path":  "frontend/src/test-setup.ts",
+                                              "sha256":  "977afde26bba6a51325908cd7713cbfdc87d18f06b78b237c8f364c44864b7de"
+                                          },
+                                          {
+                                              "path":  "frontend/src/types.ts",
+                                              "sha256":  "448463f49694646f2254d3ab29c99036b0af7a8d248a1c7425be56a4b2d51b8f"
+                                          },
+                                          {
+                                              "path":  "scripts/verify-day1.ps1",
+                                              "sha256":  "99192c6f050d7ed7e436a1ed68a633072c012fda4fbfc36b128c723a703989b0"
+                                          },
+                                          {
+                                              "path":  "start-local.cmd",
+                                              "sha256":  "b0431f7b5b1f1bf9549e6e9d1a383945acb959c244d26b703f9bb7612a7ce222"
+                                          },
+                                          {
+                                              "path":  "stop-local.cmd",
+                                              "sha256":  "73b27639def9673d8bbb55033594d329b4eb3f58e13a9fada2517d9bdf1b60cb"
+                                          },
+                                          {
+                                              "path":  "tests/test_day1_gate.py",
+                                              "sha256":  "18410623bed4a37e4a48136a648f66a5d423d510eed1da18b1e75d281ffc1b22"
+                                          },
+                                          {
+                                              "path":  "tests/test_harness_flow.py",
+                                              "sha256":  "7892147f7b6c59c1a94afc628f80a4aa349e05e387e5b178f0e3adb32f155829"
+                                          },
+                                          {
+                                              "path":  "verification/day-gate-result.schema.json",
+                                              "sha256":  "1c0f59930f119be9f8d725e5c1c848725f02b76c674298e9d31b97e202773dd7"
+                                          },
+                                          {
+                                              "path":  "verification/day-gate-verifier.md",
+                                              "sha256":  "0987e8720e7461e2883a195219c419f193743dada3107c6afe9c960f8c427814"
+                                          }
+                                      ]
+                        },
+    "verdict":  "BLOCKED",
+    "checks":  [
+                   {
+                       "check_id":  "D1G-01",
+                       "title":  "1일차 필수 파일과 실행 진입점",
+                       "status":  "PASS",
+                       "commands":  [
+                                        {
+                                            "command":  "python -c import app.main, app.api.runs, app.harness.orchestrator; print(\u0027modules ok\u0027)",
+                                            "exit_code":  0,
+                                            "summary":  "백엔드 모듈 로드 -\u003e modules ok"
+                                        }
+                                    ],
+                       "evidence":  [
+                                        "필수 파일 28개 모두 존재",
+                                        "백엔드 모듈 로드 exit 0"
+                                    ]
+                   },
+                   {
+                       "check_id":  "D1G-05",
+                       "title":  "Writing Contract manifest 1개 + 설정 4개",
+                       "status":  "PASS",
+                       "commands":  [
+                                        {
+                                            "command":  "python -c from app.harness.contract_loader import load_writing_contract as l; c=l(); print(c.full_id)",
+                                            "exit_code":  0,
+                                            "summary":  "서버가 Contract를 parse/schema 검사해 읽음 -\u003e assembly_member_partial_amendment_plenary_v1@1.0.0"
+                                        }
+                                    ],
+                       "evidence":  [
+                                        "물리적 파일 5개 존재",
+                                        "서버가 Contract를 parse/schema 검사해 읽음 exit 0"
+                                    ]
+                   },
+                   {
+                       "check_id":  "D1G-06",
+                       "title":  "백엔드 시험 + 프런트 typecheck/test/build",
+                       "status":  "PASS",
+                       "commands":  [
+                                        {
+                                            "command":  "python -m pytest ../tests -q",
+                                            "exit_code":  0,
+                                            "summary":  "백엔드 pytest -\u003e 46 passed, 1 warning in 0.60s"
+                                        },
+                                        {
+                                            "command":  "npx tsc --noEmit -p tsconfig.app.json",
+                                            "exit_code":  0,
+                                            "summary":  "프런트 typecheck -\u003e "
+                                        },
+                                        {
+                                            "command":  "npm test --silent",
+                                            "exit_code":  0,
+                                            "summary":  "프런트 vitest -\u003e    Duration  1.42s (transform 62ms, setup 73ms, collect 160ms, tests 276ms, environment 378ms, prepare 96ms)"
+                                        },
+                                        {
+                                            "command":  "npm run build --silent",
+                                            "exit_code":  0,
+                                            "summary":  "프런트 production build -\u003e ✓ built in 478ms"
+                                        }
+                                    ],
+                       "evidence":  [
+                                        "백엔드 pytest exit 0",
+                                        "프런트 typecheck exit 0",
+                                        "프런트 vitest exit 0",
+                                        "프런트 production build exit 0"
+                                    ]
+                   },
+                   {
+                       "check_id":  "D1G-02",
+                       "title":  "127.0.0.1 한 주소의 health와 첫 화면",
+                       "status":  "FAIL",
+                       "commands":  [
+                                        {
+                                            "command":  "GET http://127.0.0.1:8799/api/health",
+                                            "exit_code":  0,
+                                            "summary":  "status=ok"
+                                        }
+                                    ],
+                       "evidence":  [
+                                        "검증용 서버 시작 (PID 21808)",
+                                        "/api/health 200, contract=assembly_member_partial_amendment_plenary_v1@1.0.0",
+                                        "자신이 시작한 프로세스만 정상 종료"
+                                    ]
+                   },
+                   {
+                       "check_id":  "D1G-03",
+                       "title":  "사용자 입력 네 가지",
+                       "status":  "FAIL",
+                       "commands":  [
+
+                                    ],
+                       "evidence":  [
+                                        "빈 입력 -\u003e NEEDS_INPUT, 초안 0건, 쉬운 안내 2건",
+                                        "쿠키 없는 요청은 거부됨"
+                                    ]
+                   },
+                   {
+                       "check_id":  "D1G-04",
+                       "title":  "Harness 상태와 가짜 AI",
+                       "status":  "PASS",
+                       "commands":  [
+
+                                    ],
+                       "evidence":  [
+                                        "가짜 ModelGateway 사용, 외부 호출 0회",
+                                        "입력 Gate 단계 AI 호출 0회",
+                                        "실행 ID 형식 확인: RUN-4DC55D1CB9FF",
+                                        "상태가 계약 안에 있음: NEEDS_INPUT",
+                                        "같은 멱등 키는 기존 Run 재사용"
+                                    ]
+                   },
+                   {
+                       "check_id":  "D1G-07",
+                       "title":  "비밀값·네트워크·도메인 청정성",
+                       "status":  "FAIL",
+                       "commands":  [
+
+                                    ],
+                       "evidence":  [
+                                        "소스·bundle·보고서의 API 키 패턴 0건",
+                                        "1일차 코드는 .env를 열지 않음",
+                                        "wildcard CORS 0건",
+                                        "dangerouslySetInnerHTML 0건"
+                                    ]
+                   }
+               ],
+    "blockers":  [
+                     {
+                         "check_id":  "D1G-02",
+                         "message":  "첫 화면 요청 실패: Object reference not set to an instance of an object."
+                     },
+                     {
+                         "check_id":  "D1G-03",
+                         "message":  "화면에 없는 입력: 보도 목적, 공식 자료, 공개 범위, 자료 확인 기준일"
+                     },
+                     {
+                         "check_id":  "D1G-07",
+                         "message":  "1일차 코드에 실제 OpenAI 호출 경로가 있습니다."
+                     },
+                     {
+                         "check_id":  "D1G-07",
+                         "message":  "생명과학 전용 잔재: C:\\policy_agent\\backend\\app\\main.py, C:\\policy_agent\\backend\\app\\api\\runs.py, C:\\policy_agent\\backend\\app\\harness\\runtime.py, C:\\policy_agent\\frontend\\src\\App.tsx, C:\\policy_agent\\frontend\\src\\types.ts, C:\\policy_agent\\frontend\\src\\api\\client.ts, C:\\policy_agent\\tests\\test_harness_flow.py"
+                     }
+                 ],
+    "warnings":  [
+
+                 ],
+    "external_api_calls":  0,
+    "estimated_cost_usd":  0
+}
