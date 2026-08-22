@@ -1,0 +1,11 @@
+{
+  "$schema": "../../mutation.schema.json",
+  "schema_version": "1.1.0",
+  "mutation_id": "SR2-M-SPEECH-AS-VOTE",
+  "risk_code": "SPEECH_ROLE_SPOOF",
+  "target_type": "SOURCE_ROLE",
+  "target_id": "SR2-S03",
+  "operation": "REPLACE_ROLE",
+  "selector": { "exact_text": "공식 발언문" },
+  "replacement": "본회의 표결 결과"
+}

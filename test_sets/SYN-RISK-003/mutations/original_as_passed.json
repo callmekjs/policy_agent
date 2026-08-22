@@ -1,0 +1,14 @@
+{
+  "$schema": "../../mutation.schema.json",
+  "schema_version": "1.1.0",
+  "mutation_id": "SR3-M-ORIGINAL-AS-PASSED",
+  "risk_code": "DISCARDED_ORIGINAL_AS_SUBJECT",
+  "target_type": "DRAFT_CANDIDATE",
+  "target_id": "SR3-DRAFT-BASELINE",
+  "operation": "PATCH_JSON",
+  "selector": { "json_pointer": "/" },
+  "patches": [
+    { "op": "replace", "json_pointer": "/paragraphs/0/text", "value": "원안 O-3001이 국회 본회의에서 원안가결됐다." },
+    { "op": "replace", "json_pointer": "/claims/4/text", "value": "원안 O-3001이 국회 본회의에서 원안가결됐다." }
+  ]
+}

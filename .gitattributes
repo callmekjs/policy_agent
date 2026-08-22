@@ -1,0 +1,4 @@
+# 이 프로젝트는 파일의 SHA-256 지문을 고정해 검증합니다.
+# Git이 줄바꿈(LF <-> CRLF)을 바꾸면 test_sets/CHECKSUMS.sha256과
+# README의 PG-001 해시가 전부 어긋나므로, 모든 파일을 그대로 보존합니다.
+* -text

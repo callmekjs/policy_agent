@@ -1,0 +1,11 @@
+{
+  "$schema": "../../mutation.schema.json",
+  "schema_version": "1.1.0",
+  "mutation_id": "SR1-M-DATE-CONFLICT",
+  "risk_code": "CONFLICTING_VOTE_DATE",
+  "target_type": "SOURCE_TEXT",
+  "target_id": "SR1-S05",
+  "operation": "REPLACE_TEXT",
+  "selector": { "exact_text": "의결일: 2026. 8. 20.(목요일)" },
+  "replacement": "의결일: 2026. 8. 21.(금요일)"
+}

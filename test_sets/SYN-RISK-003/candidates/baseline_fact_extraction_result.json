@@ -1,0 +1,58 @@
+{
+  "schema_version": "1.2.1",
+  "result": {
+  "result_status": "OK",
+  "scope_error": null,
+  "source_role_candidates": [],
+  "evidence": [
+    { "evidence_id": "SR3-EV-01", "source_id": "SR3-S01", "quote": "의안번호: O-3001" },
+    { "evidence_id": "SR3-EV-02", "source_id": "SR3-S01", "quote": "처리결과: 대안반영폐기" },
+    { "evidence_id": "SR3-EV-03", "source_id": "SR3-S02", "quote": "의안번호: A-3002" },
+    { "evidence_id": "SR3-EV-04", "source_id": "SR3-S02", "quote": "지역생활서비스 지원법 일부개정법률안(위원회 대안)" },
+    { "evidence_id": "SR3-EV-05", "source_id": "SR3-S06", "quote": "관계 유형: ALTERNATIVE_SUBSTITUTES" },
+    { "evidence_id": "SR3-EV-06", "source_id": "SR3-S06", "quote": "관계 내용: 위원회 대안 A-3002는 원안 O-3001을 대체하며 그 일부 취지를 반영한다." },
+    { "evidence_id": "SR3-EV-07", "source_id": "SR3-S04", "quote": "회의명: 제501회 국회 제4차 본회의\n- 의결일: 2026. 8. 20.\n- 처리결과: 위원회 대안 원안가결" },
+    { "evidence_id": "SR3-EV-08", "source_id": "SR3-S05", "quote": "제8조제1항 중 “서면 신청서를”을 “서면 또는 전자 신청서를”로 한다." },
+    { "evidence_id": "SR3-EV-09", "source_id": "SR3-S05", "quote": "제12조제2항 중 “30일”을 “20일”로 한다." },
+    { "evidence_id": "SR3-EV-10", "source_id": "SR3-S05", "quote": "제1조(시행일) 이 법은 공포 후 3개월이 경과한 날부터 시행한다. 다만, 제12조제2항의 개정규정은 공포 후 6개월이 경과한 날부터 시행한다." },
+    { "evidence_id": "SR3-EV-11", "source_id": "SR3-S05", "quote": "다만, 제12조제2항의 개정규정은 공포 후 6개월이 경과한 날부터 시행한다." },
+    { "evidence_id": "SR3-EV-12", "source_id": "SR3-S05", "quote": "제2조(적용례) 제8조제1항의 개정규정은 같은 개정규정 시행 이후 신청하는 경우부터 적용한다." },
+    { "evidence_id": "SR3-EV-13", "source_id": "SR3-S05", "quote": "제3조(경과조치) 제12조제2항의 개정규정 시행 전에 접수되어 처리 중인 신청은 종전의 규정에 따른다." },
+    { "evidence_id": "SR3-EV-14", "source_id": "SR3-S03", "quote": "제8조제1항: 지원을 신청하려는 자는 서면 신청서를 관할 기관에 제출하여야 한다." },
+    { "evidence_id": "SR3-EV-15", "source_id": "SR3-S03", "quote": "제12조제2항: 관할 기관은 신청을 받은 날부터 30일 이내에 처리 결과를 신청인에게 알려야 한다." }
+  ],
+  "facts": [
+    { "fact_id": "SR3-F-BILL-A3002", "kind": "BILL_IDENTITY", "value": "A-3002", "source_id": "SR3-S02", "evidence_id": "SR3-EV-03", "valid_source_role_candidate_ids": [] },
+    { "fact_id": "SR3-F-BILL-TITLE", "kind": "BILL_TITLE", "value": "지역생활서비스 지원법 일부개정법률안", "source_id": "SR3-S02", "evidence_id": "SR3-EV-04", "valid_source_role_candidate_ids": [] },
+    { "fact_id": "SR3-F-ORIGINAL-DISPOSITION", "kind": "ORIGIN_BILL_DISPOSITION", "value": "O-3001:ALTERNATIVE_REFLECTED_DISCARDED", "source_id": "SR3-S01", "evidence_id": "SR3-EV-02", "valid_source_role_candidate_ids": [] },
+    { "fact_id": "SR3-F-RELATION", "kind": "BILL_RELATION", "value": "O-3001->A-3002", "source_id": "SR3-S06", "evidence_id": "SR3-EV-05", "valid_source_role_candidate_ids": [] },
+    { "fact_id": "SR3-F-VOTE", "kind": "PLENARY_RESULT", "value": "ORIGINAL_PASSED@2026-08-20", "source_id": "SR3-S04", "evidence_id": "SR3-EV-07", "valid_source_role_candidate_ids": [] },
+    { "fact_id": "SR3-F-ARTICLE-8", "kind": "PROVISION_CHANGE", "value": "제8조제1항 전자 신청 허용", "source_id": "SR3-S05", "evidence_id": "SR3-EV-08", "valid_source_role_candidate_ids": [] },
+    { "fact_id": "SR3-F-ARTICLE-12", "kind": "PROVISION_CHANGE", "value": "제12조제2항 30일에서 20일", "source_id": "SR3-S05", "evidence_id": "SR3-EV-09", "valid_source_role_candidate_ids": [] },
+    { "fact_id": "SR3-F-SUPPLEMENT-EFFECTIVE", "kind": "SUPPLEMENTARY_EFFECTIVE_DATES", "value": ["SR3-R01", "SR3-R02"], "source_id": "SR3-S05", "evidence_id": "SR3-EV-10", "valid_source_role_candidate_ids": [] },
+    { "fact_id": "SR3-F-SUPPLEMENT-APPLICATION", "kind": "SUPPLEMENTARY_APPLICATION", "value": "SR3-R03", "source_id": "SR3-S05", "evidence_id": "SR3-EV-12", "valid_source_role_candidate_ids": [] },
+    { "fact_id": "SR3-F-SUPPLEMENT-TRANSITION", "kind": "SUPPLEMENTARY_TRANSITION", "value": "SR3-R04", "source_id": "SR3-S05", "evidence_id": "SR3-EV-13", "valid_source_role_candidate_ids": [] }
+  ],
+  "bill_identities": [
+    { "bill_id": "O-3001", "bill_number": "O-3001", "is_draft_subject": false, "source_id": "SR3-S01", "evidence_ids": ["SR3-EV-01"] },
+    { "bill_id": "A-3002", "bill_number": "A-3002", "is_draft_subject": true, "source_id": "SR3-S02", "evidence_ids": ["SR3-EV-03", "SR3-EV-04"] }
+  ],
+  "bill_relations": [
+    { "origin_bill_id": "O-3001", "alternative_bill_id": "A-3002", "relation_type": "ALTERNATIVE_SUBSTITUTES", "source_id": "SR3-S06", "evidence_ids": ["SR3-EV-05", "SR3-EV-06"] }
+  ],
+  "legislative_events": [
+    { "event_id": "SR3-E01", "bill_id": "O-3001", "procedure_stage": "COMMITTEE_DECIDED", "disposition": "ALTERNATIVE_REFLECTED_DISCARDED", "occurred_on": "2026-07-15", "source_id": "SR3-S01", "evidence_id": "SR3-EV-02", "valid_source_role_candidate_ids": [] },
+    { "event_id": "SR3-E02", "bill_id": "A-3002", "procedure_stage": "PLENARY_DECIDED", "disposition": "ORIGINAL_PASSED", "occurred_on": "2026-08-20", "source_id": "SR3-S04", "evidence_id": "SR3-EV-07", "valid_source_role_candidate_ids": [] }
+  ],
+  "provision_comparisons": [
+    { "comparison_id": "SR3-PC01", "provision_id": "제8조제1항", "current_source_id": "SR3-S03", "current_evidence_id": "SR3-EV-14", "final_source_id": "SR3-S05", "final_evidence_id": "SR3-EV-08" },
+    { "comparison_id": "SR3-PC02", "provision_id": "제12조제2항", "current_source_id": "SR3-S03", "current_evidence_id": "SR3-EV-15", "final_source_id": "SR3-S05", "final_evidence_id": "SR3-EV-09" }
+  ],
+  "supplementary_rules": [
+    { "rule_id": "SR3-R01", "kind": "EFFECTIVE_DATE", "applies_to": "법률 전체(제12조제2항 제외)", "source_id": "SR3-S05", "evidence_id": "SR3-EV-10", "valid_source_role_candidate_ids": [] },
+    { "rule_id": "SR3-R02", "kind": "PROVISION_EFFECTIVE_DATE", "applies_to": "제12조제2항", "source_id": "SR3-S05", "evidence_id": "SR3-EV-11", "valid_source_role_candidate_ids": [] },
+    { "rule_id": "SR3-R03", "kind": "APPLICATION", "applies_to": "제8조제1항", "source_id": "SR3-S05", "evidence_id": "SR3-EV-12", "valid_source_role_candidate_ids": [] },
+    { "rule_id": "SR3-R04", "kind": "TRANSITION", "applies_to": "제12조제2항", "source_id": "SR3-S05", "evidence_id": "SR3-EV-13", "valid_source_role_candidate_ids": [] }
+  ]
+  }
+}

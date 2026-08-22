@@ -1,0 +1,27 @@
+{
+  "$schema": "../../mutation.schema.json",
+  "schema_version": "1.1.0",
+  "mutation_id": "SR3-M-MERGE-EFFECTIVE-DATES",
+  "risk_code": "MERGE_DISTINCT_EFFECTIVE_DATES",
+  "target_type": "DRAFT_CANDIDATE",
+  "target_id": "SR3-DRAFT-BASELINE",
+  "operation": "PATCH_JSON",
+  "selector": { "json_pointer": "/" },
+  "patches": [
+    {
+      "op": "replace",
+      "json_pointer": "/paragraphs/2",
+      "value": {
+        "paragraph_id": "SR3-P03",
+        "section_kind": "SUPPLEMENTARY",
+        "priority_rank": 3,
+        "text": "법안의 모든 개정규정은 공포 후 3개월이 경과한 날부터 시행하도록 제안한다.",
+        "claim_ids": ["SR3-C-EFFECTIVE-GENERAL", "SR3-C-EFFECTIVE-ARTICLE12"],
+        "fact_ids": ["SR3-F-SUPPLEMENT-EFFECTIVE"],
+        "supplementary_rule_ids": ["SR3-R01", "SR3-R02"]
+      }
+    },
+    { "op": "replace", "json_pointer": "/claims/6/text", "value": "법안의 모든 개정규정은 공포 후 3개월에 시행하도록 제안한다." },
+    { "op": "replace", "json_pointer": "/claims/7/text", "value": "제12조제2항도 공포 후 3개월에 시행하도록 제안한다." }
+  ]
+}

@@ -1,0 +1,68 @@
+{
+  "catalog_id": "assembly_press_draft_p1_test_set",
+  "schema_version": "1.1.0",
+  "version": "1.2.1",
+  "status": "DESIGN_FROZEN_NOT_EXECUTED",
+  "frozen_at": "2026-08-22",
+  "writing_contract": "assembly_member_partial_amendment_plenary_v1@1.0.0",
+  "fixture_schema": "fixture.schema.json",
+  "mutation_schema": "mutation.schema.json",
+  "fact_extraction_result_schema": "fact_extraction_result.schema.json",
+  "draft_candidate_schema": "draft_candidate.schema.json",
+  "checksum_registry": "CHECKSUMS.sha256",
+  "production_loader_policy": {
+    "reject_test_sets_path": true,
+    "rejected_data_classes": ["ACTUAL_PUBLIC_TEST", "SYNTHETIC_TEST_ONLY"],
+    "synthetic_can_be_assumed_official_only_in_test_loader": true,
+    "test_export_enabled": false
+  },
+  "fixtures": [
+    {
+      "fixture_id": "ACTUAL-PASS-001",
+      "kind": "ACTUAL_PUBLIC_POSITIVE",
+      "path": "ACTUAL-PASS-001/manifest.json",
+      "required_variant_ids": ["BASELINE"]
+    },
+    {
+      "fixture_id": "ACTUAL-BLOCK-002",
+      "kind": "ACTUAL_PUBLIC_EXPECTED_BLOCK",
+      "path": "ACTUAL-BLOCK-002/manifest.json",
+      "required_variant_ids": ["BASELINE"]
+    },
+    {
+      "fixture_id": "SYN-RISK-001",
+      "kind": "SYNTHETIC_MUTATION_FAMILY",
+      "path": "SYN-RISK-001/manifest.json",
+      "required_variant_ids": ["BASELINE", "DATE_CONFLICT", "COUNT_CONFLICT", "WEEKDAY_MISMATCH"]
+    },
+    {
+      "fixture_id": "SYN-RISK-002",
+      "kind": "SYNTHETIC_MUTATION_FAMILY",
+      "path": "SYN-RISK-002/manifest.json",
+      "required_variant_ids": ["MISSING_VOTE", "MISSING_FINAL", "SPEECH_AS_VOTE", "AGENDA_AS_FINAL"]
+    },
+    {
+      "fixture_id": "SYN-RISK-003",
+      "kind": "SYNTHETIC_MUTATION_FAMILY",
+      "path": "SYN-RISK-003/manifest.json",
+      "required_variant_ids": [
+        "BASELINE",
+        "ALT_CHAIN_MISSING",
+        "ORIGINAL_AS_PASSED",
+        "OMIT_APPLICATION",
+        "OMIT_TRANSITION",
+        "MERGE_EFFECTIVE_DATES",
+        "CALCULATE_FROM_VOTE",
+        "ALREADY_EFFECTIVE",
+        "NEXT_PROCEDURE_HALLUCINATION",
+        "LEGAL_EFFECT_HALLUCINATION",
+        "REVISION_ORIGINAL_AS_PASSED",
+        "REVISION_REMOVE_DRAFT",
+        "REVISION_DELETE_SUPPLEMENT",
+        "REVISION_FIX_EFFECTIVE_DATE"
+      ]
+    }
+  ],
+  "execution_rule": "EVERY_VARIANT_STARTS_A_NEW_RUN_AND_APPLIES_AT_MOST_ONE_MUTATION",
+  "counts_as_runtime_pass": false
+}

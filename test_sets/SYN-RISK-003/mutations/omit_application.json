@@ -1,0 +1,26 @@
+{
+  "$schema": "../../mutation.schema.json",
+  "schema_version": "1.1.0",
+  "mutation_id": "SR3-M-OMIT-APPLICATION",
+  "risk_code": "OMIT_APPLICATION_RULE",
+  "target_type": "DRAFT_CANDIDATE",
+  "target_id": "SR3-DRAFT-BASELINE",
+  "operation": "PATCH_JSON",
+  "selector": { "json_pointer": "/" },
+  "patches": [
+    {
+      "op": "replace",
+      "json_pointer": "/paragraphs/3",
+      "value": {
+        "paragraph_id": "SR3-P04",
+        "section_kind": "SUPPLEMENTARY",
+        "priority_rank": 4,
+        "text": "제12조제2항 시행 전에 접수되어 처리 중인 신청은 종전 규정에 따르도록 했다.",
+        "claim_ids": ["SR3-C-TRANSITION"],
+        "fact_ids": ["SR3-F-SUPPLEMENT-TRANSITION"],
+        "supplementary_rule_ids": ["SR3-R04"]
+      }
+    },
+    { "op": "remove", "json_pointer": "/claims/8" }
+  ]
+}

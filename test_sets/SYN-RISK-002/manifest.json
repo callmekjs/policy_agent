@@ -1,0 +1,209 @@
+{
+  "$schema": "../fixture.schema.json",
+  "schema_version": "1.1.0",
+  "fixture_id": "SYN-RISK-002",
+  "fixture_version": "1.1.0",
+  "title": "표결 전 자료와 필수 의결자료 누락",
+  "kind": "SYNTHETIC_MUTATION_FAMILY",
+  "status": "DESIGN_FROZEN_NOT_EXECUTED",
+  "data_class": "SYNTHETIC_TEST_ONLY",
+  "production_use_forbidden": true,
+  "contract_id": "assembly_member_partial_amendment_plenary_v1@1.0.0",
+  "retrieved_at": null,
+  "event_cutoff": "2026-08-21",
+  "snapshot_policy": "실제 사건이 아닌 고정 합성 문서이며 테스트 loader에서만 SIMULATED_OFFICIAL로 취급한다.",
+  "run_input": {
+    "purpose": "합성 일부개정법률안의 본회의 의결 결과를 알리는 내부 검토용 보도자료 초안 작성",
+    "disclosure": "PUBLIC",
+    "external_ai_transfer_confirmed": true,
+    "supported_profile": "PARTIAL_AMENDMENT_PLENARY_RESULT",
+    "basis_date": "2026-08-21",
+    "planned_release_date": "2026-08-21",
+    "announcement_subject": {
+      "value": "가상 의원실 A",
+      "provenance": "USER_CONFIRMED",
+      "fact_kind": "ANNOUNCEMENT_SUBJECT"
+    }
+  },
+  "sources": [
+    {
+      "source_id": "SR2-S01",
+      "document_id": "SYN-BILL-2001-PREVOTE",
+      "file": "sources/01_bill_information_pending.md",
+      "role": "의안정보",
+      "use_scope": "FULL_FACT",
+      "data_class": "SYNTHETIC_TEST_ONLY",
+      "production_use_forbidden": true,
+      "test_evidence_mode": "SIMULATED_OFFICIAL",
+      "supplied_as_official": false,
+      "official_url": null,
+      "excerpt_locator": "문서 전체",
+      "content_sha256": "04860828abfb9e39b727e132d0315738e25e01652ac1b3a3e5879a4dfc17859f"
+    },
+    {
+      "source_id": "SR2-S02",
+      "document_id": "SYN-LAW-2001-V1",
+      "file": "sources/02_current_provision.md",
+      "role": "현행 조문",
+      "use_scope": "FULL_FACT",
+      "data_class": "SYNTHETIC_TEST_ONLY",
+      "production_use_forbidden": true,
+      "test_evidence_mode": "SIMULATED_OFFICIAL",
+      "supplied_as_official": false,
+      "official_url": null,
+      "excerpt_locator": "제15조제2항",
+      "content_sha256": "2db8764f3029a3f34f2c945c15f41d412014674ebc1db41f117b01f72165e825"
+    },
+    {
+      "source_id": "SR2-S03",
+      "document_id": "SYN-SPEECH-2001",
+      "file": "sources/03_plenary_speech.md",
+      "role": "공식 발언문",
+      "use_scope": "ATTRIBUTED_STATEMENT_ONLY",
+      "data_class": "SYNTHETIC_TEST_ONLY",
+      "production_use_forbidden": true,
+      "test_evidence_mode": "SIMULATED_OFFICIAL",
+      "supplied_as_official": false,
+      "official_url": null,
+      "excerpt_locator": "연설문 전체",
+      "content_sha256": "39916ab06caa15eab6632f3b4ca78e906326a09b6a8c699aba8352f6a0023f8d"
+    },
+    {
+      "source_id": "SR2-S04",
+      "document_id": "SYN-VOTE-2001",
+      "file": "sources/04_vote_result.md",
+      "role": "본회의 표결 결과",
+      "use_scope": "FULL_FACT",
+      "data_class": "SYNTHETIC_TEST_ONLY",
+      "production_use_forbidden": true,
+      "test_evidence_mode": "SIMULATED_OFFICIAL",
+      "supplied_as_official": false,
+      "official_url": null,
+      "excerpt_locator": "표결 집계 전체",
+      "content_sha256": "aa23615460563a9121482e5b8dae0cb45569496793375cc377dcec25cfe0ebb9"
+    },
+    {
+      "source_id": "SR2-S05",
+      "document_id": "SYN-AGENDA-2001",
+      "file": "sources/05_agenda_text.md",
+      "role": "본회의 상정안",
+      "use_scope": "FULL_FACT",
+      "data_class": "SYNTHETIC_TEST_ONLY",
+      "production_use_forbidden": true,
+      "test_evidence_mode": "SIMULATED_OFFICIAL",
+      "supplied_as_official": false,
+      "official_url": null,
+      "excerpt_locator": "상정안 개정문 및 부칙",
+      "content_sha256": "c20b693f90e3c72ba307827e2b8dc339de56c85f9ac1137b973baaa7e7e6f01f"
+    },
+    {
+      "source_id": "SR2-S06",
+      "document_id": "SYN-FINAL-2001",
+      "file": "sources/06_modified_final_text.md",
+      "role": "본회의 최종문",
+      "use_scope": "FULL_FACT",
+      "data_class": "SYNTHETIC_TEST_ONLY",
+      "production_use_forbidden": true,
+      "test_evidence_mode": "SIMULATED_OFFICIAL",
+      "supplied_as_official": false,
+      "official_url": null,
+      "excerpt_locator": "수정가결 최종 개정문 및 부칙",
+      "content_sha256": "2508aa6c11c1b10d1123a2fe4fb7986cd41f04c12996712306a4319d83535523"
+    }
+  ],
+  "variants": [
+    {
+      "variant_id": "MISSING_VOTE",
+      "required": true,
+      "risk_code": "MISSING_PLENARY_VOTE_RESULT",
+      "source_ids": ["SR2-S01", "SR2-S02", "SR2-S03", "SR2-S05", "SR2-S06"],
+      "mutation_file": null,
+      "steps": [
+        {
+          "action": "PROCESS",
+          "expect": {
+            "state": "NEEDS_INPUT",
+            "failure_kind": null,
+            "internal_stop_reason": null,
+            "primary_blocker": { "gate": "REQUIRED_SOURCE", "kind": "ISSUE", "code": "REQUIRED_SOURCE_MISSING", "subject": "PLENARY_VOTE_RESULT", "resolution_kind": "NEW_RUN_WITH_SOURCES", "requires_new_run": true },
+            "blocking_issues": [{ "code": "REQUIRED_SOURCE_MISSING", "subject": "PLENARY_VOTE_RESULT" }],
+            "blocking_findings": [],
+            "drafts": { "stored_count": 0, "visible_count": 0, "unsafe_candidate_visible": false, "previous_valid_version_preserved": false },
+            "agent_calls": { "fact_extraction": 0, "draft_writing": 0, "revision": 0 },
+            "assertions": { "passed_disposition_count": 0 }
+          }
+        }
+      ]
+    },
+    {
+      "variant_id": "MISSING_FINAL",
+      "required": true,
+      "risk_code": "MISSING_PLENARY_FINAL_TEXT",
+      "source_ids": ["SR2-S01", "SR2-S02", "SR2-S03", "SR2-S04", "SR2-S05"],
+      "mutation_file": null,
+      "steps": [
+        {
+          "action": "PROCESS",
+          "expect": {
+            "state": "NEEDS_INPUT",
+            "failure_kind": null,
+            "internal_stop_reason": null,
+            "primary_blocker": { "gate": "REQUIRED_SOURCE", "kind": "ISSUE", "code": "REQUIRED_SOURCE_MISSING", "subject": "PLENARY_FINAL_TEXT", "resolution_kind": "NEW_RUN_WITH_SOURCES", "requires_new_run": true },
+            "blocking_issues": [{ "code": "REQUIRED_SOURCE_MISSING", "subject": "PLENARY_FINAL_TEXT" }],
+            "blocking_findings": [],
+            "drafts": { "stored_count": 0, "visible_count": 0, "unsafe_candidate_visible": false, "previous_valid_version_preserved": false },
+            "agent_calls": { "fact_extraction": 0, "draft_writing": 0, "revision": 0 },
+            "assertions": { "passed_disposition_count": 0 }
+          }
+        }
+      ]
+    },
+    {
+      "variant_id": "SPEECH_AS_VOTE",
+      "required": true,
+      "risk_code": "SPEECH_ROLE_SPOOF",
+      "source_ids": ["SR2-S01", "SR2-S02", "SR2-S03", "SR2-S05", "SR2-S06"],
+      "mutation_file": "mutations/speech_as_vote.json",
+      "steps": [
+        {
+          "action": "PROCESS",
+          "expect": {
+            "state": "NEEDS_INPUT",
+            "failure_kind": null,
+            "internal_stop_reason": null,
+            "primary_blocker": { "gate": "SOURCE_ROLE", "kind": "ISSUE", "code": "SOURCE_ROLE_CONTENT_MISMATCH", "subject": "SR2-S03", "resolution_kind": "NEW_RUN_WITH_SOURCES", "requires_new_run": true },
+            "blocking_issues": [{ "code": "SOURCE_ROLE_CONTENT_MISMATCH", "subject": "SR2-S03" }],
+            "blocking_findings": [],
+            "drafts": { "stored_count": 0, "visible_count": 0, "unsafe_candidate_visible": false, "previous_valid_version_preserved": false },
+            "agent_calls": { "fact_extraction": 1, "draft_writing": 0, "revision": 0 },
+            "assertions": { "procedure_stage_must_not_equal": "PLENARY_DECIDED" }
+          }
+        }
+      ]
+    },
+    {
+      "variant_id": "AGENDA_AS_FINAL",
+      "required": true,
+      "risk_code": "AGENDA_ROLE_SPOOF",
+      "source_ids": ["SR2-S01", "SR2-S02", "SR2-S03", "SR2-S04", "SR2-S05"],
+      "mutation_file": "mutations/agenda_as_final.json",
+      "steps": [
+        {
+          "action": "PROCESS",
+          "expect": {
+            "state": "NEEDS_INPUT",
+            "failure_kind": null,
+            "internal_stop_reason": null,
+            "primary_blocker": { "gate": "SOURCE_ROLE", "kind": "ISSUE", "code": "SOURCE_ROLE_CONTENT_MISMATCH", "subject": "SR2-S05", "resolution_kind": "NEW_RUN_WITH_SOURCES", "requires_new_run": true },
+            "blocking_issues": [{ "code": "SOURCE_ROLE_CONTENT_MISMATCH", "subject": "SR2-S05" }],
+            "blocking_findings": [],
+            "drafts": { "stored_count": 0, "visible_count": 0, "unsafe_candidate_visible": false, "previous_valid_version_preserved": false },
+            "agent_calls": { "fact_extraction": 1, "draft_writing": 0, "revision": 0 },
+            "assertions": { "agenda_text_must_not_become_final": true }
+          }
+        }
+      ]
+    }
+  ],
+  "forbidden_output_fragments": ["본회의를 통과했다", "가결됐다", "법이 개정됐다", "공포됐다", "시행 중이다"]
+}

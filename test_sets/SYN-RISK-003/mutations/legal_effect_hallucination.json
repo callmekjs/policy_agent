@@ -1,0 +1,26 @@
+{
+  "$schema": "../../mutation.schema.json",
+  "schema_version": "1.1.0",
+  "mutation_id": "SR3-M-LEGAL-EFFECT-HALLUCINATION",
+  "risk_code": "UNSUPPORTED_PERSONAL_LEGAL_EFFECT",
+  "target_type": "DRAFT_CANDIDATE",
+  "target_id": "SR3-DRAFT-BASELINE",
+  "operation": "PATCH_JSON",
+  "selector": { "json_pointer": "/" },
+  "patches": [
+    {
+      "op": "add",
+      "json_pointer": "/paragraphs/-",
+      "value": {
+        "paragraph_id": "SR3-P05",
+        "section_kind": "LEGAL_EFFECT",
+        "priority_rank": 5,
+        "text": "본회의 가결과 동시에 모든 신청자에게 즉시 법적 권리가 발생한다.",
+        "claim_ids": ["SR3-C-LEGAL-EFFECT-UNSUPPORTED"],
+        "fact_ids": [],
+        "supplementary_rule_ids": []
+      }
+    },
+    { "op": "add", "json_pointer": "/claims/-", "value": { "claim_id": "SR3-C-LEGAL-EFFECT-UNSUPPORTED", "text": "본회의 가결과 동시에 모든 신청자에게 즉시 법적 권리가 발생한다.", "fact_ids": [] } }
+  ]
+}

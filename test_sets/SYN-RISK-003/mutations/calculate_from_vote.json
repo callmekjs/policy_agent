@@ -1,0 +1,27 @@
+{
+  "$schema": "../../mutation.schema.json",
+  "schema_version": "1.1.0",
+  "mutation_id": "SR3-M-CALCULATE-FROM-VOTE",
+  "risk_code": "CALCULATE_RELATIVE_DATE_FROM_VOTE",
+  "target_type": "DRAFT_CANDIDATE",
+  "target_id": "SR3-DRAFT-BASELINE",
+  "operation": "PATCH_JSON",
+  "selector": { "json_pointer": "/" },
+  "patches": [
+    {
+      "op": "replace",
+      "json_pointer": "/paragraphs/2",
+      "value": {
+        "paragraph_id": "SR3-P03",
+        "section_kind": "SUPPLEMENTARY",
+        "priority_rank": 3,
+        "text": "이 법은 2026년 11월 20일부터, 제12조제2항은 2027년 2월 20일부터 시행된다.",
+        "claim_ids": ["SR3-C-EFFECTIVE-GENERAL", "SR3-C-EFFECTIVE-ARTICLE12"],
+        "fact_ids": ["SR3-F-SUPPLEMENT-EFFECTIVE"],
+        "supplementary_rule_ids": ["SR3-R01", "SR3-R02"]
+      }
+    },
+    { "op": "replace", "json_pointer": "/claims/6/text", "value": "이 법은 2026년 11월 20일부터 시행된다." },
+    { "op": "replace", "json_pointer": "/claims/7/text", "value": "제12조제2항은 2027년 2월 20일부터 시행된다." }
+  ]
+}
