@@ -177,8 +177,12 @@ $shortcutJob = Start-Job -ScriptBlock {
     $proc = Start-Process -FilePath "cmd.exe" -ArgumentList "/c", "`"$startCmd`"" `
         -WorkingDirectory $root -WindowStyle Hidden -PassThru `
         -RedirectStandardOutput $log -RedirectStandardError $err
+
+    # 실행기가 스스로 끝나기를 기다린다. 건강 확인만 보고 중간에 끊으면
+    # 서버 번호가 기록되기 전에 죽어 고아 서버가 남는다.
+    $exited = $proc.WaitForExit(120000)
     $ready = $false
-    for ($k = 0; $k -lt 60; $k++) {
+    for ($k = 0; $k -lt 30; $k++) {
         try {
             $h = Invoke-RestMethod -Uri "http://127.0.0.1:8765/api/health" -TimeoutSec 2
             if ($h.status -eq "ok") { $ready = $true; break }
@@ -189,7 +193,11 @@ $shortcutJob = Start-Job -ScriptBlock {
     foreach ($f in @($log, $err)) {
         if (Test-Path $f) { $text += (Get-Content $f -Raw -Encoding UTF8 -ErrorAction SilentlyContinue) }
     }
-    if (-not $proc.HasExited) { Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue }
+    if (-not $exited) {
+        $text += "`n[검사기] 실행기가 120초 안에 끝나지 않았습니다."
+        Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue
+    }
+    $pidRecorded = Test-Path (Join-Path $root ".local-server.pid")
 
     # 문서화된 방법으로만 끈다.
     $stopProc = Start-Process -FilePath "cmd.exe" -ArgumentList "/c", "`"$stopCmd`"" `
@@ -198,7 +206,10 @@ $shortcutJob = Start-Job -ScriptBlock {
     Start-Sleep -Milliseconds 1500
     $left = @(Get-NetTCPConnection -LocalPort 8765 -State Listen -ErrorAction SilentlyContinue).Count
 
-    [pscustomobject]@{ Ready = $ready; Output = $text; PortLeft = $left }
+    [pscustomobject]@{
+        Ready = $ready; Output = $text; PortLeft = $left
+        LauncherExited = $exited; PidRecorded = $pidRecorded
+    }
 } -ArgumentList $Root, $startCmd, $stopCmd, $env:TEMP
 
 $shortcut = $null
@@ -221,6 +232,13 @@ if ($shortcut -eq $null) {
         Fail-Check $c2 "start-local.cmd 뒤에도 8765가 응답하지 않습니다."
     } else {
         Add-Evidence $c2 "실행 바로가기로 8765의 /api/health 200"
+    }
+    if (-not $shortcut.LauncherExited) {
+        Fail-Check $c2 "start-local.cmd가 스스로 끝나지 않았습니다."
+    } elseif (-not $shortcut.PidRecorded) {
+        Fail-Check $c2 "start-local.cmd가 서버 번호를 기록하지 않았습니다. 고아 서버가 남을 수 있습니다."
+    } else {
+        Add-Evidence $c2 "실행기가 스스로 종료하고 서버 번호를 기록함"
     }
     if ($shortcut.PortLeft -gt 0) {
         Fail-Check $c2 "stop-local.cmd 뒤에도 8765 포트가 열려 있습니다."

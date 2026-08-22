@@ -36,3 +36,6 @@ Thumbs.db
 
 # TypeScript 증분 빌드 부산물
 *.tsbuildinfo
+
+# 실행 바로가기가 남기는 서버 번호 파일
+.local-server.pid

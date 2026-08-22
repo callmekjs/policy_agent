@@ -21,8 +21,12 @@ REM 1) 포트가 이미 쓰이고 있는지 확인합니다.
 netstat -ano | findstr /R /C:"LISTENING" | findstr /C:":%PORT% " >nul
 if not errorlevel 1 (
     echo   [멈춤] %PORT% 포트를 이미 다른 프로그램이 쓰고 있습니다.
-    echo          stop-local.cmd 를 먼저 실행하거나 그 프로그램을 닫아 주세요.
-    pause
+    if exist "%PIDFILE%" (
+        echo          stop-local.cmd 를 먼저 실행해 주세요.
+    ) else (
+        echo          이전에 켠 서버가 남아 있을 수 있습니다.
+        echo          stop-local.cmd 를 실행하면 남은 서버를 찾아 정리합니다.
+    )
     exit /b 1
 )
 
@@ -35,16 +39,21 @@ if not exist "%ROOT%frontend\dist\index.html" (
     popd
     if not exist "%ROOT%frontend\dist\index.html" (
         echo   [멈춤] 화면을 만들지 못했습니다.
-        pause
-        exit /b 1
+            exit /b 1
     )
 )
 
-REM 3) 서버를 시작합니다. 메모리 저장소를 쓰므로 worker는 하나만 띄웁니다.
+REM 3) 서버를 시작하고 곧바로 번호를 적어 둡니다.
+REM     번호를 나중에 적으면 그 사이에 이 창이 닫혔을 때 서버가 남아
+REM     stop-local.cmd로도 끌 수 없게 됩니다.
 echo   서버를 시작합니다...
-pushd "%ROOT%backend"
-start "policy-agent-server" /min cmd /c "python -m uvicorn app.main:app --host 127.0.0.1 --port %PORT% --workers 1"
-popd
+del "%PIDFILE%" >nul 2>&1
+for /f "usebackq delims=" %%i in (`powershell -NoProfile -ExecutionPolicy Bypass -Command "(Start-Process -FilePath 'python' -ArgumentList '-m','uvicorn','app.main:app','--host','127.0.0.1','--port','%PORT%','--workers','1' -WorkingDirectory '%ROOT%backend' -WindowStyle Minimized -PassThru).Id"`) do echo %%i> "%PIDFILE%"
+
+if not exist "%PIDFILE%" (
+    echo   [멈춤] 서버를 시작하지 못했습니다.
+    exit /b 1
+)
 
 REM 4) 서버가 응답할 때까지 기다립니다.
 set "READY="
@@ -59,13 +68,7 @@ for /l %%i in (1,1,30) do (
 if not defined READY (
     echo   [멈춤] 서버가 응답하지 않습니다.
     echo          backend 폴더에서 python -m uvicorn app.main:app 을 직접 실행해 오류를 확인해 주세요.
-    pause
     exit /b 1
-)
-
-REM 5) 우리가 띄운 서버의 PID만 기록합니다. stop-local.cmd가 이것만 종료합니다.
-for /f "tokens=5" %%p in ('netstat -ano ^| findstr /R /C:"LISTENING" ^| findstr /C:":%PORT% "') do (
-    echo %%p> "%PIDFILE%"
 )
 
 echo   준비됐습니다. 브라우저를 엽니다: %URL%
