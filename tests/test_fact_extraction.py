@@ -649,3 +649,45 @@ async def test_사용자가_위원회_자료라고_표시하면_본회의_값으
     )
     blocking = [i for i in run.issues if i.severity.value == "BLOCKING"]
     assert blocking == [], f"위원회 값을 본회의 것과 섞었습니다: {[i.subject for i in blocking]}"
+
+
+@pytest.mark.asyncio
+async def test_사용자가_고른_역할이_제목보다_우선한다() -> None:
+    """검증에서 나온 경우.
+
+    사용자가 `본회의 표결 결과`라고 직접 골랐는데도 제목에 위원회 이름이
+    있다는 이유로 값이 통째로 사라졌다. 값이 사라지면 충돌도 사라진다.
+    """
+    a = "# 문화체육관광위원회 소관 의안 처리 결과\n\n- 의결일: 2026. 8. 20.\n- 찬성: 201명\n"
+    b = "# 문화체육관광위원회 소관 의안 처리 결과\n\n- 의결일: 2026. 8. 21.\n- 찬성: 202명\n"
+    run = await _run_flow(
+        [
+            ("표결 결과 갑", a, SourceRole.PLENARY_VOTE_RESULT),
+            ("표결 결과 을", b, SourceRole.PLENARY_VOTE_RESULT),
+        ]
+    )
+    subjects = [i.subject for i in run.issues if i.code.value == "FACT_CONFLICT"]
+    assert "plenary_decided_on" in subjects, f"제목 때문에 충돌이 사라졌습니다: {subjects}"
+    assert "vote_yes_count" in subjects, f"제목 때문에 충돌이 사라졌습니다: {subjects}"
+    assert run.draft_version == 0
+
+
+@pytest.mark.asyncio
+async def test_본회의_줄이_섞인_문서는_제목만으로_버리지_않는다() -> None:
+    """위원회 제목 아래에 본회의 줄이 함께 있는 자료가 실제로 있다."""
+    mixed = (
+        "# 문화체육관광위원회 소관\n\n"
+        "- 소관위 심사: 처리일 2025. 9. 18., 처리결과 원안가결\n"
+        "- 본회의 심의: 2025. 9. 25. 원안가결\n"
+    )
+    other = "- 본회의 심의: 2025. 9. 26. 원안가결\n"
+    run = await _run_flow(
+        [
+            ("의안정보", mixed, SourceRole.BILL_INFORMATION),
+            ("표결 결과", other, SourceRole.PLENARY_VOTE_RESULT),
+        ]
+    )
+    subjects = [i.subject for i in run.issues if i.code.value == "FACT_CONFLICT"]
+    assert "plenary_decided_on" in subjects, (
+        f"위원회 제목 때문에 본회의 값이 사라졌습니다: {subjects}"
+    )

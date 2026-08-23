@@ -30,8 +30,10 @@ PLENARY_SCOPED_KINDS = frozenset(
 #: 다른 회의를 가리키는 표현. 이 말이 붙은 자리의 값은 본회의 사실로 쓰지 않는다.
 OTHER_BODY_PATTERN = re.compile(r"소관위|법사위|위원회|소위")
 
-#: 사용자가 위원회 자료라고 표시한 역할. 화면에서 이미 확인받은 값이므로
-#: 본문 표기보다 확실한 근거다.
+#: 사용자가 화면에서 직접 고른 역할. 본문 표기보다 확실한 근거이므로 먼저 본다.
+PLENARY_ROLES = frozenset(
+    {"PLENARY_VOTE_RESULT", "PLENARY_FINAL_TEXT", "PLENARY_AGENDA_TEXT"}
+)
 COMMITTEE_ROLES = frozenset({"COMMITTEE_FINAL_TEXT"})
 
 #: 자료 원문에서 찾을 표현들. (사실 종류, 비교 항목, 정규식)
@@ -93,15 +95,31 @@ def _is_plenary_scope(text: str, index: int, role: str) -> bool:
     사라진다. 값이 사라지면 두 자료의 충돌도 함께 사라져, 시스템이 말없이
     한쪽을 고른 것과 같아진다. 그것이 거짓 충돌보다 훨씬 나쁘다.
     """
+    # 1) 사용자가 화면에서 직접 고른 역할이 가장 확실한 근거다.
+    #    본문 표기보다 먼저 본다. 그러지 않으면 사용자가 `본회의 표결 결과`라고
+    #    골라 둔 자료도 제목에 위원회 이름이 있다는 이유로 값이 사라진다.
+    if role in PLENARY_ROLES:
+        return True
     if role in COMMITTEE_ROLES:
         return False
+
+    # 2) 같은 줄이 다른 회의를 가리키면 그 값은 본회의 것이 아니다.
     line = _line_of(text, index)
     if OTHER_BODY_PATTERN.search(line):
         return False
     if "본회의" in line:
         return True
+
+    # 3) 제목은 문서 전체에 걸리므로 조심해서 쓴다. 본문 어디에도 `본회의`가
+    #    없을 때만 제목으로 뺀다. 본회의 이야기가 섞인 문서에서 제목 하나로
+    #    값을 통째로 버리면 충돌이 조용히 사라진다.
     heading = _heading_of(text, index)
-    if heading and OTHER_BODY_PATTERN.search(heading) and "본회의" not in heading:
+    if (
+        heading
+        and OTHER_BODY_PATTERN.search(heading)
+        and "본회의" not in heading
+        and "본회의" not in text
+    ):
         return False
     return True
 
