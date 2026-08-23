@@ -101,12 +101,28 @@ def build_fact_ledger(
     근거를 확인하지 못한 사실은 원장에 넣지 않고 버린 목록에 적는다.
     """
     evidence = locate_evidence(raw.evidence, sources, source_names)
+
+    # 사실뿐 아니라 입법 사건·부칙·의안·관계·조문 비교도 근거를 확인한다.
+    # 근거를 찾지 못한 항목이 원장에 남으면 초안 Agent가 그것을 읽게 된다.
     ledger = FactLedger(
-        legislative_events=list(raw.legislative_events),
-        supplementary_rules=list(raw.supplementary_rules),
-        bill_identities=list(raw.bill_identities),
-        bill_relations=list(raw.bill_relations),
-        provision_comparisons=list(raw.provision_comparisons),
+        legislative_events=_keep_with_evidence(
+            raw.legislative_events, evidence, "event_id", ("evidence_id",)
+        ),
+        supplementary_rules=_keep_with_evidence(
+            raw.supplementary_rules, evidence, "rule_id", ("evidence_id",)
+        ),
+        bill_identities=_keep_with_evidence(
+            raw.bill_identities, evidence, "bill_id", ("evidence_ids",)
+        ),
+        bill_relations=_keep_with_evidence(
+            raw.bill_relations, evidence, "origin_bill_id", ("evidence_ids",)
+        ),
+        provision_comparisons=_keep_with_evidence(
+            raw.provision_comparisons,
+            evidence,
+            "comparison_id",
+            ("current_evidence_id", "final_evidence_id"),
+        ),
     )
 
     for fact in raw.facts:
@@ -134,6 +150,37 @@ def build_fact_ledger(
         )
 
     return ledger, evidence
+
+
+def _keep_with_evidence(
+    items: list,
+    evidence: EvidenceResult,
+    id_field: str,
+    evidence_fields: tuple[str, ...],
+) -> list:
+    """근거가 실제 원문에서 확인된 항목만 남긴다.
+
+    사실과 같은 기준을 적용한다. 근거를 못 찾은 항목은 버리고 이유를 적는다.
+    """
+    kept = []
+    for item in items:
+        needed: list[str] = []
+        for field in evidence_fields:
+            value = getattr(item, field)
+            needed.extend(value if isinstance(value, list) else [value])
+
+        missing = [e for e in needed if e not in evidence.locations]
+        if not needed or missing:
+            evidence.problems.append(
+                EvidenceProblem(
+                    kind="UNKNOWN_EVIDENCE",
+                    fact_id=str(getattr(item, id_field)),
+                    detail="근거를 확인하지 못해 쓰지 않았습니다.",
+                )
+            )
+            continue
+        kept.append(item)
+    return kept
 
 
 def _check_fact(fact: RawFact, evidence: EvidenceResult) -> EvidenceProblem | None:

@@ -20,8 +20,10 @@ from app.harness.contracts import (
 )
 from app.harness.fact_contracts import FactLedger, VerifiedFact
 
-#: 자료에 함께 적힌 요일 표기를 찾는다. 예: `2025. 9. 25.(목)`
-WEEKDAY_PATTERN = re.compile(r"\(\s*([월화수목금토일])\s*\)")
+#: 자료에 함께 적힌 요일 표기를 찾는다.
+#: 고정 시험자료는 `(목요일)` 형태를 쓰고 실제 국회 자료는 `(목)`도 쓴다.
+#: 둘 다 읽지 못하면 요일 검사가 실제 자료에서 한 번도 발동하지 않는다.
+WEEKDAY_PATTERN = re.compile(r"\(\s*([월화수목금토일])(?:요일)?\s*\)")
 WEEKDAY_NAMES = "월화수목금토일"
 
 #: `2025. 9. 25.` `2025-09-25` `2025년 9월 25일`을 모두 읽는다.

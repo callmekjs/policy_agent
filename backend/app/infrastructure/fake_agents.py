@@ -25,10 +25,19 @@ FACT_PATTERNS: tuple[tuple[str, str, re.Pattern[str]], ...] = (
         re.compile(r"(원안가결|수정가결|부결|대안반영폐기)"),
     ),
     (
+        # `본회의 심의: 2025. 9. 25.`와 `- 의결일: 2026. 8. 20.(목요일)`을 모두 읽는다.
+        # 고정 시험자료는 `의결일:` 표기를 쓰므로 그것도 읽지 못하면
+        # 날짜 충돌·요일 검사가 실제 자료에서 한 번도 발동하지 않는다.
         "PLENARY_DECIDED_ON",
         "plenary_decided_on",
-        re.compile(r"본회의[^\n]{0,20}?(\d{4}\s*[.\-년]\s*\d{1,2}\s*[.\-월]\s*\d{1,2})"),
+        re.compile(
+            r"(?:본회의|의결일|의결\s*일자)[^\n]{0,20}?"
+            r"(\d{4}\s*[.\-년]\s*\d{1,2}\s*[.\-월]\s*\d{1,2})"
+        ),
     ),
+    ("VOTE_PRESENT_COUNT", "vote_present_count", re.compile(r"재석[:\s]*(\d+)\s*명")),
+    ("VOTE_YES_COUNT", "vote_yes_count", re.compile(r"찬성[:\s]*(\d+)\s*명")),
+    ("VOTE_NO_COUNT", "vote_no_count", re.compile(r"반대[:\s]*(\d+)\s*명")),
     ("PROVISION_CHANGE", "changed_article", re.compile(r"(제\s*\d+\s*조(?:의\s*\d+)?)")),
 )
 

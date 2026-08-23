@@ -425,3 +425,141 @@ def test_고정_시험자료의_응답_형식을_그대로_읽는다() -> None:
     assert len(result.facts) == 10
     assert len(result.evidence) == 15
     assert len(result.supplementary_rules) == 4
+
+
+# ---------------------------------------------------------------------------
+# 고정 시험자료로 끝까지 (공허하게 통과하지 않도록 실제 자료를 쓴다)
+# ---------------------------------------------------------------------------
+
+
+def _fixture_dir():
+    from pathlib import Path
+
+    return Path(__file__).resolve().parent.parent / "test_sets"
+
+
+def _apply_mutation(text: str, mutation_name: str) -> str:
+    """고정 mutation 파일의 문자열 교체를 그대로 적용한다."""
+    import json
+
+    data = json.loads(
+        (_fixture_dir() / "SYN-RISK-001" / "mutations" / f"{mutation_name}.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    target = data["selector"]["exact_text"]
+    assert target in text, f"고정 자료에 `{target}`가 없습니다."
+    return text.replace(target, data["replacement"])
+
+
+async def _run_flow(sources: list[tuple[str, str, SourceRole]]):
+    """가짜 게이트웨이로 전체 흐름을 돌리고 Run을 돌려준다."""
+    from datetime import date
+
+    from app.harness.contracts import (
+        EXTERNAL_AI_POLICY_VERSION,
+        CreateRunRequest,
+        Disclosure,
+        SourceInput,
+    )
+    from app.harness.orchestrator import Orchestrator
+    from app.infrastructure.model_gateway import FakeModelGateway
+    from app.infrastructure.run_store import RunStore
+
+    store = RunStore()
+    orchestrator = Orchestrator(store, FakeModelGateway())
+    request = CreateRunRequest(
+        client_request_id="fixture-run",
+        purpose="본회의 의결 결과를 알리려고 합니다. 고정 시험자료로 확인합니다.",
+        disclosure=Disclosure.PUBLIC,
+        basis_date=date(2026, 8, 23),
+        sources=[
+            SourceInput(display_name=name, text=text, role=role)
+            for name, text, role in sources
+        ],
+        external_ai_policy_version=EXTERNAL_AI_POLICY_VERSION,
+        external_ai_transfer_confirmed=True,
+    )
+    run = orchestrator.create_run(request)
+    await orchestrator.process(run.run_id, request, date(2026, 8, 23))
+    return store.get(run.run_id)
+
+
+def _vote_source(mutation: str | None = None) -> tuple[str, str, SourceRole]:
+    text = (_fixture_dir() / "SYN-RISK-001" / "sources" / "03_plenary_vote.md").read_text(
+        encoding="utf-8"
+    )
+    if mutation:
+        text = _apply_mutation(text, mutation)
+    return ("본회의 표결 결과", text, SourceRole.PLENARY_VOTE_RESULT)
+
+
+def _other_vote_source() -> tuple[str, str, SourceRole]:
+    """같은 표결을 적은 다른 자료. 충돌 비교 상대로 쓴다."""
+    text = (
+        _fixture_dir() / "SYN-RISK-001" / "sources" / "05_independent_vote_notice.md"
+    ).read_text(encoding="utf-8")
+    return ("표결 안내", text, SourceRole.BILL_INFORMATION)
+
+
+@pytest.mark.asyncio
+async def test_고정_자료의_요일_불일치를_실제로_잡는다() -> None:
+    """`(목요일)` 표기를 읽지 못하면 이 시험이 실패한다."""
+    run = await _run_flow([_vote_source("weekday_mismatch")])
+    codes = [i.code.value for i in run.issues]
+    assert "DATE_WEEKDAY_MISMATCH" in codes, f"요일 검사가 발동하지 않았습니다: {codes}"
+    assert run.state == "NEEDS_INPUT"
+    assert run.draft_version == 0
+
+
+@pytest.mark.asyncio
+async def test_고정_자료의_날짜_충돌을_실제로_잡는다() -> None:
+    run = await _run_flow([_vote_source("date_conflict"), _other_vote_source()])
+    conflicts = [i for i in run.issues if i.code.value == "FACT_CONFLICT"]
+    assert conflicts, f"날짜 충돌을 잡지 못했습니다: {[i.code.value for i in run.issues]}"
+    assert "2026. 8. 21" in conflicts[0].message
+    assert "2026. 8. 20" in conflicts[0].message
+    assert run.draft_version == 0
+
+
+@pytest.mark.asyncio
+async def test_고정_자료의_찬성_수_충돌을_실제로_잡는다() -> None:
+    run = await _run_flow([_vote_source("count_conflict"), _other_vote_source()])
+    conflicts = [i for i in run.issues if i.code.value == "FACT_CONFLICT"]
+    subjects = [i.subject for i in conflicts]
+    assert "vote_yes_count" in subjects, f"찬성 수 충돌을 잡지 못했습니다: {subjects}"
+    assert run.draft_version == 0
+
+
+@pytest.mark.asyncio
+async def test_변조하지_않은_고정_자료는_충돌_없이_지나간다() -> None:
+    """정상 자료까지 막으면 안 된다."""
+    run = await _run_flow([_vote_source(), _other_vote_source()])
+    blocking = [i for i in run.issues if i.severity.value == "BLOCKING"]
+    assert blocking == [], f"정상 자료를 막았습니다: {[i.message for i in blocking]}"
+    assert run.fact_ledger and run.fact_ledger.facts
+
+
+@pytest.mark.asyncio
+async def test_근거가_없는_입법_사건은_원장에_남지_않는다() -> None:
+    """사실뿐 아니라 사건·부칙도 근거를 확인한다. 초안 Agent가 읽기 전에 막는다."""
+    from app.harness.fact_contracts import RawLegislativeEvent
+
+    normalized, names = _sources()
+    raw = _result(
+        legislative_events=[
+            RawLegislativeEvent(
+                event_id="E-01",
+                bill_id="B-01",
+                procedure_stage="PLENARY_DECIDED",
+                disposition="REJECTED",
+                occurred_on="2099-01-01",
+                source_id="SRC-01",
+                evidence_id="EV-없음",
+                valid_source_role_candidate_ids=[],
+            )
+        ],
+    )
+    ledger, evidence = build_fact_ledger(raw, normalized, names)
+    assert ledger.legislative_events == []
+    assert any(p.fact_id == "E-01" for p in evidence.problems)
