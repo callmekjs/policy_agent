@@ -1,0 +1,590 @@
+{
+ "gate_id": "DEMO-DAY3-GATE",
+ "run_id": "day3-recheck-final-20260823-180000",
+ "readme_version": "0.23.0-draft",
+ "started_at": "2026-08-23T08:10:00+00:00",
+ "completed_at": "2026-08-23T08:40:00+00:00",
+ "verifier": {
+  "context": "구현 담당자와 다른 새 문맥. 제품 소스·시험·Writing Contract·README·schema·합격선 파일을 고치지 않았다.",
+  "is_separate_from_implementer": true
+ },
+ "pass_bar_file": "verification/day3-pass-bar.md",
+ "supersedes": "day3-final-gate-20260823-165800 (코드가 c19bcd5로 바뀌어 STALE)",
+ "source_snapshot": {
+  "file_count": 47,
+  "combined_sha256": "df8751b601dab4c30a5434ef7d7ff89e8753fea7c7526acab2ccf8986703b3bd",
+  "files": [
+   {
+    "path": "backend/app/__init__.py",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+   },
+   {
+    "path": "backend/app/agents/__init__.py",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+   },
+   {
+    "path": "backend/app/agents/fact_extraction.py",
+    "sha256": "fd9f1317fa86a84f80739f1e5218b4df56c4a1a3718ef9f2e94962474203715e"
+   },
+   {
+    "path": "backend/app/api/__init__.py",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+   },
+   {
+    "path": "backend/app/api/runs.py",
+    "sha256": "bc22a7ecee80a90df2d44e0591ae6de5266ae5589716d6c90206a0178719ec76"
+   },
+   {
+    "path": "backend/app/gates/__init__.py",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+   },
+   {
+    "path": "backend/app/gates/conflict_gate.py",
+    "sha256": "d9e249f718d50c41073cf92d602aae62142917c3a070228ad01974904c192f01"
+   },
+   {
+    "path": "backend/app/gates/evidence_gate.py",
+    "sha256": "ff8d2168a34e985ba70c87e10c9cf9411a8055c6fdbeb4d0b6cb48fd4f1021ff"
+   },
+   {
+    "path": "backend/app/gates/input_gate.py",
+    "sha256": "69faf53ee7f63da367c6c510f85549b0edf181f0237f59ada7ed9cf06e3f824e"
+   },
+   {
+    "path": "backend/app/gates/source_role_gate.py",
+    "sha256": "36cd3c0c0d14119fa42b04ca73c6e39a7cd9271ee560b142019b975ceecbe8b8"
+   },
+   {
+    "path": "backend/app/harness/__init__.py",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+   },
+   {
+    "path": "backend/app/harness/contract_loader.py",
+    "sha256": "a49a8ed1b9d204d4fdfdef91fab4d914f0ececca971bdd5630cbfa9a8d33383a"
+   },
+   {
+    "path": "backend/app/harness/contracts.py",
+    "sha256": "cd3a8033751f78ea94ae144c43e93ba1428dd1de4694f71d0527f19c62ce6b2b"
+   },
+   {
+    "path": "backend/app/harness/fact_contracts.py",
+    "sha256": "d1781787a14c6be9caebb152f863a256cd2a4d7f155d411f5ab6af78c1489bfc"
+   },
+   {
+    "path": "backend/app/harness/orchestrator.py",
+    "sha256": "c5a4282992c7dfffc05eda3dc9ee404101d386cc0f417863c89b448ec4eb0b9e"
+   },
+   {
+    "path": "backend/app/harness/runtime.py",
+    "sha256": "adb8394f5c16e73ad4969e14f62940d7a82c6177fb7f328422e1cbd417a24b2c"
+   },
+   {
+    "path": "backend/app/harness/source_normalizer.py",
+    "sha256": "dd1d9513b6598f94fd7f8430283c38270211b5341c4143898069869839f9713d"
+   },
+   {
+    "path": "backend/app/harness/states.py",
+    "sha256": "a75afd52f696b966b507326ba31e1dc42976986ec50b1dfb015cd2c428adad03"
+   },
+   {
+    "path": "backend/app/infrastructure/__init__.py",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+   },
+   {
+    "path": "backend/app/infrastructure/fake_agents.py",
+    "sha256": "550009e3e9833280293f9e6df2f75f98b26b040a6b726f932798d429ef4e66f0"
+   },
+   {
+    "path": "backend/app/infrastructure/model_gateway.py",
+    "sha256": "ec8804f1b6949a0a6dc53b04cbb279946140535fd8728737eb4791f128eace1e"
+   },
+   {
+    "path": "backend/app/infrastructure/run_store.py",
+    "sha256": "518fea31c2af082ca83333c03bcf6ae4563131135dda07455d67cc337fac984a"
+   },
+   {
+    "path": "backend/app/main.py",
+    "sha256": "e5b6bb9719b1acc89f337e4d7c569fd2d836d95c3c9049c598d1ccf408ce6c76"
+   },
+   {
+    "path": "backend/app/writing_contracts/assembly_law_amendment_v1/contract.yaml",
+    "sha256": "9065fa6d7d3f31d8d487517ef43c770a1003aec034d099ab21eadf579a5af6bc"
+   },
+   {
+    "path": "backend/app/writing_contracts/assembly_law_amendment_v1/profile.yaml",
+    "sha256": "29c13548a7504677bf12dd80016c989071d8fb1b37cd557527b812f5237a507c"
+   },
+   {
+    "path": "backend/app/writing_contracts/assembly_law_amendment_v1/style.yaml",
+    "sha256": "13434349ee3564b2fd389889eb4e1cd286ca4d618466435ceef4fc57dd7cb9ba"
+   },
+   {
+    "path": "backend/app/writing_contracts/assembly_law_amendment_v1/template.yaml",
+    "sha256": "0fe4f17dd0d01e1cb6255fd4e541a102ccedde6891f9a6933749b7e5e980c7ef"
+   },
+   {
+    "path": "backend/app/writing_contracts/assembly_law_amendment_v1/validation.yaml",
+    "sha256": "fa672e462157407ab4edb70965cbbf34ce69febdc4e87a2c079419fb0b2246bf"
+   },
+   {
+    "path": "backend/pyproject.toml",
+    "sha256": "c68ce8bca861b20f51d72c0a9aa7128bd400661cba47051b2e464036f87e4c3b"
+   },
+   {
+    "path": "frontend/src/api/client.ts",
+    "sha256": "d7642940572b68e3f8fcf4f495584f8bb3817bad4a861a0f9b0688513765d401"
+   },
+   {
+    "path": "frontend/src/test-setup.ts",
+    "sha256": "977afde26bba6a51325908cd7713cbfdc87d18f06b78b237c8f364c44864b7de"
+   },
+   {
+    "path": "frontend/src/types.ts",
+    "sha256": "fec82a0b4909d5f3057d473a4a37a20ac705f6377c02b5b65901344fc20d6292"
+   },
+   {
+    "path": "frontend/src/App.test.tsx",
+    "sha256": "028195da963747366c0cdcefa640ad24079c622c835ce48465c6321a76b3dc1b"
+   },
+   {
+    "path": "frontend/src/App.tsx",
+    "sha256": "dd865cd5e5f5eeb30a9d0f1072439a27f0c0ca1de4037c8603a6d50d4ebd43cc"
+   },
+   {
+    "path": "frontend/src/main.tsx",
+    "sha256": "8070aefba6d43f5300a919f02adb3071318bee89f10cffe07c64df74e85a1635"
+   },
+   {
+    "path": "frontend/src/screens/NewRunScreen.tsx",
+    "sha256": "77f78e0e37846568b2058a34e1f32a743feb8c461f0a1bd1bf14dcdd9a96ddaf"
+   },
+   {
+    "path": "frontend/src/screens/RunStatusScreen.tsx",
+    "sha256": "674445d8898880c148615c70c873e2d8334fbdefe8d4d09cce020627111d076b"
+   },
+   {
+    "path": "frontend/src/styles.css",
+    "sha256": "f9e5f80cafaceaa27559a71f65b2a1dd5a4c2774645c28c927004203969b0e8b"
+   },
+   {
+    "path": "frontend/package.json",
+    "sha256": "8bd6cd686d2a6dc65c50a32bcd9df80db97c50eeac8700f4575cda51cd1b544a"
+   },
+   {
+    "path": "frontend/vite.config.ts",
+    "sha256": "0876f63a96ea1731d17098889f9deb5c9d1c555e3c267340d82ba524c894cca8"
+   },
+   {
+    "path": "frontend/index.html",
+    "sha256": "b6bddd47a343b1b27d14755c79a9a4b40343944daa1071a9dfa3905fc9a2fb3a"
+   },
+   {
+    "path": "tests/test_day1_gate.py",
+    "sha256": "bd7b2b75f4485f113c6a84ec86de6421c8985c06fdc8538187c60e5189aeeeb5"
+   },
+   {
+    "path": "tests/test_fact_extraction.py",
+    "sha256": "77c6c5a1c85e7917c576e336918c426398bce6081174b6d1041eeb7687e37d22"
+   },
+   {
+    "path": "tests/test_harness_flow.py",
+    "sha256": "a8b27906fabd2c1d89073663dc733bcaaed319ff40822bbc8024a3637877bb0a"
+   },
+   {
+    "path": "scripts/verify-day1.ps1",
+    "sha256": "dcc321effa7030f9f2228a0531daca1c3967548d8fcb5b220dd8a44a6b02679b"
+   },
+   {
+    "path": "start-local.cmd",
+    "sha256": "bf6f2dfbd57aba02018dfde5fd69668b498f6fd6a51462e26feb935a4d1b10a9"
+   },
+   {
+    "path": "stop-local.cmd",
+    "sha256": "08c4daa5d14b3699c7a090612ea52faebbb09aac867b277af0f7a8394a1b6669"
+   }
+  ]
+ },
+ "verdict": "BLOCKED",
+ "violated_pass_bar_items": [
+  {
+   "item": "C2",
+   "check_id": "D3G-05",
+   "threshold": "0건",
+   "measured": "화면에 나가는 버린 기록 185건 중 자료명이 없는 것 97건"
+  }
+ ],
+ "pass_bar_results": [
+  {
+   "item": "A1",
+   "measures": "원장 사실 중 원문 근거(문구·자료명·행)가 없는 것",
+   "threshold": "0건",
+   "measured": "0건 (사실 106건 전수)",
+   "result": "PASS"
+  },
+  {
+   "item": "A2",
+   "measures": "근거 문구가 정규화 원문에 완전 일치하지 않는 것",
+   "threshold": "0건",
+   "measured": "0건 (106건 전수)",
+   "result": "PASS"
+  },
+  {
+   "item": "A3",
+   "measures": "ACTUAL-PASS-001에서 사실이 한 건도 안 나오는가",
+   "threshold": "아니오",
+   "measured": "사실 10건",
+   "result": "PASS"
+  },
+  {
+   "item": "B1",
+   "measures": "SYN-RISK-001 3종 mutation의 차단 Issue",
+   "threshold": "3종 모두 발생",
+   "measured": "3/3 발생",
+   "result": "PASS"
+  },
+  {
+   "item": "B2",
+   "measures": "위 3종의 draft_version",
+   "threshold": "모두 0",
+   "measured": "0 / 0 / 0",
+   "result": "PASS"
+  },
+  {
+   "item": "B3",
+   "measures": "ACTUAL-BLOCK-002",
+   "threshold": "NEEDS_INPUT, 초안 0",
+   "measured": "NEEDS_INPUT, 0",
+   "result": "PASS"
+  },
+  {
+   "item": "B4",
+   "measures": "고정 자료 5종 전체의 draft_version",
+   "threshold": "모두 0",
+   "measured": "0,0,0,0,0",
+   "result": "PASS"
+  },
+  {
+   "item": "C1",
+   "measures": "버린 값이 issues·rejected_evidence 어디에도 없이 사라짐",
+   "threshold": "0건",
+   "measured": "0건 (주입 74사례, 추적 문자열 146개 전부 화면 응답에 1회 이상)",
+   "result": "PASS"
+  },
+  {
+   "item": "C2",
+   "measures": "버린 기록에 값·자료명·행이 없는 것",
+   "threshold": "0건",
+   "measured": "값 없음 0건 / 자료명 없음 97건 / 행 없음 171건(전부 근거 미특정으로 행이 존재 불가)",
+   "result": "FAIL"
+  },
+  {
+   "item": "C3",
+   "measures": "버린 사실이 있을 때 진짜 충돌 Issue가 가려짐",
+   "threshold": "0건",
+   "measured": "0건 (대조 실험 X9/X10으로 원인 격리)",
+   "result": "PASS"
+  },
+  {
+   "item": "C4",
+   "measures": "어떤 입력으로도 Run이 예외로 죽어 정상 사실까지 사라짐",
+   "threshold": "0건",
+   "measured": "0건 (74사례, 샌 예외 0 / 내부 크래시 0)",
+   "result": "PASS"
+  },
+  {
+   "item": "D1",
+   "measures": "실제 외부 AI 호출 / 비용",
+   "threshold": "0회 / 0달러",
+   "measured": "0회 / 0.0달러 (82사례 전부 actual_model_calls=0)",
+   "result": "PASS"
+  },
+  {
+   "item": "D2",
+   "measures": "API 응답·일반 로그의 자료 원문 전문·API 키",
+   "threshold": "0건",
+   "measured": "0건",
+   "result": "PASS"
+  },
+  {
+   "item": "E1",
+   "measures": "scripts/verify-day1.ps1",
+   "threshold": "7개 PASS",
+   "measured": "7/7 PASS, exit 0 (1차 시도는 npx의 npm notice exit 1로 BLOCKED, 제품과 무관)",
+   "result": "PASS"
+  },
+  {
+   "item": "E2",
+   "measures": "백엔드 pytest · 프런트 typecheck/test/build",
+   "threshold": "전부 exit 0, SKIP 0",
+   "measured": "122 passed skipped 0 / exit 0 / 6 passed skipped 0 / exit 0",
+   "result": "PASS"
+  }
+ ],
+ "checks": [
+  {
+   "check_id": "D3G-01",
+   "title": "A1·A2 사실과 근거의 연결",
+   "status": "PASS",
+   "commands": [
+    {
+     "command": "python ab_flow.py (Orchestrator.process, 고정 5종 + mutation 3종)",
+     "exit_code": 0,
+     "summary": "사실 106건, 근거 결손 0건, 정규화 원문 완전 일치 불일치 0건"
+    },
+    {
+     "command": "python ab_http.py (127.0.0.1:8799 uvicorn, POST /api/runs -> GET -> DELETE)",
+     "exit_code": 0,
+     "summary": "8사례 전부 전 흐름과 state·draft_version·facts·issues·rejected_evidence 일치"
+    }
+   ],
+   "evidence": [
+    "전 흐름 8사례 원장 사실 합계 106건, quote·source_name·raw_line 결손 0건",
+    "106건 전부 근거 문구가 해당 자료 normalized_text에 완전 일치로 존재",
+    "HTTP 응답 facts[]에서도 결손 0건, 두 경로 8/8 수치 일치",
+    "mutation은 target_id SR1-S05를 지켜 자료 5개를 모두 투입"
+   ]
+  },
+  {
+   "check_id": "D3G-02",
+   "title": "A3 정상 자료에서 사실이 나오는가",
+   "status": "PASS",
+   "commands": [
+    {
+     "command": "ACTUAL-PASS-001 baseline (전 흐름 + HTTP)",
+     "exit_code": 0,
+     "summary": "사실 10건"
+    }
+   ],
+   "evidence": [
+    "ACTUAL-PASS-001에서 사실 10건, 전부 근거 문구·자료명·행이 붙어 있음",
+    "HTTP 경로에서도 동일하게 10건"
+   ]
+  },
+  {
+   "check_id": "D3G-03",
+   "title": "B1·B2 충돌 자료가 초안 없이 멈추는가",
+   "status": "PASS",
+   "commands": [
+    {
+     "command": "SYN-RISK-001 date_conflict / count_conflict / weekday_mismatch",
+     "exit_code": 0,
+     "summary": "3종 모두 NEEDS_INPUT, 차단 Issue 발생, draft_version 0"
+    }
+   ],
+   "evidence": [
+    "DATE_CONFLICT -> FACT_CONFLICT / plenary_decided_on, draft 0",
+    "COUNT_CONFLICT -> FACT_CONFLICT / vote_yes_count, draft 0",
+    "WEEKDAY_MISMATCH -> DATE_WEEKDAY_MISMATCH / plenary_decided_on, draft 0",
+    "세 경우 모두 어느 값도 대신 고르지 않고 두 후보를 자료명·행·원문과 함께 보여 줌"
+   ]
+  },
+  {
+   "check_id": "D3G-04",
+   "title": "B3·B4 초안 0건",
+   "status": "PASS",
+   "commands": [
+    {
+     "command": "ACTUAL-BLOCK-002 + 고정 5종 draft_version 확인",
+     "exit_code": 0,
+     "summary": "NEEDS_INPUT / 초안 0, 고정 5종 draft_version 전부 0"
+    }
+   ],
+   "evidence": [
+    "ACTUAL-BLOCK-002 -> NEEDS_INPUT, 초안 0, 차단 Issue 1건(UNSUPPORTED_SCOPE)",
+    "고정 5종 draft_version 0,0,0,0,0",
+    "C 주입 74사례를 합쳐도 초안 합계 0"
+   ]
+  },
+  {
+   "check_id": "D3G-05",
+   "title": "C1~C4 값이 조용히 사라지지 않는가",
+   "status": "FAIL",
+   "commands": [
+    {
+     "command": "python c_run.py / c_run2.py / c_run3.py (FakeModelGateway.set_response 주입 74사례)",
+     "exit_code": 0,
+     "summary": "C1 0건 / C2 자료명 없음 97건 / C3 0건 / C4 0건"
+    }
+   ],
+   "evidence": [
+    "C1: 추적한 버린 알맹이 내용 146개 전부가 run_view() 응답 문자열에 1회 이상 등장. 0회인 것 0개",
+    "C1: 직전 검증이 지적한 3건(입법 사건 LE-01 / 부칙 SR-01 / 의안 B-1)의 값이 모두 화면에 남는 것을 재확인",
+    "C2 위반: 화면에 나가는 버린 기록 185건 중 자료명이 없는 것 97건 (통과선 0건)",
+    "C2: 값 없음은 0건으로 고쳐졌다 (직전 10건 -> 0건)",
+    "C2: 행 없음 171건은 전부 근거가 원문에서 특정되지 않은 기록이라 행이 존재할 수 없다. 근거가 실제로 찾아진 기록 14건은 14건 모두 행이 있다. 그래서 행 없음은 위반으로 세지 않았다",
+    "C3: 버린 사실 + 진짜 충돌 병행 8사례에서 충돌 Issue가 모두 함께 표시됨. 역할 UNKNOWN일 때만 가려지는데, 버린 사실이 0건인 대조 사례(X9)에서도 똑같이 가려지므로 원인은 역할 Gate이지 버린 사실이 아니다",
+    "C4: 74사례에서 orchestrator.process() 밖으로 샌 예외 0건, 내부 크래시 0건, 초안 합계 0",
+    "run.rejected_evidence == [p.describe() for p in problems] 가 55사례 전부 일치 — 측정 대상이 실제 화면 문자열임을 확인"
+   ]
+  },
+  {
+   "check_id": "D3G-06",
+   "title": "D1·D2 안전",
+   "status": "PASS",
+   "commands": [
+    {
+     "command": "GET /api/health",
+     "exit_code": 0,
+     "summary": "model_gateway=fake, external_api_calls=0"
+    },
+    {
+     "command": "82사례 actual_model_calls / estimated_cost_usd 합계",
+     "exit_code": 0,
+     "summary": "0회 / 0.0달러"
+    }
+   ],
+   "evidence": [
+    "검증 전체에서 실제 외부 AI 호출 0회, 비용 0.0달러",
+    "조회 응답에 자료 원문 전문 0건, raw_text·normalized_text·raw_sha256·raw_excerpt 0건, API 키 패턴 0건",
+    "응답에 실린 근거 문구 최대 137자 (원문 최대 1,276자)",
+    "8799 서버 로그 30줄에 의안번호·찬성:·의결일·기부금품·sk-·api_key 0건"
+   ]
+  },
+  {
+   "check_id": "D3G-07",
+   "title": "E1·E2 회귀",
+   "status": "PASS",
+   "commands": [
+    {
+     "command": "scripts/verify-day1.ps1 -RunId day1-d3recheck-20260823-175200",
+     "exit_code": 0,
+     "summary": "판정 PASS, 검사 7개 전부 PASS, 차단 0건"
+    },
+    {
+     "command": "python -m pytest ../tests -q -rs",
+     "exit_code": 0,
+     "summary": "122 passed, skipped 0"
+    },
+    {
+     "command": "npx tsc --noEmit -p tsconfig.app.json",
+     "exit_code": 0,
+     "summary": "오류 0건"
+    },
+    {
+     "command": "npm test --silent",
+     "exit_code": 0,
+     "summary": "6 passed, skipped 0"
+    },
+    {
+     "command": "npm run build --silent",
+     "exit_code": 0,
+     "summary": "built in 592ms"
+    }
+   ],
+   "evidence": [
+    "verify-day1.ps1 D1G-01~07 전부 PASS, exit 0",
+    "1차 시도(day1-d3recheck-20260823-174500)는 BLOCKED이었으나 원인은 npx가 npm notice를 찍고 exit 1을 낸 것이며 tsc 자체는 exit 0. 같은 명령을 3회 반복해 전부 exit 0 확인",
+    "백엔드 122 passed, skipped 0",
+    "프런트 typecheck/test/build 전부 exit 0, vitest skipped 0"
+   ]
+  }
+ ],
+ "blockers": [
+  {
+   "check_id": "D3G-05",
+   "message": "C2 위반 97건 (통과선 0건). 화면에 나가는 버린 기록 185건 중 97건에 자료명이 없다. 값은 있으나 어느 자료에서 온 것인지 알 수 없다. 예: `찬성 999명 · 근거를 확인하지 못했습니다.` / `SYN-5005 · 근거를 확인하지 못해 쓰지 않았습니다.` 자료명은 손에 있다 — build_fact_ledger가 source_names를 들고 있고 항목마다 source_id가 있는데 _check_fact()와 _evidence_problem()이 그것을 받지 않는다. locate_evidence()는 이미 같은 방식으로 받아서 채우고 있다."
+  }
+ ],
+ "warnings": [
+  "직전 보고서 day3-final-gate-20260823-165800의 판정은 코드가 c19bcd5로 바뀌었으므로 STALE이다.",
+  "담당자의 새 시험 4종 중 2종(버린 부칙·버린 입법 사건)은 이번 수정이 넣은 evidence_gate의 value_of를 지나지 않는다. 변이 M5·M6을 넣어도 죽지 않고 M12·M13(_check_references 이름표)에서만 죽는다.",
+  "verification/day-gate-result.schema.json은 1일차 전용이라 이 보고서는 통과하지 않는다. gate_id const와 checks[].check_id enum 2가지."
+ ],
+ "mutation_testing": [
+  {
+   "mutation": "M1 근거를 못 찾았을 때 자료명·문구를 남기지 않게",
+   "applied": true,
+   "exit": 1,
+   "failed": [
+    "test_지어낸_근거로_만든_사실이_조용히_사라지지_않는다",
+    "test_지어낸_근거_문구도_화면에_남는다"
+   ]
+  },
+  {
+   "mutation": "M2 없는 자료를 가리킬 때 문구를 남기지 않게",
+   "applied": true,
+   "exit": 0,
+   "failed": []
+  },
+  {
+   "mutation": "M3 목록 항목의 근거 미확인 기록에 값을 안 넣게",
+   "applied": true,
+   "exit": 1,
+   "failed": [
+    "test_버린_의안의_번호가_화면에_남는다"
+   ]
+  },
+  {
+   "mutation": "M4 근거를 대지 않은 항목에 값을 안 넣게",
+   "applied": true,
+   "exit": 0,
+   "failed": []
+  },
+  {
+   "mutation": "M5 부칙의 항목 내용을 안 넘기게",
+   "applied": true,
+   "exit": 0,
+   "failed": []
+  },
+  {
+   "mutation": "M6 입법 사건의 항목 내용을 안 넘기게",
+   "applied": true,
+   "exit": 0,
+   "failed": []
+  },
+  {
+   "mutation": "M7 의안 신원의 항목 내용을 안 넘기게",
+   "applied": true,
+   "exit": 1,
+   "failed": [
+    "test_버린_의안의_번호가_화면에_남는다"
+   ]
+  },
+  {
+   "mutation": "M8 대안 관계의 항목 내용을 안 넘기게",
+   "applied": true,
+   "exit": 0,
+   "failed": []
+  },
+  {
+   "mutation": "M9 형식 거부에서 어떤 값이 문제인지 안 말하게",
+   "applied": true,
+   "exit": 0,
+   "failed": []
+  },
+  {
+   "mutation": "M10 버린 사실 기록에 값을 안 넣게",
+   "applied": true,
+   "exit": 1,
+   "failed": [
+    "test_지어낸_근거로_만든_사실이_조용히_사라지지_않는다",
+    "test_버린_이유마다_처방이_다르다",
+    "test_지어낸_근거_문구도_화면에_남는다"
+   ]
+  },
+  {
+   "mutation": "M11 조문 비교의 버린 기록에 값을 안 넣게",
+   "applied": true,
+   "exit": 0,
+   "failed": []
+  },
+  {
+   "mutation": "M12 형식 거부에서 부칙 값을 안 말하게",
+   "applied": true,
+   "exit": 1,
+   "failed": [
+    "test_버린_부칙의_내용이_화면에_남는다"
+   ]
+  },
+  {
+   "mutation": "M13 형식 거부에서 입법 사건 값을 안 말하게",
+   "applied": true,
+   "exit": 1,
+   "failed": [
+    "test_버린_입법_사건의_내용이_화면에_남는다"
+   ]
+  }
+ ],
+ "external_api_calls": 0,
+ "estimated_cost_usd": 0
+}

@@ -1337,3 +1337,135 @@ async def test_지어낸_근거_문구도_화면에_남는다() -> None:
     )
     assert "원문에 없는 문장" in shown, "AI가 지어낸 근거 문구를 보여 주지 않았습니다."
     assert "2207285" in shown, "버린 사실의 값을 보여 주지 않았습니다."
+
+
+# ---------------------------------------------------------------------------
+# 버린 기록에는 값과 자료명이 함께 있어야 한다 (합격선 C2)
+#
+# 아래는 근거가 **있지만 다른 자료를 가리키는** 경우를 쓴다. 없는 근거 ID를
+# 쓰면 형식 검사에서 먼저 걸려 목록을 버리는 자리까지 가지 않는다.
+# ---------------------------------------------------------------------------
+
+
+def _two_source_setup():
+    normalized = {
+        "SRC-01": normalize_source("의안번호: 2207285\n"),
+        "SRC-02": normalize_source("전혀 다른 자료입니다.\n"),
+    }
+    names = {"SRC-01": "의안정보", "SRC-02": "표결 결과"}
+    evidence = [
+        EvidenceCandidate(
+            evidence_id="EV-01", source_id="SRC-01", quote="의안번호: 2207285"
+        )
+    ]
+    return normalized, names, evidence
+
+
+def _discard_record(**overrides) -> str:
+    normalized, names, evidence = _two_source_setup()
+    raw = _result(evidence=evidence, **overrides)
+    _, result = build_fact_ledger(raw, normalized, names)
+    problems = [p for p in result.problems if p.fact_id != "EV-01"]
+    assert problems, "버린 기록이 만들어지지 않았습니다."
+    return problems[-1].describe()
+
+
+def test_버린_부칙_기록에_값과_자료명이_있다() -> None:
+    from app.harness.fact_contracts import RawSupplementaryRule
+
+    described = _discard_record(
+        supplementary_rules=[
+            RawSupplementaryRule(
+                rule_id="SR-01",
+                kind="EFFECTIVE_DATE",
+                applies_to="이 법은 공포 후 3개월이 경과한 날부터 시행한다",
+                source_id="SRC-02",
+                evidence_id="EV-01",
+                valid_source_role_candidate_ids=[],
+            )
+        ]
+    )
+    assert "공포 후 3개월" in described, f"값이 없습니다: {described}"
+    assert "표결 결과" in described or "의안정보" in described, (
+        f"자료명이 없습니다: {described}"
+    )
+
+
+def test_버린_입법_사건_기록에_값과_자료명이_있다() -> None:
+    from app.harness.fact_contracts import RawLegislativeEvent
+
+    described = _discard_record(
+        legislative_events=[
+            RawLegislativeEvent(
+                event_id="LE-01",
+                bill_id="B-1",
+                procedure_stage="PLENARY_DECIDED",
+                disposition="REJECTED",
+                occurred_on="2099-01-01",
+                source_id="SRC-02",
+                evidence_id="EV-01",
+                valid_source_role_candidate_ids=[],
+            )
+        ]
+    )
+    assert "2099-01-01" in described, f"값이 없습니다: {described}"
+    assert "표결 결과" in described or "의안정보" in described, (
+        f"자료명이 없습니다: {described}"
+    )
+
+
+def test_버린_대안_관계_기록에_값과_자료명이_있다() -> None:
+    from app.harness.fact_contracts import RawBillRelation
+
+    described = _discard_record(
+        bill_relations=[
+            RawBillRelation(
+                origin_bill_id="O-3001",
+                alternative_bill_id="A-3002",
+                relation_type="ALTERNATIVE_SUBSTITUTES",
+                source_id="SRC-02",
+                evidence_ids=["EV-01"],
+            )
+        ]
+    )
+    assert "O-3001" in described and "A-3002" in described, f"값이 없습니다: {described}"
+    assert "표결 결과" in described or "의안정보" in described, (
+        f"자료명이 없습니다: {described}"
+    )
+
+
+def test_근거를_못_찾은_사실_기록에도_자료명이_있다() -> None:
+    """근거를 못 찾아도 그 사실이 어느 자료의 것인지는 안다."""
+    normalized, names, _ = _two_source_setup()
+    raw = _result(
+        evidence=[
+            EvidenceCandidate(
+                evidence_id="EV-01", source_id="SRC-01", quote="원문에 없는 문장"
+            )
+        ],
+        facts=[_fact("F-01", "BILL_IDENTITY", "2207285", "SRC-01", "EV-01")],
+    )
+    _, result = build_fact_ledger(raw, normalized, names)
+    fact_problem = next(p for p in result.problems if p.fact_id == "F-01")
+    described = fact_problem.describe()
+    assert "2207285" in described, f"값이 없습니다: {described}"
+    assert "의안정보" in described, f"자료명이 없습니다: {described}"
+
+
+def test_근거를_대지_않은_의안_기록에도_값과_자료명이_있다() -> None:
+    """근거를 아예 대지 않은 경우도 무엇을 버렸는지 알려야 한다."""
+    from app.harness.fact_contracts import RawBillIdentity
+
+    described = _discard_record(
+        bill_identities=[
+            RawBillIdentity(
+                bill_id="B-1",
+                bill_number="2209999",
+                is_draft_subject=True,
+                source_id="SRC-02",
+                evidence_ids=[],  # 근거를 대지 않았다
+            )
+        ]
+    )
+    assert "2209999" in described, f"값이 없습니다: {described}"
+    assert "표결 결과" in described, f"자료명이 없습니다: {described}"

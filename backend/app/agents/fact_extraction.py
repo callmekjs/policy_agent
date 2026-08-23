@@ -162,5 +162,19 @@ def _check_references(result: FactExtractionResult) -> None:
             rule.valid_source_role_candidate_ids,
             f"부칙 `{rule.kind.value} {rule.applies_to}`",
         )
+    for identity in result.bill_identities:
+        check(identity.evidence_ids, [], f"의안 `{identity.bill_number}`")
+    for relation in result.bill_relations:
+        check(
+            relation.evidence_ids,
+            [],
+            f"대안 관계 `{relation.origin_bill_id} -> {relation.alternative_bill_id}`",
+        )
+    for comparison in result.provision_comparisons:
+        check(
+            [comparison.current_evidence_id, comparison.final_evidence_id],
+            [],
+            f"조문 비교 `{comparison.provision_id}`",
+        )
     for candidate in result.source_role_candidates:
         check(candidate.evidence_ids, [], f"자료 역할 후보 `{candidate.label}`")

@@ -137,6 +137,7 @@ def build_fact_ledger(
             ("evidence_id",),
             "LEGISLATIVE_EVENT",
             lambda i: f"{i.procedure_stage.value} {i.disposition.value} {i.occurred_on}",
+            source_names,
         ),
         supplementary_rules=_keep_with_evidence(
             raw.supplementary_rules,
@@ -145,6 +146,7 @@ def build_fact_ledger(
             ("evidence_id",),
             "SUPPLEMENTARY_RULE",
             lambda i: f"{i.kind.value} {i.applies_to}",
+            source_names,
         ),
         bill_identities=_keep_with_evidence(
             raw.bill_identities,
@@ -153,6 +155,7 @@ def build_fact_ledger(
             ("evidence_ids",),
             "BILL_IDENTITY",
             lambda i: i.bill_number,
+            source_names,
         ),
         bill_relations=_keep_with_evidence(
             raw.bill_relations,
@@ -161,12 +164,15 @@ def build_fact_ledger(
             ("evidence_ids",),
             "BILL_RELATION",
             lambda i: f"{i.origin_bill_id} -> {i.alternative_bill_id} ({i.relation_type})",
+            source_names,
         ),
-        provision_comparisons=_keep_comparisons(raw.provision_comparisons, evidence),
+        provision_comparisons=_keep_comparisons(
+            raw.provision_comparisons, evidence, source_names
+        ),
     )
 
     for fact in raw.facts:
-        problem = _check_fact(fact, evidence)
+        problem = _check_fact(fact, evidence, source_names)
         if problem is not None:
             evidence.problems.append(problem)
             ledger.rejected_fact_ids.append(fact.fact_id)
@@ -201,6 +207,7 @@ def _keep_with_evidence(
     evidence_fields: tuple[str, ...],
     item_kind: str = "",
     value_of=None,
+    source_names: dict[str, str] | None = None,
 ) -> list:
     """근거가 실제 원문에서 확인된 항목만 남긴다.
 
@@ -221,6 +228,7 @@ def _keep_with_evidence(
             evidence,
             item_kind,
             value_of(item) if value_of else "",
+            source_names,
         )
         if problem is not None:
             evidence.problems.append(problem)
@@ -229,7 +237,9 @@ def _keep_with_evidence(
     return kept
 
 
-def _keep_comparisons(items: list, evidence: EvidenceResult) -> list:
+def _keep_comparisons(
+    items: list, evidence: EvidenceResult, source_names: dict[str, str]
+) -> list:
     """조문 비교는 현행·최종 자료를 따로 가리키므로 짝을 맞춰 확인한다.
 
     `source_id` 하나만 보는 공통 검사로는 이 항목의 자료 대조가 건너뛰어져,
@@ -251,6 +261,7 @@ def _keep_comparisons(items: list, evidence: EvidenceResult) -> list:
                     detail="근거를 확인하지 못해 쓰지 않았습니다.",
                     fact_kind="PROVISION_COMPARISON",
                     value=item.provision_id,
+                    source_name=source_names.get(source_id, source_id),
                 )
                 break
             if location.source_id != source_id:
@@ -294,12 +305,17 @@ def _evidence_problem(
     evidence: EvidenceResult,
     item_kind: str = "",
     value: str = "",
+    source_names: dict[str, str] | None = None,
 ) -> EvidenceProblem | None:
     """항목의 근거가 쓸 만한지 본다. 사실과 같은 기준을 적용한다.
 
     버릴 때는 **무엇을 버렸는지** 사실과 같은 수준으로 남긴다. 내부 ID만 남기면
     화면에서 `SR-01`처럼 보여 아무도 알아볼 수 없다.
     """
+    names = source_names or {}
+    own_source_id = getattr(item, "source_id", "") or ""
+    own_name = names.get(own_source_id, own_source_id)
+
     if not needed:
         return EvidenceProblem(
             kind="UNKNOWN_EVIDENCE",
@@ -307,6 +323,7 @@ def _evidence_problem(
             detail="근거를 대지 않아 쓰지 않았습니다.",
             fact_kind=item_kind,
             value=value,
+            source_name=own_name,
         )
 
     for evidence_id in needed:
@@ -318,6 +335,7 @@ def _evidence_problem(
                 detail="근거를 확인하지 못해 쓰지 않았습니다.",
                 fact_kind=item_kind,
                 value=value,
+                source_name=own_name,
             )
         # 항목이 가리키는 자료와 근거가 있는 자료가 달라도 안 된다.
         # 그러지 않으면 다른 자료의 진짜 근거를 빌려 붙일 수 있다.
@@ -350,9 +368,14 @@ def _evidence_problem(
     return None
 
 
-def _check_fact(fact: RawFact, evidence: EvidenceResult) -> EvidenceProblem | None:
+def _check_fact(
+    fact: RawFact,
+    evidence: EvidenceResult,
+    source_names: dict[str, str] | None = None,
+) -> EvidenceProblem | None:
     """이 사실을 원장에 넣어도 되는지 본다. 문제가 없으면 None."""
     value = fact.value if isinstance(fact.value, str) else ", ".join(fact.value)
+    names = source_names or {}
     location = evidence.locations.get(fact.evidence_id)
     if location is None:
         return EvidenceProblem(
@@ -361,6 +384,8 @@ def _check_fact(fact: RawFact, evidence: EvidenceResult) -> EvidenceProblem | No
             detail="근거를 확인하지 못했습니다.",
             fact_kind=fact.kind,
             value=value,
+            # 근거를 못 찾아도 그 사실이 어느 자료의 것인지는 안다.
+            source_name=names.get(fact.source_id, fact.source_id),
         )
     if location.source_id != fact.source_id:
         return EvidenceProblem(
