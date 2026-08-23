@@ -59,7 +59,7 @@ def check_conflicts(ledger: FactLedger, next_index: int = 1) -> list[Issue]:
         grouped[_conflict_key(fact)].append(fact)
 
     for key, facts in sorted(grouped.items()):
-        values = {f.normalized_value or f.value for f in facts}
+        values = {f.normalized_value for f in facts}
         if len(values) <= 1:
             continue
 

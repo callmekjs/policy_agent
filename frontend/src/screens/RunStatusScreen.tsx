@@ -96,7 +96,7 @@ export function RunStatusScreen({ run, onNewRun, onDelete }: Props) {
         <section>
           <h3>근거를 찾지 못해 쓰지 않은 것 {run.rejected_evidence.length}건</h3>
           <p className="hint">
-            AI가 제시한 근거 문구가 자료 원문에 그대로 없어서 사실로 쓰지 않았습니다.
+            원문에서 근거를 확인하지 못해 사실로 쓰지 않았습니다. 이유는 항목마다 다릅니다.
           </p>
           <ul className="issues">
             {run.rejected_evidence.map((item) => (

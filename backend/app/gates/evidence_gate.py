@@ -147,13 +147,16 @@ def build_fact_ledger(
             continue
 
         location = evidence.locations[fact.evidence_id]
+        # 합집합은 여기서 딱 한 번 닫는다. 원장 밖으로 목록이 나가지 않는다.
+        normalized = _normalize_value(fact)
         ledger.facts.append(
             VerifiedFact(
                 fact_id=fact.fact_id,
                 kind=fact.kind,
                 subject=subject_of(fact.kind),
-                value=fact.value,
-                normalized_value=_normalize_value(fact),
+                value=normalized,
+                value_items=list(fact.value) if isinstance(fact.value, list) else [],
+                normalized_value=normalized,
                 source_id=fact.source_id,
                 valid_source_role_candidate_ids=list(
                     fact.valid_source_role_candidate_ids

@@ -129,7 +129,7 @@ class RawFact(BaseModel):
 
     fact_id: Ident
     kind: Ident
-    value: ShortText | list[ShortText] = Field(
+    value: ShortText | Annotated[list[ShortText], Field(min_length=1)] = Field(
         description="값 하나 또는 값 목록. 목록은 부칙 ID 묶음처럼 여러 항목을 가리킬 때"
     )
     source_id: Ident
@@ -273,8 +273,12 @@ class VerifiedFact(BaseModel):
     fact_id: str
     kind: str
     subject: str = ""
-    #: 원래 값. 하나일 수도 목록일 수도 있다. 고정 형식이 둘 다 허용한다.
-    value: str | list[str]
+    #: 사람이 읽고 코드가 비교하는 값. **언제나 문자열이다.**
+    #: raw 결과는 목록도 허용하지만, 그 합집합은 원장 경계에서 닫는다.
+    #: 합집합이 밖으로 새면 값을 읽는 코드가 생길 때마다 새 고장점이 된다.
+    value: str
+    #: 원래가 목록이었으면 항목을 그대로 남긴다. 비교·표시에는 쓰지 않는다.
+    value_items: list[str] = Field(default_factory=list)
     normalized_value: str = ""
     unit: str = ""
     provenance: FactProvenance = FactProvenance.OFFICIAL_SOURCE

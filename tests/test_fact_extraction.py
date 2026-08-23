@@ -483,6 +483,41 @@ async def _run_flow(sources: list[tuple[str, str, SourceRole]]):
     return store.get(run.run_id)
 
 
+async def _run_flow_with_response(sources, response: dict):
+    """가짜 추출기를 통째로 대체하고 전체 흐름을 돌린다."""
+    from datetime import date
+
+    from app.harness.contracts import (
+        EXTERNAL_AI_POLICY_VERSION,
+        CreateRunRequest,
+        Disclosure,
+        SourceInput,
+    )
+    from app.harness.orchestrator import Orchestrator
+    from app.infrastructure.model_gateway import FakeModelGateway
+    from app.infrastructure.run_store import RunStore
+
+    store = RunStore()
+    gateway = FakeModelGateway()
+    gateway.set_response("FactExtractionAgent", response)
+    orchestrator = Orchestrator(store, gateway)
+    request = CreateRunRequest(
+        client_request_id="canned-run",
+        purpose="고정 답안으로 Gate 동작만 확인합니다. 추출기는 거치지 않습니다.",
+        disclosure=Disclosure.PUBLIC,
+        basis_date=date(2026, 8, 23),
+        sources=[
+            SourceInput(display_name=name, text=text, role=role)
+            for name, text, role in sources
+        ],
+        external_ai_policy_version=EXTERNAL_AI_POLICY_VERSION,
+        external_ai_transfer_confirmed=True,
+    )
+    run = orchestrator.create_run(request)
+    await orchestrator.process(run.run_id, request, date(2026, 8, 23))
+    return store.get(run.run_id)
+
+
 def _vote_source(mutation: str | None = None) -> tuple[str, str, SourceRole]:
     text = (_fixture_dir() / "SYN-RISK-001" / "sources" / "03_plenary_vote.md").read_text(
         encoding="utf-8"
@@ -969,3 +1004,217 @@ def test_조문_비교도_현행과_최종_자료를_각각_대조한다() -> No
     ledger, evidence = build_fact_ledger(raw, normalized, names)
     assert ledger.provision_comparisons == [], "조문 비교가 다른 자료의 근거를 빌렸습니다."
     assert any(p.fact_id == "PC-01" for p in evidence.problems)
+
+
+def test_검증된_사실의_값은_언제나_문자열이다() -> None:
+    """합집합을 원장 경계에서 닫는다.
+
+    값이 `문자열 또는 목록`인 채로 밖으로 나가면, 값을 읽는 코드가 생길 때마다
+    새 고장 지점이 된다. 실제로 그렇게 두 번 죽었다.
+    """
+    normalized, names = _sources()
+    raw = _result(
+        evidence=[
+            EvidenceCandidate(
+                evidence_id="EV-01", source_id="SRC-01", quote="의안번호: 2207285"
+            )
+        ],
+        facts=[
+            _fact(
+                "F-01",
+                "SUPPLEMENTARY_EFFECTIVE_DATES",
+                ["2026-01-01", "2026-07-01"],
+                "SRC-01",
+                "EV-01",
+            )
+        ],
+    )
+    ledger, _ = build_fact_ledger(raw, normalized, names)
+    fact = ledger.facts[0]
+    assert isinstance(fact.value, str), "원장 밖으로 목록이 새어 나갑니다."
+    assert fact.value_items == ["2026-01-01", "2026-07-01"], "원래 항목이 사라졌습니다."
+
+
+def test_목록_값이_섞여도_다른_사실과_충돌을_잃지_않는다() -> None:
+    """목록 하나 때문에 같은 작업의 정상 사실과 진짜 충돌이 사라지면 안 된다."""
+    text_a = "의안번호: 2207285\n시행일: 2026-01-01\n"
+    text_b = "의안번호: 2209999\n"
+    normalized = {
+        "SRC-01": normalize_source(text_a),
+        "SRC-02": normalize_source(text_b),
+    }
+    names = {"SRC-01": "갑", "SRC-02": "을"}
+    raw = _result(
+        evidence=[
+            EvidenceCandidate(
+                evidence_id="EV-01", source_id="SRC-01", quote="의안번호: 2207285"
+            ),
+            EvidenceCandidate(
+                evidence_id="EV-02", source_id="SRC-01", quote="시행일: 2026-01-01"
+            ),
+            EvidenceCandidate(
+                evidence_id="EV-03", source_id="SRC-02", quote="의안번호: 2209999"
+            ),
+        ],
+        facts=[
+            _fact("F-01", "BILL_IDENTITY", "2207285", "SRC-01", "EV-01"),
+            _fact(
+                "F-02",
+                "SUPPLEMENTARY_EFFECTIVE_DATES",
+                ["2026-01-01", "2026-07-01"],
+                "SRC-01",
+                "EV-02",
+            ),
+            _fact("F-03", "BILL_IDENTITY", "2209999", "SRC-02", "EV-03"),
+        ],
+    )
+    ledger, _ = build_fact_ledger(raw, normalized, names)
+    assert len(ledger.facts) == 3, "목록 값 때문에 다른 사실이 사라졌습니다."
+    conflicts = check_conflicts(ledger)
+    assert any(i.code is IssueCode.FACT_CONFLICT for i in conflicts), (
+        "목록 값 때문에 진짜 충돌이 사라졌습니다."
+    )
+
+
+def test_버린_사실이_있어도_진짜_충돌을_함께_보여_준다() -> None:
+    """버린 사실 하나가 충돌 질문을 가리면, 두 값이 어긋난다는 기록이 없어진다."""
+    from app.harness.orchestrator import _rejected_fact_issues
+
+    text_a = "찬성: 201명\n"
+    text_b = "찬성: 202명\n"
+    normalized = {
+        "SRC-01": normalize_source(text_a),
+        "SRC-02": normalize_source(text_b),
+    }
+    names = {"SRC-01": "갑", "SRC-02": "을"}
+    raw = _result(
+        evidence=[
+            EvidenceCandidate(
+                evidence_id="EV-01", source_id="SRC-01", quote="찬성: 201명"
+            ),
+            EvidenceCandidate(
+                evidence_id="EV-02", source_id="SRC-02", quote="찬성: 202명"
+            ),
+            EvidenceCandidate(
+                evidence_id="EV-03", source_id="SRC-01", quote="원문에 없는 문장"
+            ),
+        ],
+        facts=[
+            _fact("F-01", "VOTE_YES_COUNT", "201", "SRC-01", "EV-01"),
+            _fact("F-02", "VOTE_YES_COUNT", "202", "SRC-02", "EV-02"),
+            _fact("F-03", "BILL_IDENTITY", "2207285", "SRC-01", "EV-03"),
+        ],
+    )
+    ledger, evidence = build_fact_ledger(raw, normalized, names)
+    rejected = _rejected_fact_issues(evidence)
+    conflicts = check_conflicts(ledger, next_index=len(rejected) + 1)
+
+    assert rejected, "버린 사실을 알리지 않았습니다."
+    assert conflicts, "버린 사실이 진짜 충돌을 가렸습니다."
+    ids = [i.issue_id for i in rejected + conflicts]
+    assert len(set(ids)) == len(ids), f"Issue 번호가 겹칩니다: {ids}"
+
+
+def test_버린_이유마다_처방이_다르다() -> None:
+    """원문에 없는데 `한 번만 나오는 자료를 넣으라`고 하면 통하지 않는다."""
+    from app.harness.orchestrator import _rejected_fact_issues
+
+    repeated = "원안가결\n원안가결\n"
+    normalized = {"SRC-01": normalize_source(repeated)}
+    raw = _result(
+        evidence=[
+            EvidenceCandidate(evidence_id="EV-01", source_id="SRC-01", quote="원안가결"),
+            EvidenceCandidate(
+                evidence_id="EV-02", source_id="SRC-01", quote="원문에 없는 문장"
+            ),
+        ],
+        facts=[
+            _fact("F-01", "PLENARY_RESULT", "원안가결", "SRC-01", "EV-01"),
+            _fact("F-02", "BILL_IDENTITY", "2207285", "SRC-01", "EV-02"),
+        ],
+    )
+    _, evidence = build_fact_ledger(raw, normalized, {"SRC-01": "표결"})
+    issues = _rejected_fact_issues(evidence)
+
+    subjects = {i.subject for i in issues}
+    assert "EVIDENCE_AMBIGUOUS" in subjects and "EVIDENCE_UNKNOWN_EVIDENCE" in subjects, (
+        f"이유를 나누지 않았습니다: {subjects}"
+    )
+    for issue in issues:
+        if issue.subject == "EVIDENCE_UNKNOWN_EVIDENCE":
+            assert "한 번만" not in issue.question, "통하지 않는 처방을 줬습니다."
+
+
+def test_빈_목록_값은_형식에서_막는다() -> None:
+    """고정 형식이 허용하지 않는 입력은 Pydantic도 받지 않아야 한다."""
+    import pytest as _pytest
+
+    with _pytest.raises(Exception):
+        _fact("F-01", "SUPPLEMENTARY_EFFECTIVE_DATES", [], "SRC-01", "EV-01")
+
+
+@pytest.mark.asyncio
+async def test_전체_흐름에서도_버린_사실이_충돌을_가리지_않는다() -> None:
+    """Gate만 따로 부르면 이 결함이 보이지 않는다. 전체 흐름으로 확인한다."""
+    response = {
+        "schema_version": FACT_RESULT_SCHEMA_VERSION,
+        "result": {
+            "result_status": "OK",
+            "scope_error": None,
+            "source_role_candidates": [],
+            "evidence": [
+                {"evidence_id": "EV-01", "source_id": "SRC-01", "quote": "찬성: 201명"},
+                {"evidence_id": "EV-02", "source_id": "SRC-02", "quote": "찬성: 202명"},
+                {
+                    "evidence_id": "EV-03",
+                    "source_id": "SRC-01",
+                    "quote": "원문에 없는 문장",
+                },
+            ],
+            "facts": [
+                {
+                    "fact_id": "F-01",
+                    "kind": "VOTE_YES_COUNT",
+                    "value": "201",
+                    "source_id": "SRC-01",
+                    "evidence_id": "EV-01",
+                    "valid_source_role_candidate_ids": [],
+                },
+                {
+                    "fact_id": "F-02",
+                    "kind": "VOTE_YES_COUNT",
+                    "value": "202",
+                    "source_id": "SRC-02",
+                    "evidence_id": "EV-02",
+                    "valid_source_role_candidate_ids": [],
+                },
+                {
+                    "fact_id": "F-03",
+                    "kind": "BILL_IDENTITY",
+                    "value": "2207285",
+                    "source_id": "SRC-01",
+                    "evidence_id": "EV-03",
+                    "valid_source_role_candidate_ids": [],
+                },
+            ],
+            "bill_identities": [],
+            "bill_relations": [],
+            "legislative_events": [],
+            "provision_comparisons": [],
+            "supplementary_rules": [],
+        },
+    }
+    run = await _run_flow_with_response(
+        [
+            ("갑", "찬성: 201명\n", SourceRole.PLENARY_VOTE_RESULT),
+            ("을", "찬성: 202명\n", SourceRole.PLENARY_VOTE_RESULT),
+        ],
+        response,
+    )
+    codes = [i.code.value for i in run.issues]
+    subjects = [i.subject for i in run.issues]
+    assert "FACT_CONFLICT" in codes, (
+        f"버린 사실이 진짜 충돌을 가렸습니다: {list(zip(codes, subjects))}"
+    )
+    assert any(s.startswith("EVIDENCE_") for s in subjects), "버린 사실을 알리지 않았습니다."
+    assert run.draft_version == 0

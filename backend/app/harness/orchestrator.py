@@ -72,45 +72,65 @@ def payload_hash(request: CreateRunRequest) -> str:
     ).hexdigest()
 
 
+#: 근거를 확인하지 못한 이유별 안내. 이유가 다르면 처방도 달라야 한다.
+#: 원문에 아예 없는데 "한 번만 나오는 자료를 넣으라"고 하면 통하지 않는다.
+REJECTION_GUIDE: dict[str, tuple[str, str]] = {
+    "NOT_FOUND": (
+        "AI가 제시한 근거 문구를 자료 원문에서 찾지 못했습니다.",
+        "그 내용이 실제로 적힌 공식 자료를 넣어 주세요.",
+    ),
+    "UNKNOWN_EVIDENCE": (
+        "AI가 제시한 근거 문구를 자료 원문에서 찾지 못했습니다.",
+        "그 내용이 실제로 적힌 공식 자료를 넣어 주세요.",
+    ),
+    "AMBIGUOUS": (
+        "근거 문구가 자료에서 여러 곳에 나와 어디를 가리키는지 알 수 없습니다.",
+        "그 부분이 한 번만 나오는 자료를 넣거나, 해당 대목만 잘라 넣어 주세요.",
+    ),
+    "UNKNOWN_SOURCE": (
+        "사실과 근거가 서로 다른 자료를 가리킵니다.",
+        "그 사실이 적힌 자료를 함께 넣어 주세요.",
+    ),
+}
+
+
 def _rejected_fact_issues(evidence, next_index: int = 1) -> list[Issue]:
     """근거를 확인하지 못해 버린 사실을 사람에게 보여 준다.
 
     버린 값이 어떤 값이었는지, 어느 자료 몇 행이었는지 함께 적는다. 내부 ID만
     남기면 화면에서 알아볼 수 없고, 그 값에 걸려 있던 충돌이 사라진 것도
     눈치챌 수 없다.
-    """
-    # 근거를 확인하지 못한 **모든** 종류를 보여 준다.
-    # 특히 `UNKNOWN_EVIDENCE`·`NOT_FOUND`는 AI가 원문에 없는 문장을 지어냈을 때
-    # 밟는 길이다. 이것을 빼면 지어낸 근거로 만든 사실이 조용히 사라지고
-    # 그 값에 걸린 충돌도 함께 없어진다.
-    blocking = [
-        p
-        for p in evidence.problems
-        if p.kind in ("AMBIGUOUS", "UNKNOWN_SOURCE", "UNKNOWN_EVIDENCE", "NOT_FOUND")
-        and p.value
-    ]
-    if not blocking:
-        return []
 
-    lines = [f"· {p.describe()}" for p in blocking]
-    return [
-        Issue(
-            issue_id=f"ISS-{next_index:03d}",
-            code=IssueCode.REQUIRED_SOURCE_MISSING,
-            subject="EVIDENCE_NOT_PINNED",
-            message=(
-                "다음 값은 근거를 한 곳으로 특정하지 못해 쓰지 않았습니다.\n"
-                + "\n".join(lines)
-            ),
-            question=(
-                "그 부분이 한 번만 나오는 공식 자료를 넣거나, 해당 대목만 잘라 "
-                "넣어 주세요."
-            ),
-            source_ids=sorted({p.source_name for p in blocking if p.source_name}),
-            resolution_kind=ResolutionKind.NEW_RUN_WITH_SOURCES,
-            requires_new_run=True,
+    이유가 다르면 Issue를 나눈다. 한 화면에서 두 문단이 서로 다른 진단을
+    말하면 사용자가 무엇을 해야 할지 알 수 없다.
+    """
+    grouped: dict[str, list] = {}
+    for problem in evidence.problems:
+        if problem.kind in REJECTION_GUIDE and problem.value:
+            grouped.setdefault(problem.kind, []).append(problem)
+
+    issues: list[Issue] = []
+    index = next_index
+    for kind, problems in grouped.items():
+        message, question = REJECTION_GUIDE[kind]
+        lines = [f"· {p.describe()}" for p in problems]
+        issues.append(
+            Issue(
+                issue_id=f"ISS-{index:03d}",
+                code=IssueCode.REQUIRED_SOURCE_MISSING,
+                subject=f"EVIDENCE_{kind}",
+                message=(
+                    f"다음 값은 쓰지 않았습니다. {message}\n"
+                    + "\n".join(lines)
+                ),
+                question=question,
+                source_ids=sorted({p.source_name for p in problems if p.source_name}),
+                resolution_kind=ResolutionKind.NEW_RUN_WITH_SOURCES,
+                requires_new_run=True,
+            )
         )
-    ]
+        index += 1
+    return issues
 
 
 class Orchestrator:
@@ -295,12 +315,11 @@ class Orchestrator:
         )
         issues = list(role_issues)
         if not issues:
-            # 근거를 확인하지 못해 버린 사실이 있으면 먼저 사람에게 알린다.
-            # 버린 값에 걸려 있던 충돌은 함께 사라지므로, 조용히 지나가면
-            # 시스템이 말없이 한쪽을 고른 것과 같아진다.
-            issues = _rejected_fact_issues(evidence)
-        if not issues:
-            issues = check_conflicts(ledger)
+            # 버린 사실과 충돌을 **함께** 보여 준다. 버린 사실 하나가 있다고
+            # 진짜 충돌 질문을 가리면, 두 값이 어긋난다는 사실이 기록되지 않는다.
+            rejected = _rejected_fact_issues(evidence)
+            conflicts = check_conflicts(ledger, next_index=len(rejected) + 1)
+            issues = rejected + conflicts
 
         async with self.store.lock:
             run = self.store.get(run_id)
@@ -311,9 +330,7 @@ class Orchestrator:
             run.role_choices = candidate_choices(
                 raw.source_role_candidates, evidence.locations
             )
-            run.rejected_evidence = [
-                f"{p.fact_id}: {p.detail}" for p in evidence.problems
-            ]
+            run.rejected_evidence = [p.describe() for p in evidence.problems]
 
             if issues:
                 run.issues = issues
