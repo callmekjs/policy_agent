@@ -235,7 +235,6 @@ def _two_source_ledger(value_a: str, value_b: str, kind: str = "PLENARY_DECIDED_
             RawFact(
                 fact_id="F-01",
                 kind=kind,
-                subject="plenary_decided_on",
                 value=value_a,
                 source_id="SRC-01",
                 evidence_id="EV-01",
@@ -243,7 +242,6 @@ def _two_source_ledger(value_a: str, value_b: str, kind: str = "PLENARY_DECIDED_
             RawFact(
                 fact_id="F-02",
                 kind=kind,
-                subject="plenary_decided_on",
                 value=value_b,
                 source_id="SRC-02",
                 evidence_id="EV-02",
@@ -565,34 +563,60 @@ async def test_근거가_없는_입법_사건은_원장에_남지_않는다() ->
     assert any(p.fact_id == "E-01" for p in evidence.problems)
 
 
+COMMITTEE_ROWS = "- 의결일: 2025. 9. 18.\n- 재석: 24명\n- 찬성: 24명\n- 반대: 0명\n"
+PLENARY_ROWS = "- 의결일: 2025. 9. 25.\n- 재석: 205명\n- 찬성: 201명\n- 반대: 3명\n"
+
+
 @pytest.mark.asyncio
-async def test_위원회_표결_수를_본회의_것과_섞지_않는다() -> None:
-    """서로 다른 회의의 표결 수를 같은 항목으로 보면 정상 자료가 막힌다."""
-    committee = (
-        "# 소관위 심사 결과\n\n"
-        "- 의결일: 2025. 9. 18.\n"
-        "- 재석: 24명\n"
-        "- 찬성: 24명\n"
-        "- 반대: 0명\n"
-    )
-    plenary = (
-        "# 본회의 표결 결과\n\n"
-        "- 의결일: 2025. 9. 25.\n"
-        "- 재석: 205명\n"
-        "- 찬성: 201명\n"
-        "- 반대: 3명\n"
-    )
+async def test_회의가_분명하면_표결_수를_섞지_않는다() -> None:
+    """어느 회의 것인지 분명하면 종류를 갈라 비교하지 않는다.
+
+    분명한 근거는 두 가지다. 사용자가 고른 자료 역할, 그리고 같은 줄의 표기.
+    """
     run = await _run_flow(
         [
-            ("소관위 심사 결과", committee, SourceRole.BILL_INFORMATION),
-            ("본회의 표결 결과", plenary, SourceRole.PLENARY_VOTE_RESULT),
+            ("위원회 최종문", COMMITTEE_ROWS, SourceRole.COMMITTEE_FINAL_TEXT),
+            ("본회의 표결 결과", PLENARY_ROWS, SourceRole.PLENARY_VOTE_RESULT),
         ]
     )
     blocking = [i for i in run.issues if i.severity.value == "BLOCKING"]
     assert blocking == [], (
-        "서로 다른 회의의 값을 충돌로 보고 정상 자료를 막았습니다: "
-        f"{[i.subject for i in blocking]}"
+        f"서로 다른 회의의 값을 충돌로 봤습니다: {[i.subject for i in blocking]}"
     )
+
+
+@pytest.mark.asyncio
+async def test_어느_회의인지_애매하면_버리지_않고_물어본다() -> None:
+    """이 프로젝트의 방침을 고정한다.
+
+    애매한 값을 **버리면** 충돌이 함께 사라져 시스템이 말없이 한쪽을 고른 것과
+    같아진다(1급 실패). 반대로 **남겨서 생기는 거짓 충돌**은 두 값과 자료명을
+    보여 주고 사람에게 묻는다(3급). 그래서 애매하면 남기는 쪽을 고른다.
+
+    이 시험은 "정상 자료가 막혔다"를 확인하는 것이 아니라, **값이 조용히
+    사라지지 않는다**를 확인한다.
+    """
+    committee = "# 소관위 심사 결과\n\n" + COMMITTEE_ROWS
+    run = await _run_flow(
+        [
+            ("소관위 심사 결과", committee, SourceRole.BILL_INFORMATION),
+            ("본회의 표결 결과", PLENARY_ROWS, SourceRole.PLENARY_VOTE_RESULT),
+        ]
+    )
+
+    # 값이 하나도 사라지지 않아야 한다.
+    assert run.fact_ledger is not None
+    values = {f.value for f in run.fact_ledger.facts}
+    for expected in ("24", "201", "2025. 9. 18", "2025. 9. 25"):
+        assert expected in values, f"`{expected}`가 조용히 사라졌습니다: {sorted(values)}"
+
+    # 애매한 값은 차단 Issue로 사람에게 보여 준다. 초안은 만들지 않는다.
+    conflicts = [i for i in run.issues if i.code.value == "FACT_CONFLICT"]
+    assert conflicts, "애매한 값을 묻지도 않고 지나갔습니다."
+    shown = "\n".join(i.message for i in conflicts)
+    for expected in ("24", "201", "소관위 심사 결과", "본회의 표결 결과"):
+        assert expected in shown, f"`{expected}`를 사람에게 보여 주지 않았습니다."
+    assert run.draft_version == 0
 
 
 @pytest.mark.asyncio

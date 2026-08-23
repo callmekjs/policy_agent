@@ -20,6 +20,7 @@ from app.harness.fact_contracts import (
     FactLedger,
     RawFact,
     VerifiedFact,
+    subject_of,
 )
 from app.harness.source_normalizer import NormalizedSource, find_quote_offsets
 
@@ -137,10 +138,9 @@ def build_fact_ledger(
             VerifiedFact(
                 fact_id=fact.fact_id,
                 kind=fact.kind,
-                subject=fact.subject or fact.kind,
+                subject=subject_of(fact.kind),
                 value=fact.value,
                 normalized_value=_normalize_value(fact),
-                unit=fact.unit,
                 source_id=fact.source_id,
                 valid_source_role_candidate_ids=list(
                     fact.valid_source_role_candidate_ids

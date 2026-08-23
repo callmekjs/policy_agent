@@ -76,6 +76,18 @@ HIGH_RISK_FACT_KINDS: frozenset[str] = frozenset(
     }
 )
 
+#: 같은 종류의 사실은 같은 항목으로 비교한다. 비교 항목은 Harness가 정하며
+#: Agent는 `kind`와 `value`만 돌려준다(고정 형식이 그 두 개만 허용한다).
+#: 종류가 다르면 서로 비교하지 않는다. 예를 들어 위원회 표결 수와 본회의
+#: 표결 수는 종류가 달라 충돌로 보지 않는다.
+COMMITTEE_KIND_PREFIX = "COMMITTEE_"
+
+
+def subject_of(kind: str) -> str:
+    """이 종류의 사실을 무엇과 비교할지."""
+    return kind.lower()
+
+
 Ident = Annotated[str, StringConstraints(min_length=1, max_length=64)]
 ShortText = Annotated[str, StringConstraints(min_length=1, max_length=400)]
 
@@ -120,8 +132,6 @@ class RawFact(BaseModel):
     value: ShortText | list[ShortText] = Field(
         description="값 하나 또는 값 목록. 목록은 부칙 ID 묶음처럼 여러 항목을 가리킬 때"
     )
-    subject: str = Field(default="", max_length=120, description="비교할 항목")
-    unit: str = Field(default="", max_length=40)
     source_id: Ident
     evidence_id: Ident
     valid_source_role_candidate_ids: list[Ident] = Field(default_factory=list)
