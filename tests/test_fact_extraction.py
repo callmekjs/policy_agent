@@ -715,3 +715,76 @@ async def test_본회의_줄이_섞인_문서는_제목만으로_버리지_않�
     assert "plenary_decided_on" in subjects, (
         f"위원회 제목 때문에 본회의 값이 사라졌습니다: {subjects}"
     )
+
+
+@pytest.mark.asyncio
+async def test_상한을_넘으면_잘라내지_않고_멈춘다() -> None:
+    """검증에서 나온 경우.
+
+    자료가 많아 상한을 넘으면 뒤쪽 값을 조용히 잘라냈고, 그 값에 걸려 있던
+    충돌도 함께 사라졌다. 고정 형식이 이 경우를 위해 `FACT_SCOPE_TOO_LARGE`를
+    두었으므로 잘라내지 않고 멈춘다.
+    """
+    big = "\n".join(f"의안번호: {2000 + i}\n제{i}조를 고친다." for i in range(40))
+    run = await _run_flow([("큰 자료", big, SourceRole.BILL_INFORMATION)])
+    assert run.failure_code == "FACT_SCOPE_TOO_LARGE", (
+        f"상한을 넘겼는데 멈추지 않았습니다: {run.state} / {run.failure_code}"
+    )
+    assert run.draft_version == 0
+    assert run.fact_ledger is None or run.fact_ledger.facts == []
+
+
+@pytest.mark.asyncio
+async def test_의안_이름의_위원회_때문에_비교에서_빠지지_않는다() -> None:
+    """검증에서 나온 경우.
+
+    `문화체육관광위원회 대안 「…법률안」 의결일: …`처럼 의안 이름에 위원회가
+    들어가면 본회의 값에 위원회 이름표가 붙어 비교에서 빠졌다. 값은 화면에
+    남아 있는데 충돌만 조용히 사라진다.
+
+    이름표를 붙이는 것은 그 값을 비교에서 빼는 권한이다. 그 권한은 사용자가
+    고른 역할로만 쓰고, 본문 글자로 짐작하지 않는다.
+    """
+    a = "- 문화체육관광위원회 대안 「문화예술진흥법 일부개정법률안」 의결일: 2026. 8. 20.\n"
+    b = "- 문화체육관광위원회 대안 「문화예술진흥법 일부개정법률안」 의결일: 2026. 8. 21.\n"
+    run = await _run_flow(
+        [("갑", a, SourceRole.BILL_INFORMATION), ("을", b, SourceRole.BILL_INFORMATION)]
+    )
+    kinds = {f.kind for f in run.fact_ledger.facts}
+    assert not any(k.startswith("COMMITTEE_") for k in kinds), (
+        f"본문 글자만 보고 비교에서 뺐습니다: {sorted(kinds)}"
+    )
+    conflicts = [i for i in run.issues if i.code.value == "FACT_CONFLICT"]
+    assert conflicts, "의안 이름 때문에 충돌이 사라졌습니다."
+
+
+@pytest.mark.asyncio
+async def test_입법_사건도_다른_자료의_근거를_빌리지_못한다() -> None:
+    """사실과 같은 기준을 사건·부칙·의안에도 적용한다."""
+    from app.harness.fact_contracts import RawLegislativeEvent
+
+    normalized, names = _sources()
+    normalized["SRC-02"] = normalize_source("전혀 다른 자료입니다.\n")
+    names["SRC-02"] = "다른 자료"
+    raw = _result(
+        evidence=[
+            EvidenceCandidate(
+                evidence_id="EV-01", source_id="SRC-01", quote="의안번호: 2207285"
+            )
+        ],
+        legislative_events=[
+            RawLegislativeEvent(
+                event_id="E-01",
+                bill_id="B-01",
+                procedure_stage="PLENARY_DECIDED",
+                disposition="REJECTED",
+                occurred_on="2099-01-01",
+                source_id="SRC-02",  # 근거는 SRC-01에 있다
+                evidence_id="EV-01",
+                valid_source_role_candidate_ids=[],
+            )
+        ],
+    )
+    ledger, evidence = build_fact_ledger(raw, normalized, names)
+    assert ledger.legislative_events == [], "다른 자료의 근거를 빌려 원장에 남았습니다."
+    assert any(p.kind == "UNKNOWN_SOURCE" for p in evidence.problems)

@@ -169,18 +169,56 @@ def _keep_with_evidence(
             value = getattr(item, field)
             needed.extend(value if isinstance(value, list) else [value])
 
-        missing = [e for e in needed if e not in evidence.locations]
-        if not needed or missing:
-            evidence.problems.append(
-                EvidenceProblem(
-                    kind="UNKNOWN_EVIDENCE",
-                    fact_id=str(getattr(item, id_field)),
-                    detail="근거를 확인하지 못해 쓰지 않았습니다.",
-                )
-            )
+        item_id = str(getattr(item, id_field))
+        problem = _evidence_problem(item, item_id, needed, evidence)
+        if problem is not None:
+            evidence.problems.append(problem)
             continue
         kept.append(item)
     return kept
+
+
+def _evidence_problem(
+    item: object,
+    item_id: str,
+    needed: list[str],
+    evidence: EvidenceResult,
+) -> EvidenceProblem | None:
+    """항목의 근거가 쓸 만한지 본다. 사실과 같은 기준을 적용한다."""
+    if not needed:
+        return EvidenceProblem(
+            kind="UNKNOWN_EVIDENCE",
+            fact_id=item_id,
+            detail="근거를 대지 않아 쓰지 않았습니다.",
+        )
+
+    for evidence_id in needed:
+        location = evidence.locations.get(evidence_id)
+        if location is None:
+            return EvidenceProblem(
+                kind="UNKNOWN_EVIDENCE",
+                fact_id=item_id,
+                detail="근거를 확인하지 못해 쓰지 않았습니다.",
+            )
+        # 항목이 가리키는 자료와 근거가 있는 자료가 달라도 안 된다.
+        # 그러지 않으면 다른 자료의 진짜 근거를 빌려 붙일 수 있다.
+        own_source = getattr(item, "source_id", None)
+        if own_source is not None and location.source_id != own_source:
+            return EvidenceProblem(
+                kind="UNKNOWN_SOURCE",
+                fact_id=item_id,
+                detail="항목과 근거가 서로 다른 자료를 가리킵니다.",
+            )
+        if location.occurrence_count > 1:
+            return EvidenceProblem(
+                kind="AMBIGUOUS",
+                fact_id=item_id,
+                detail=(
+                    f"근거 문구가 자료에서 {location.occurrence_count}군데 나와 "
+                    "어디를 가리키는지 알 수 없습니다."
+                ),
+            )
+    return None
 
 
 def _check_fact(fact: RawFact, evidence: EvidenceResult) -> EvidenceProblem | None:

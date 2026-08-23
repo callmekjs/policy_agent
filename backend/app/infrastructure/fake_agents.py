@@ -90,27 +90,49 @@ def _heading_of(text: str, index: int) -> str:
     return ""
 
 
-def _is_committee_value(text: str, index: int, role: str) -> bool:
-    """이 자리의 값이 **위원회 회의의 것이라고 분명히 말할 수 있는가.**
+def _is_committee_value(role: str) -> bool:
+    """이 값이 위원회 회의의 것인가.
 
-    분명할 때만 참이다. 애매하면 거짓이고, 그러면 본회의 종류로 남아 다른
-    자료와 비교된다. 값을 버리지 않으므로 조용히 사라지는 일이 없다.
+    **사용자가 화면에서 고른 자료 역할만 본다.** 본문 글자로 짐작하지 않는다.
 
-    이 판단이 틀리면 생기는 결과는 두 가지뿐이다.
-    - 위원회 값을 본회의 것으로 봄 → 다른 자료와 값이 다르면 **사람에게 물어본다**
-    - 본회의 값을 위원회 것으로 봄 → 종류가 갈려 비교되지 않는다
+    짐작하면 `문화체육관광위원회 대안 「…법률안」 의결일: …`처럼 의안 *이름*에
+    위원회가 들어간 줄에서 본회의 값에 위원회 이름표가 붙는다. 이름표가 붙으면
+    비교에서 빠지므로, 값은 화면에 남아 있는데 충돌만 조용히 사라진다.
 
-    앞의 것은 안전하고 뒤의 것은 위험하므로, 위원회로 판정하는 조건을 좁게 둔다.
+    더 중요한 이유가 있다. 이름표를 붙이는 것은 **그 값을 비교에서 빼는 권한**이다.
+    그 권한을 추출기가 가지면 6일차의 진짜 AI도 그대로 물려받는다. AI가 종류
+    이름 하나로 충돌 검사를 조용히 끌 수 있게 된다. 그래서 사람이 확인한 값
+    말고는 이 권한을 쓰지 않는다.
     """
-    if role in COMMITTEE_ROLES:
-        return True
-    if role in PLENARY_ROLES:
-        return False
+    return role in COMMITTEE_ROLES
 
-    line = _line_of(text, index)
-    if "본회의" in line:
-        return False
-    return bool(OTHER_BODY_PATTERN.search(line))
+
+#: 고정 형식이 정한 배열 상한. 넘으면 잘라내지 않고 범위 초과로 멈춘다.
+MAX_FACTS = 30
+MAX_EVIDENCE = 40
+MAX_ROLE_CANDIDATES = 18
+
+
+def _over_limit(
+    facts: list[dict[str, Any]],
+    evidence: list[dict[str, Any]],
+    role_candidates: list[dict[str, Any]],
+) -> dict[str, str] | None:
+    """상한을 넘었으면 무엇이 넘쳤는지 돌려준다."""
+    for name, items, limit in (
+        ("FACTS", facts, MAX_FACTS),
+        ("EVIDENCE", evidence, MAX_EVIDENCE),
+        ("SOURCE_ROLE_CANDIDATES", role_candidates, MAX_ROLE_CANDIDATES),
+    ):
+        if len(items) > limit:
+            return {
+                "subject": name,
+                "reason": (
+                    f"한 번에 담을 수 있는 한도({limit})를 넘었습니다. "
+                    f"지금은 {len(items)}건입니다. 자료를 나누어 넣어 주세요."
+                ),
+            }
+    return None
 
 
 def fake_fact_extraction(payload: dict[str, Any]) -> dict[str, Any]:
@@ -163,7 +185,7 @@ def fake_fact_extraction(payload: dict[str, Any]) -> dict[str, Any]:
         ]
 
         for kind, _subject, pattern in FACT_PATTERNS:
-            for match in list(pattern.finditer(text))[:2]:
+            for match in pattern.finditer(text):
                 quote = _line_of(text, match.start())
                 if not quote:
                     continue
@@ -173,7 +195,7 @@ def fake_fact_extraction(payload: dict[str, Any]) -> dict[str, Any]:
                 # 것과 같아진다. 그것이 이 프로젝트에서 가장 나쁜 실패다.
                 fact_kind = kind
                 if kind in PLENARY_SCOPED_KINDS and _is_committee_value(
-                    text, match.start(), source.get("role", "UNKNOWN")
+                    source.get("role", "UNKNOWN")
                 ):
                     fact_kind = COMMITTEE_KIND_PREFIX + kind
 
@@ -189,14 +211,35 @@ def fake_fact_extraction(payload: dict[str, Any]) -> dict[str, Any]:
                     }
                 )
 
+    # 고정 형식의 상한을 넘으면 **잘라내지 않고** 범위 초과로 멈춘다.
+    # 잘라내면 뒤에 있던 값이 기록 없이 사라지고, 그 값이 걸려 있던 충돌도
+    # 함께 사라진다. 형식이 이 경우를 위해 `FACT_SCOPE_TOO_LARGE`를 두었다.
+    over = _over_limit(facts, evidence, role_candidates)
+    if over is not None:
+        return {
+            "schema_version": FACT_RESULT_SCHEMA_VERSION,
+            "result": {
+                "result_status": "FACT_SCOPE_TOO_LARGE",
+                "scope_error": over,
+                "source_role_candidates": [],
+                "evidence": [],
+                "facts": [],
+                "bill_identities": [],
+                "bill_relations": [],
+                "legislative_events": [],
+                "provision_comparisons": [],
+                "supplementary_rules": [],
+            },
+        }
+
     return {
         "schema_version": FACT_RESULT_SCHEMA_VERSION,
         "result": {
             "result_status": "OK",
             "scope_error": None,
-            "source_role_candidates": role_candidates[:18],
-            "evidence": evidence[:40],
-            "facts": facts[:30],
+            "source_role_candidates": role_candidates,
+            "evidence": evidence,
+            "facts": facts,
             "bill_identities": [],
             "bill_relations": [],
             "legislative_events": [],
