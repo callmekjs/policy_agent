@@ -345,11 +345,13 @@ def test_역할이_정해진_정상_입력은_사실을_원문_근거와_연결�
         assert fact["raw_line"] >= 1
         assert fact["provenance"] == "OFFICIAL_SOURCE"
 
-    # 아직 만들지 않은 초안 단계를 성공한 것처럼 보여주지 않는다.
-    assert body["state"] == "FAILED"
-    assert body["failure"]["code"] == "DAY3_SCOPE_LIMIT"
-    assert body["draft_version"] == 0
+    # 의안정보 한 장으로는 최종 의결 내용을 정할 수 없다. 추측해서 초안을
+    # 쓰지 않고, 무엇이 더 필요한지 물으며 멈춘다.
+    assert body["state"] == "NEEDS_INPUT"
+    assert body["draft_version"] == 0, "자료가 모자란데 초안을 만들었습니다."
     assert body["actual_model_calls"] == 0
+    subjects = [i["subject"] for i in body["issues"]]
+    assert "FINAL_TEXT_DERIVATION_UNSAFE" in subjects, subjects
 
 
 def test_자료_역할이_잘_모르겠음이면_후보를_보여주고_멈춘다(client: TestClient) -> None:

@@ -234,6 +234,11 @@ class CreateRunRequest(BaseModel):
     )
     external_ai_policy_version: NonEmptyStr = Field(max_length=100)
     external_ai_transfer_confirmed: bool = False
+    #: 발의안을 최종 의결 내용으로 대신 쓸 때 사람이 한 확인 (§2.16.2 조건 5).
+    #: 첫 화면의 상시 입력이 아니다. 필요할 때만 묻고, 답을 여기에 담아 다시 보낸다.
+    final_text_completeness_confirmations: list["FinalTextConfirmation"] = Field(
+        default_factory=list
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -328,6 +333,16 @@ class Run(BaseModel):
     rejected_evidence: list[str] = Field(
         default_factory=list, description="근거를 찾지 못해 버린 항목"
     )
+
+    #: 발의안을 최종 의결 내용으로 대신 쓸 때 사람이 한 확인 (§2.16.2 조건 5).
+    final_text_confirmations: list["FinalTextConfirmation"] = Field(default_factory=list)
+    #: 코드가 확정한 최종 의결 내용과 변경 조문. Agent는 이 값을 만들지 못한다.
+    resolved_final_text: "ResolvedFinalText | None" = None
+    changed_article_set: "ChangedArticleSet | None" = None
+    #: 검사를 통과한 초안. 통과하지 못하면 언제나 `None`이다.
+    draft: "DraftCandidate | None" = None
+    #: 초안 검사 결과. 막힌 이유를 rule_id와 함께 남긴다.
+    validation_findings: list["ValidationFinding"] = Field(default_factory=list)
 
     draft_version: int = 0
     actual_model_calls: int = Field(default=0, description="SDK가 실제 보낸 요청 수")

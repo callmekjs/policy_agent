@@ -564,11 +564,39 @@ async def test_고정_자료의_찬성_수_충돌을_실제로_잡는다() -> No
     assert run.draft_version == 0
 
 
+#: 4일차(최종 의결문·조문 계산) 단계가 내는 문제의 대상 이름.
+DAY4_SUBJECTS = (
+    "FINAL_TEXT_DERIVATION_UNSAFE",
+    "FINAL_TEXT_COMPLETENESS_CONFIRMATION_REQUIRED",
+    "SOURCE_TEXT:",
+    "UNSUPPORTED_SYNTAX:",
+    "CHANGED_ARTICLE_COUNT:",
+)
+
+
+def _fact_stage_issues(run) -> list:
+    """사실·근거·충돌 단계에서 나온 차단 문제만 남긴다.
+
+    아래 시험들이 재는 것은 "이 자료로 **거짓 충돌**이 나는가"이지 "개정문이
+    완전한가"가 아니다. 표결 자료 두 장처럼 일부러 조금만 넣은 입력에서는
+    4일차의 최종 의결문 단계가 막는 것이 오히려 옳다. 그 정상적인 차단까지
+    세면 충돌 검사가 잘 도는지 알 수 없다.
+
+    다만 여기서 빼는 것은 **대상 이름이 4일차 단계인 것뿐**이다. 충돌·요일·근거
+    문제는 그대로 남으므로, 진짜 거짓 충돌이 생기면 이 시험들이 죽는다.
+    """
+    return [
+        i
+        for i in run.issues
+        if i.severity.value == "BLOCKING" and not i.subject.startswith(DAY4_SUBJECTS)
+    ]
+
+
 @pytest.mark.asyncio
 async def test_변조하지_않은_고정_자료는_충돌_없이_지나간다() -> None:
     """정상 자료까지 막으면 안 된다."""
     run = await _run_flow([_vote_source(), _other_vote_source()])
-    blocking = [i for i in run.issues if i.severity.value == "BLOCKING"]
+    blocking = _fact_stage_issues(run)
     assert blocking == [], f"정상 자료를 막았습니다: {[i.message for i in blocking]}"
     assert run.fact_ledger and run.fact_ledger.facts
 
@@ -614,7 +642,7 @@ async def test_회의가_분명하면_표결_수를_섞지_않는다() -> None:
             ("본회의 표결 결과", PLENARY_ROWS, SourceRole.PLENARY_VOTE_RESULT),
         ]
     )
-    blocking = [i for i in run.issues if i.severity.value == "BLOCKING"]
+    blocking = _fact_stage_issues(run)
     assert blocking == [], (
         f"서로 다른 회의의 값을 충돌로 봤습니다: {[i.subject for i in blocking]}"
     )
@@ -706,7 +734,7 @@ async def test_사용자가_위원회_자료라고_표시하면_본회의_값으
             ),
         ]
     )
-    blocking = [i for i in run.issues if i.severity.value == "BLOCKING"]
+    blocking = _fact_stage_issues(run)
     assert blocking == [], f"위원회 값을 본회의 것과 섞었습니다: {[i.subject for i in blocking]}"
 
 

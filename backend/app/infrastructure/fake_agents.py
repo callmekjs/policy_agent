@@ -17,6 +17,7 @@ from app.harness.fact_contracts import (
     COMMITTEE_KIND_PREFIX,
     FACT_RESULT_SCHEMA_VERSION,
 )
+from app.infrastructure.fake_draft import fake_draft_writing
 
 #: 본회의 사건에만 해당하는 사실 종류.
 #: 위원회 심사에도 표결 수와 처리일이 적히므로, 어느 회의 것인지 확인하지 않으면
@@ -221,6 +222,10 @@ def fake_fact_extraction(payload: dict[str, Any]) -> dict[str, Any]:
                     }
                 )
 
+    # 부칙과 조문 비교를 만든다. 둘 다 근거 문구를 원문에서 그대로 잘라 쓴다.
+    rules = _supplementary_rules(payload, add_evidence)
+    comparisons = _provision_comparisons(payload, add_evidence)
+
     # 고정 형식의 상한을 넘으면 **잘라내지 않고** 범위 초과로 멈춘다.
     # 잘라내면 뒤에 있던 값이 기록 없이 사라지고, 그 값이 걸려 있던 충돌도
     # 함께 사라진다. 형식이 이 경우를 위해 `FACT_SCOPE_TOO_LARGE`를 두었다.
@@ -253,8 +258,8 @@ def fake_fact_extraction(payload: dict[str, Any]) -> dict[str, Any]:
             "bill_identities": [],
             "bill_relations": [],
             "legislative_events": [],
-            "provision_comparisons": [],
-            "supplementary_rules": [],
+            "provision_comparisons": comparisons,
+            "supplementary_rules": rules,
         },
     }
 
@@ -262,4 +267,87 @@ def fake_fact_extraction(payload: dict[str, Any]) -> dict[str, Any]:
 #: Agent 이름 -> 가짜 응답을 만드는 함수.
 FAKE_RESPONDERS = {
     "FactExtractionAgent": fake_fact_extraction,
+    "DraftWritingAgent": fake_draft_writing,
 }
+
+
+#: 부칙 본문에서 시행일 규칙을 찾는다.
+EFFECTIVE_DATE_RULE = re.compile(r"^(이 법은[^\n]{0,120}시행한다\.)", re.MULTILINE)
+
+#: 조문 비교에 쓸 조문 번호. 현행과 개정문 양쪽에서 같은 모양으로 읽는다.
+PROVISION_LINE = re.compile(r"^(제\s*\d+\s*조(?:\s*의\s*\d+)?(?:\s*제\s*\d+\s*항)?)")
+
+#: 개정문을 담을 수 있는 역할. 이 중 하나여야 비교의 `최종` 쪽이 된다.
+FINAL_TEXT_ROLES = (
+    "PLENARY_FINAL_TEXT",
+    "COMMITTEE_FINAL_TEXT",
+    "PLENARY_AGENDA_TEXT",
+    "INTRODUCED_TEXT",
+)
+
+
+def _supplementary_rules(payload, add_evidence) -> list[dict[str, Any]]:
+    """부칙 규칙을 만든다. 근거 문구는 원문 그대로 쓴다."""
+    rules: list[dict[str, Any]] = []
+    for source in payload.get("sources", []):
+        text: str = source["text"]
+        for match in EFFECTIVE_DATE_RULE.finditer(text):
+            quote = match.group(1).strip()
+            rules.append(
+                {
+                    "rule_id": f"SR-{len(rules) + 1:02d}",
+                    "kind": "EFFECTIVE_DATE",
+                    "applies_to": quote,
+                    "source_id": source["source_id"],
+                    "evidence_id": add_evidence(source["source_id"], quote),
+                    "valid_source_role_candidate_ids": [],
+                }
+            )
+    return rules
+
+
+def _provision_lines(text: str) -> dict[str, str]:
+    """`제7조제6항`처럼 시작하는 줄을 조문별로 모은다."""
+    found: dict[str, str] = {}
+    for line in text.split("\n"):
+        stripped = line.strip()
+        match = PROVISION_LINE.match(stripped)
+        if match is None:
+            continue
+        key = match.group(1).replace(" ", "")
+        found.setdefault(key, stripped)
+    return found
+
+
+def _provision_comparisons(payload, add_evidence) -> list[dict[str, Any]]:
+    """현행 원문과 개정문에 **둘 다 있는** 조문만 비교로 만든다.
+
+    한쪽만 있으면 비교를 만들지 않는다 (§2.16.3). 한쪽 원문이 없는 비교는
+    "무엇이 어떻게 바뀌었다"를 근거 없이 말하는 길이 된다.
+    """
+    current = [
+        s for s in payload.get("sources", []) if s.get("role") == "CURRENT_PROVISION"
+    ]
+    finals = [s for s in payload.get("sources", []) if s.get("role") in FINAL_TEXT_ROLES]
+    if len(current) != 1 or len(finals) != 1:
+        return []
+
+    current_lines = _provision_lines(current[0]["text"])
+    final_lines = _provision_lines(finals[0]["text"])
+
+    comparisons: list[dict[str, Any]] = []
+    for key, current_quote in current_lines.items():
+        final_quote = final_lines.get(key)
+        if final_quote is None:
+            continue
+        comparisons.append(
+            {
+                "comparison_id": f"PC-{len(comparisons) + 1:02d}",
+                "provision_id": key,
+                "current_source_id": current[0]["source_id"],
+                "current_evidence_id": add_evidence(current[0]["source_id"], current_quote),
+                "final_source_id": finals[0]["source_id"],
+                "final_evidence_id": add_evidence(finals[0]["source_id"], final_quote),
+            }
+        )
+    return comparisons

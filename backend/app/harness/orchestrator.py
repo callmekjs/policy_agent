@@ -15,15 +15,28 @@ import json
 import uuid
 from datetime import UTC, date, datetime
 
+from app.agents.draft_writing import DraftResultError
+from app.agents.draft_writing import build_request as build_draft_request
+from app.agents.draft_writing import parse_result as parse_draft_result
 from app.agents.fact_extraction import AgentResultError, build_request, parse_result
 from app.gates.conflict_gate import check_conflicts
+from app.gates.draft_gate import blocking, check_draft
 from app.gates.evidence_gate import build_fact_ledger
+from app.gates.final_text_gate import resolve_final_text
 from app.gates.input_gate import check_input
 from app.gates.source_role_gate import candidate_choices, check_source_roles
+from app.harness.article_parser import (
+    UNSUPPORTED_COUNT,
+    ArticleParseError,
+    parse_changed_articles,
+    top_level_article,
+)
 from app.harness.contracts import (
     ACTIVE_CONTRACT_ID,
+    SUPPORTED_PROCEDURE_STAGE,
     SUPPORTED_PROCEDURE_STAGE_LABEL,
     CreateRunRequest,
+    EffectStatus,
     ExternalAiConfirmation,
     Issue,
     IssueCode,
@@ -44,7 +57,12 @@ from app.infrastructure.run_store import RunStore
 
 #: 아직 구현하지 않은 단계에 도달했을 때의 코드. 성공한 것처럼 보이지 않는다.
 DAY1_SCOPE_LIMIT = "DAY1_SCOPE_LIMIT"
-DAY3_SCOPE_LIMIT = "DAY3_SCOPE_LIMIT"
+
+#: 화면과 초안에 같은 말로 나가는 효력 상태 이름.
+EFFECT_STATUS_LABEL = "아직 법률 아님"
+
+#: 문의처는 사람이 확인해야 채워진다. 만들어 내지 않는다.
+CONTACT_PLACEHOLDER = "[문의처 확인 필요]"
 
 
 def _now() -> datetime:
@@ -212,6 +230,7 @@ class Orchestrator:
             announcement_subject_input=(request.announcement_subject or "").strip() or None,
             sources=sources,
             external_ai=confirmation,
+            final_text_confirmations=list(request.final_text_completeness_confirmations),
         )
         self.store.put(run)
         return run
@@ -354,16 +373,20 @@ class Orchestrator:
                 self._transition(run, RunState.NEEDS_INPUT)
                 return
 
-            # 여기까지가 3일차 범위다. 초안 작성은 4일차에 붙인다.
-            self._fail(
-                run,
-                FailureKind.TECHNICAL,
-                DAY3_SCOPE_LIMIT,
-                f"자료에서 사실 {len(ledger.facts)}건을 정리했습니다. "
-                "초안을 쓰는 단계는 아직 만들지 않았습니다.",
-                "사실과 원문 근거가 연결되는지 확인하는 단계입니다. "
-                "초안 작성은 4일차에 이어서 만듭니다.",
-            )
+            confirmations = list(run.final_text_confirmations)
+            subject_input = run.announcement_subject_input or ""
+
+        # 5) 최종 의결 내용을 코드가 확정한다. 못 하면 초안 없이 멈춘다.
+        await self._write_draft(
+            run_id,
+            sources=sources,
+            normalized=normalized,
+            ledger=ledger,
+            confirmations=confirmations,
+            purpose=purpose,
+            basis_date=basis_date,
+            announcement_subject=subject_input,
+        )
 
     # -- 처리 -------------------------------------------------------------
     async def process(self, run_id: str, request: CreateRunRequest, today: date | None = None) -> None:
@@ -415,3 +438,187 @@ class Orchestrator:
                 run.failure_code = type(exc).__name__
                 run.failure_message = "처리 중 문제가 생겼습니다."
                 run.next_action = "잠시 뒤 새 작업으로 다시 시도해 주세요."
+
+    # -- 초안 작성 ---------------------------------------------------------
+    async def _write_draft(
+        self,
+        run_id: str,
+        *,
+        sources: list,
+        normalized: dict,
+        ledger,
+        confirmations: list,
+        purpose: str,
+        basis_date: str,
+        announcement_subject: str,
+    ) -> None:
+        """최종 의결문 확정 -> 조문 계산 -> 초안 -> 초안 검사 (§2.11 5~6단계).
+
+        어느 단계에서 멈추든 **초안은 만들어지지 않는다.** 사람에게는 왜 멈췄는지
+        쉬운 말로 알린다.
+        """
+        # 5) 최종 의결 내용을 코드가 확정한다.
+        draft_bill_number = next(
+            (b.bill_number for b in ledger.bill_identities if b.is_draft_subject), ""
+        )
+        final_text, issues = resolve_final_text(
+            sources, normalized, confirmations, draft_bill_number=draft_bill_number
+        )
+        if final_text is None:
+            await self._needs_input(run_id, issues)
+            return
+
+        # 6) 변경 조문을 코드가 직접 센다. AI 값을 믿지 않는다.
+        try:
+            article_set = parse_changed_articles(final_text)
+        except ArticleParseError as exc:
+            await self._needs_input(run_id, [_article_issue(exc, final_text)])
+            return
+
+        # 7) AI가 만든 조문 비교와 코드 집합이 정확히 같은가 (§2.16.3).
+        ai_articles = {
+            top_level_article(c.provision_id) for c in ledger.provision_comparisons
+        }
+        counted = set(article_set.article_ids)
+        if ai_articles != counted:
+            missing = sorted(counted - ai_articles)
+            extra = sorted(ai_articles - counted)
+            detail = []
+            if missing:
+                detail.append(f"AI가 빠뜨린 조문: {', '.join(missing)}")
+            if extra:
+                detail.append(f"AI가 더 넣은 조문: {', '.join(extra)}")
+            async with self.store.lock:
+                run = self.store.get(run_id)
+                if run is None:
+                    return
+                run.resolved_final_text = final_text
+                run.changed_article_set = article_set
+                self._fail(
+                    run,
+                    FailureKind.TECHNICAL,
+                    "PROVISION_SET_MISMATCH",
+                    "바뀐 조문을 코드와 AI가 다르게 셌습니다. " + ". ".join(detail) + ".",
+                    "초안을 만들지 않았습니다. 새 작업으로 다시 시도해 주세요.",
+                )
+            return
+
+        async with self.store.lock:
+            run = self.store.get(run_id)
+            if run is None:
+                return
+            run.resolved_final_text = final_text
+            run.changed_article_set = article_set
+            self._transition(run, RunState.DRAFTING)
+
+        # 8) 초안 AI. 원문 전체가 아니라 확인된 재료만 준다.
+        request = build_draft_request(
+            purpose=purpose,
+            basis_date=basis_date,
+            procedure_stage=SUPPORTED_PROCEDURE_STAGE,
+            effect_status=EffectStatus.NOT_A_LAW,
+            procedure_stage_label=SUPPORTED_PROCEDURE_STAGE_LABEL,
+            effect_status_label=EFFECT_STATUS_LABEL,
+            ledger=ledger,
+            final_text=final_text,
+            article_set=article_set,
+            announcement_subject=announcement_subject,
+            contact_text=CONTACT_PLACEHOLDER,
+        )
+        call = await self.gateway.call(request)
+
+        async with self.store.lock:
+            run = self.store.get(run_id)
+            if run is None:
+                return
+            if not call.is_fake:
+                run.actual_model_calls += 1
+                run.estimated_cost_usd += call.estimated_cost_usd
+
+        try:
+            candidate = parse_draft_result(call)
+        except DraftResultError as exc:
+            async with self.store.lock:
+                run = self.store.get(run_id)
+                if run is None:
+                    return
+                self._fail(
+                    run,
+                    FailureKind.TECHNICAL,
+                    exc.code,
+                    f"AI 초안을 쓸 수 없습니다. {exc.detail}",
+                    "초안을 만들지 않았습니다. 새 작업으로 다시 시도해 주세요.",
+                )
+            return
+
+        async with self.store.lock:
+            run = self.store.get(run_id)
+            if run is None:
+                return
+            self._transition(run, RunState.CHECKING_DRAFT)
+
+        # 9) 초안 검사. 차단이 하나라도 있으면 초안을 내주지 않는다.
+        findings = check_draft(
+            candidate,
+            ledger,
+            final_text,
+            article_set,
+            normalized,
+            announcement_subject=announcement_subject,
+        )
+        blocked = blocking(findings)
+
+        async with self.store.lock:
+            run = self.store.get(run_id)
+            if run is None:
+                return
+            run.validation_findings = findings
+            if blocked:
+                self._fail(
+                    run,
+                    FailureKind.QUALITY_GATE,
+                    "DRAFT_BLOCKED",
+                    f"안전 검사에서 막힌 항목이 {len(blocked)}건 있어 초안을 "
+                    "내주지 않았습니다.",
+                    "막힌 이유를 확인하고 공식 자료를 보완해 새 작업으로 "
+                    "다시 시도해 주세요.",
+                )
+                return
+
+            run.draft = candidate
+            run.draft_version = candidate.version
+            self._transition(run, RunState.REVIEW_READY)
+
+    async def _needs_input(self, run_id: str, issues: list[Issue]) -> None:
+        """초안 없이 사람에게 묻고 멈춘다."""
+        async with self.store.lock:
+            run = self.store.get(run_id)
+            if run is None:
+                return
+            run.issues = issues
+            self._transition(run, RunState.NEEDS_INPUT)
+
+
+def _article_issue(exc: ArticleParseError, final_text) -> Issue:
+    """조문을 셀 수 없을 때의 Issue. 왜 못 셌는지에 따라 푸는 방법이 다르다."""
+    if exc.subject.startswith("UNSUPPORTED_SYNTAX"):
+        resolution = ResolutionKind.UNSUPPORTED_IN_V1
+        question = "1차에서 지원하는 형태의 공식 자료로 다시 시도해 주세요."
+    elif exc.code == UNSUPPORTED_COUNT:
+        resolution = ResolutionKind.UNSUPPORTED_IN_V1
+        question = "조문을 나누어 보도자료를 따로 만들어 주세요."
+    else:
+        resolution = ResolutionKind.NEW_RUN_WITH_SOURCES
+        question = "개정문이 처음부터 끝까지 담긴 공식 자료를 새 작업으로 넣어 주세요."
+    return Issue(
+        issue_id="ISS-001",
+        code=IssueCode(exc.code),
+        subject=exc.subject,
+        message=(
+            f"‘{final_text.source_name}’에서 바뀐 조문을 셀 수 없습니다. {exc.detail}"
+        ),
+        question=question,
+        source_ids=[final_text.source_id],
+        resolution_kind=resolution,
+        requires_new_run=resolution is ResolutionKind.NEW_RUN_WITH_SOURCES,
+    )

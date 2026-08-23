@@ -323,4 +323,22 @@ class FactLedger(BaseModel):
 from app.harness import contracts as _contracts  # noqa: E402
 
 _contracts.FactLedger = FactLedger
+
+# 4일차에 붙은 법률·초안 모델도 같은 방향으로 연결한다.
+from app.harness.draft_contracts import (  # noqa: E402
+    DraftCandidate,
+    ValidationFinding,
+)
+from app.harness.legal_contracts import (  # noqa: E402
+    ChangedArticleSet,
+    FinalTextConfirmation,
+    ResolvedFinalText,
+)
+
+_contracts.DraftCandidate = DraftCandidate
+_contracts.ValidationFinding = ValidationFinding
+_contracts.ChangedArticleSet = ChangedArticleSet
+_contracts.FinalTextConfirmation = FinalTextConfirmation
+_contracts.ResolvedFinalText = ResolvedFinalText
 _contracts.Run.model_rebuild()
+_contracts.CreateRunRequest.model_rebuild()
