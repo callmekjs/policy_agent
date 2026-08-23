@@ -85,6 +85,57 @@ export interface RoleChoice {
   evidence_quote: string
 }
 
+export interface ClaimTextView {
+  text: string
+  fact_ids: string[]
+  claim_ids: string[]
+}
+
+export interface DraftParagraphView {
+  paragraph_id: string
+  section_kind: string
+  text: string
+  fact_ids: string[]
+  supplementary_rule_ids: string[]
+}
+
+export interface DraftView {
+  candidate_id: string
+  version: number
+  draft_label: string
+  basis_date: string
+  title: ClaimTextView
+  key_points: ClaimTextView[]
+  lead: ClaimTextView
+  paragraphs: DraftParagraphView[]
+  contact_text: string
+  placeholders: string[]
+  claims: { claim_id: string; text: string; fact_ids: string[] }[]
+}
+
+export interface FinalTextView {
+  rule: string
+  source_name: string
+  bill_number: string
+  body: string
+  derivation_id: string
+}
+
+export interface SupplementaryRuleView {
+  rule_id: string
+  kind: string
+  applies_to: string
+}
+
+export interface ValidationFindingView {
+  finding_id: string
+  rule_id: string
+  rule_document: string
+  affected_part: string
+  severity: 'BLOCKING' | 'WARNING'
+  message: string
+}
+
 export interface RunView {
   run_id: string
   state: RunState
@@ -109,6 +160,11 @@ export interface RunView {
   role_choices: RoleChoice[]
   facts: FactView[]
   rejected_evidence: string[]
+  final_text: FinalTextView | null
+  changed_articles: string[]
+  supplementary_rules: SupplementaryRuleView[]
+  draft: DraftView | null
+  validation_findings: ValidationFindingView[]
   failure: {
     kind: string | null
     code: string | null

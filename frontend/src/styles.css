@@ -100,3 +100,16 @@ button:disabled { opacity: 0.55; cursor: not-allowed; }
   margin: 0; padding: 6px 10px; border-left: 3px solid var(--accent);
   background: #fff; color: var(--fg); font-size: 0.9rem;
 }
+
+/* 검토용 초안. 최종본으로 보이지 않도록 표시를 뚜렷하게 둔다. */
+.draft {
+  border: 2px dashed var(--accent); border-radius: 10px;
+  padding: 16px; margin-top: 20px; background: #fffdf7;
+}
+.draft h3 {
+  margin-top: 0; letter-spacing: 0.04em;
+  color: #8a5a00; font-size: 0.95rem;
+}
+.draft-title { margin: 8px 0 2px; font-size: 1.3rem; line-height: 1.35; }
+.draft-lead { margin: 12px 0 2px; font-weight: 600; }
+.draft-contact { margin-top: 16px; color: var(--muted); }

@@ -122,6 +122,42 @@ def guard_state_change(request: Request) -> JSONResponse | None:
     return None
 
 
+def _draft_view(draft) -> dict[str, Any]:
+    """화면에 보낼 초안. 근거 ID를 함께 보내 어디서 온 문장인지 볼 수 있게 한다."""
+    def claim(node) -> dict[str, Any]:
+        return {
+            "text": node.text,
+            "fact_ids": list(node.fact_ids),
+            "claim_ids": list(node.claim_ids),
+        }
+
+    return {
+        "candidate_id": draft.candidate_id,
+        "version": draft.version,
+        "draft_label": draft.draft_label,
+        "basis_date": draft.basis_date,
+        "title": claim(draft.title),
+        "key_points": [claim(k) for k in draft.key_points],
+        "lead": claim(draft.lead),
+        "paragraphs": [
+            {
+                "paragraph_id": p.paragraph_id,
+                "section_kind": p.section_kind,
+                "text": p.text,
+                "fact_ids": list(p.fact_ids),
+                "supplementary_rule_ids": list(p.supplementary_rule_ids),
+            }
+            for p in draft.paragraphs
+        ],
+        "contact_text": draft.contact_text,
+        "placeholders": list(draft.placeholders),
+        "claims": [
+            {"claim_id": c.claim_id, "text": c.text, "fact_ids": list(c.fact_ids)}
+            for c in draft.claims
+        ],
+    }
+
+
 def run_view(run: Run) -> dict[str, Any]:
     """화면에 보낼 값. 원문 전체와 비밀값은 담지 않는다."""
     state = RunState(run.state)
@@ -178,6 +214,45 @@ def run_view(run: Run) -> dict[str, Any]:
             else []
         ),
         "rejected_evidence": run.rejected_evidence,
+        # 코드가 정한 최종 의결 내용과 변경 조문. 어디서 왔는지 화면에서 되짚는다.
+        "final_text": (
+            {
+                "rule": run.resolved_final_text.rule,
+                "source_name": run.resolved_final_text.source_name,
+                "bill_number": run.resolved_final_text.bill_number,
+                "body": run.resolved_final_text.body_text.strip(),
+                "derivation_id": run.resolved_final_text.derivation_id,
+            }
+            if run.resolved_final_text
+            else None
+        ),
+        "changed_articles": (
+            list(run.changed_article_set.article_ids) if run.changed_article_set else []
+        ),
+        "supplementary_rules": (
+            [
+                {
+                    "rule_id": r.rule_id,
+                    "kind": r.kind.value,
+                    "applies_to": r.applies_to,
+                }
+                for r in run.fact_ledger.supplementary_rules
+            ]
+            if run.fact_ledger
+            else []
+        ),
+        "draft": _draft_view(run.draft) if run.draft else None,
+        "validation_findings": [
+            {
+                "finding_id": f.finding_id,
+                "rule_id": f.rule_id,
+                "rule_document": f.rule_document,
+                "affected_part": f.affected_part,
+                "severity": f.severity.value,
+                "message": f.message,
+            }
+            for f in run.validation_findings
+        ],
         "failure": (
             {
                 "kind": run.failure_kind,

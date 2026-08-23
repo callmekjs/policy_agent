@@ -21,6 +21,14 @@ const BUSY_STATES = new Set([
 
 export function RunStatusScreen({ run, onNewRun, onDelete }: Props) {
   const busy = BUSY_STATES.has(run.state)
+  // 목록 하나가 비어 오더라도 화면 전체가 사라지면 안 된다. 사용자는 아무것도
+  // 보지 못한 채 무엇이 잘못됐는지 알 수 없게 된다.
+  const rules = run.supplementary_rules ?? []
+  const findings = run.validation_findings ?? []
+  const articles = run.changed_articles ?? []
+  const facts = run.facts ?? []
+  const rejected = run.rejected_evidence ?? []
+  const issues = run.issues ?? []
 
   return (
     <div className="screen">
@@ -62,14 +70,14 @@ export function RunStatusScreen({ run, onNewRun, onDelete }: Props) {
 
       {busy && <p className="hint">처리 중입니다. 완료율은 알 수 없어 표시하지 않습니다.</p>}
 
-      {run.facts.length > 0 && (
+      {facts.length > 0 && (
         <section>
-          <h3>자료에서 확인한 사실 {run.facts.length}건</h3>
+          <h3>자료에서 확인한 사실 {facts.length}건</h3>
           <p className="hint">
             모든 사실에 원문 근거가 붙어 있습니다. 근거를 찾지 못한 값은 쓰지 않습니다.
           </p>
           <ul className="facts">
-            {run.facts.map((fact) => (
+            {facts.map((fact) => (
               <li key={fact.fact_id}>
                 <p className="fact-value">
                   {fact.value}
@@ -92,14 +100,14 @@ export function RunStatusScreen({ run, onNewRun, onDelete }: Props) {
         </section>
       )}
 
-      {run.rejected_evidence.length > 0 && (
+      {rejected.length > 0 && (
         <section>
-          <h3>근거를 찾지 못해 쓰지 않은 것 {run.rejected_evidence.length}건</h3>
+          <h3>근거를 찾지 못해 쓰지 않은 것 {rejected.length}건</h3>
           <p className="hint">
             원문에서 근거를 확인하지 못해 사실로 쓰지 않았습니다. 이유는 항목마다 다릅니다.
           </p>
           <ul className="issues">
-            {run.rejected_evidence.map((item) => (
+            {rejected.map((item) => (
               <li key={item}>
                 <p className="mono">{item}</p>
               </li>
@@ -108,11 +116,124 @@ export function RunStatusScreen({ run, onNewRun, onDelete }: Props) {
         </section>
       )}
 
-      {run.issues.length > 0 && (
+      {run.final_text && (
+        <section>
+          <h3>이번 보도자료가 설명하는 최종 의결 내용</h3>
+          <p className="hint">
+            어느 자료를 최종 내용으로 볼지는 코드가 정합니다. AI가 고르지 않습니다.
+          </p>
+          <dl className="meta">
+            <div>
+              <dt>가져온 자료</dt>
+              <dd>{run.final_text.source_name}</dd>
+            </div>
+            <div>
+              <dt>의안번호</dt>
+              <dd>{run.final_text.bill_number || '확인 필요'}</dd>
+            </div>
+            <div>
+              <dt>바뀐 조문</dt>
+              <dd>{articles.join(', ') || '없음'}</dd>
+            </div>
+          </dl>
+          <blockquote className="fact-quote">{run.final_text.body}</blockquote>
+          <details>
+            <summary>근거 보기</summary>
+            <p className="mono">
+              {run.final_text.rule} / {run.final_text.derivation_id}
+            </p>
+          </details>
+        </section>
+      )}
+
+      {rules.length > 0 && (
+        <section>
+          <h3>부칙 {rules.length}건</h3>
+          <p className="hint">
+            아직 공포 전이므로 제안된 내용입니다. 확정된 시행일이 아닙니다.
+          </p>
+          <ul className="facts">
+            {rules.map((rule) => (
+              <li key={rule.rule_id}>
+                <p className="fact-value">{rule.applies_to}</p>
+                <p className="fact-source">{rule.kind}</p>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {run.draft && (
+        <section className="draft">
+          <h3>{run.draft.draft_label}</h3>
+          <p className="hint">
+            검토용 초안입니다. 모든 문장에 자료 근거가 붙어 있습니다. 최종본도
+            승인본도 아니며 이 프로그램은 발송·게시를 하지 않습니다.
+          </p>
+
+          <h4 className="draft-title">{run.draft.title.text}</h4>
+          <p className="mono">근거 {run.draft.title.fact_ids.join(', ')}</p>
+
+          <ul className="facts">
+            {run.draft.key_points.map((point, index) => (
+              <li key={`kp-${index}`}>
+                <p className="fact-value">{point.text}</p>
+                <p className="mono">근거 {point.fact_ids.join(', ')}</p>
+              </li>
+            ))}
+          </ul>
+
+          <p className="draft-lead">{run.draft.lead.text}</p>
+          <p className="mono">근거 {run.draft.lead.fact_ids.join(', ')}</p>
+
+          {run.draft.paragraphs.map((paragraph) => (
+            <div key={paragraph.paragraph_id}>
+              <p>{paragraph.text}</p>
+              <p className="mono">
+                {paragraph.paragraph_id} / 근거 {paragraph.fact_ids.join(', ') || '없음'}
+                {paragraph.supplementary_rule_ids.length > 0 &&
+                  ` / 부칙 ${paragraph.supplementary_rule_ids.join(', ')}`}
+              </p>
+            </div>
+          ))}
+
+          <p className="draft-contact">문의처: {run.draft.contact_text}</p>
+          {run.draft.placeholders.length > 0 && (
+            <p className="hint">사람이 채워야 하는 곳: {run.draft.placeholders.join(', ')}</p>
+          )}
+        </section>
+      )}
+
+      {findings.length > 0 && (
+        <section>
+          <h3>안전 검사에서 막힌 것 {findings.length}건</h3>
+          <p className="hint">
+            아래 이유로 초안을 내주지 않았습니다. 규칙 번호와 기준 문서 위치를 함께
+            적었습니다.
+          </p>
+          <ul className="issues">
+            {findings.map((finding) => (
+              <li key={finding.finding_id}>
+                <p className="issue-message">
+                  {finding.affected_part}: {finding.message}
+                </p>
+                <details>
+                  <summary>근거 보기</summary>
+                  <p className="mono">
+                    {finding.rule_id} / {finding.rule_document} / {finding.severity}
+                  </p>
+                </details>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {issues.length > 0 && (
         <section>
           <h3>확인이 필요합니다</h3>
           <ul className="issues">
-            {run.issues.map((issue) => (
+            {issues.map((issue) => (
               <li key={issue.issue_id}>
                 <p className="issue-message">{issue.message}</p>
                 {issue.question && <p className="issue-question">{issue.question}</p>}
