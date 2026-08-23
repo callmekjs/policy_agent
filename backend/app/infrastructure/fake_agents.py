@@ -141,6 +141,10 @@ def fake_fact_extraction(payload: dict[str, Any]) -> dict[str, Any]:
     facts: list[dict[str, Any]] = []
     role_candidates: list[dict[str, Any]] = []
     seen_quotes: dict[tuple[str, str], str] = {}
+    #: 같은 자료에서 같은 종류·같은 값이 여러 번 나오면 한 번만 만든다.
+    #: 값을 버리는 것이 아니라 똑같은 값이 겹치는 것을 접는 것이다.
+    #: 접지 않으면 표결 자료 몇 장만으로 상한을 넘어 전체가 멈춘다.
+    seen_facts: set[tuple[str, str, str]] = set()
 
     def add_evidence(source_id: str, quote: str) -> str:
         """같은 문구는 근거 하나만 만든다. 중복 근거는 형식 위반이다."""
@@ -177,7 +181,7 @@ def fake_fact_extraction(payload: dict[str, Any]) -> dict[str, Any]:
                         "evidence_ids": [evidence_id],
                     }
                 )
-                if len(role_candidates) >= 3:
+                if len([c for c in role_candidates if c["source_id"] == source_id]) >= 3:
                     break
 
         candidate_ids = [
@@ -199,12 +203,18 @@ def fake_fact_extraction(payload: dict[str, Any]) -> dict[str, Any]:
                 ):
                     fact_kind = COMMITTEE_KIND_PREFIX + kind
 
+                value = match.group(1).strip()
+                signature = (source_id, fact_kind, value)
+                if signature in seen_facts:
+                    continue
+                seen_facts.add(signature)
+
                 evidence_id = add_evidence(source_id, quote)
                 facts.append(
                     {
                         "fact_id": f"F-{len(facts) + 1:02d}",
                         "kind": fact_kind,
-                        "value": match.group(1).strip(),
+                        "value": value,
                         "source_id": source_id,
                         "evidence_id": evidence_id,
                         "valid_source_role_candidate_ids": candidate_ids,

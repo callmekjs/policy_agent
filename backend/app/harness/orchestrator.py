@@ -72,6 +72,42 @@ def payload_hash(request: CreateRunRequest) -> str:
     ).hexdigest()
 
 
+def _rejected_fact_issues(evidence, next_index: int = 1) -> list[Issue]:
+    """근거를 확인하지 못해 버린 사실을 사람에게 보여 준다.
+
+    버린 값이 어떤 값이었는지, 어느 자료 몇 행이었는지 함께 적는다. 내부 ID만
+    남기면 화면에서 알아볼 수 없고, 그 값에 걸려 있던 충돌이 사라진 것도
+    눈치챌 수 없다.
+    """
+    blocking = [
+        p
+        for p in evidence.problems
+        if p.kind in ("AMBIGUOUS", "UNKNOWN_SOURCE") and p.value
+    ]
+    if not blocking:
+        return []
+
+    lines = [f"· {p.describe()}" for p in blocking]
+    return [
+        Issue(
+            issue_id=f"ISS-{next_index:03d}",
+            code=IssueCode.REQUIRED_SOURCE_MISSING,
+            subject="EVIDENCE_NOT_PINNED",
+            message=(
+                "다음 값은 근거를 한 곳으로 특정하지 못해 쓰지 않았습니다.\n"
+                + "\n".join(lines)
+            ),
+            question=(
+                "그 부분이 한 번만 나오는 공식 자료를 넣거나, 해당 대목만 잘라 "
+                "넣어 주세요."
+            ),
+            source_ids=sorted({p.source_name for p in blocking if p.source_name}),
+            resolution_kind=ResolutionKind.NEW_RUN_WITH_SOURCES,
+            requires_new_run=True,
+        )
+    ]
+
+
 class Orchestrator:
     """Run 하나의 진행을 책임진다."""
 
@@ -212,12 +248,36 @@ class Orchestrator:
                 run = self.store.get(run_id)
                 if run is None:
                     return
+                if exc.code == "FACT_SCOPE_TOO_LARGE":
+                    # 이것은 프로그램 고장이 아니라 **지원 범위를 넘은 자료**다.
+                    # 기술 오류로 끝내면 사용자가 무엇을 해야 할지 알 수 없다.
+                    # 쉬운 설명과 함께 사람에게 물어보는 자리로 보낸다.
+                    run.issues = [
+                        Issue(
+                            issue_id="ISS-001",
+                            code=IssueCode.REQUIRED_SOURCE_MISSING,
+                            subject="UNSUPPORTED_SCOPE",
+                            message=(
+                                "이 자료는 지금 버전이 한 번에 처리할 수 있는 범위를 "
+                                f"넘습니다. {exc.detail}"
+                            ),
+                            question=(
+                                "이번 보도자료에 꼭 필요한 공식 자료만 남겨 새 작업으로 "
+                                "다시 넣어 주세요."
+                            ),
+                            resolution_kind=ResolutionKind.NEW_RUN_WITH_SOURCES,
+                            requires_new_run=True,
+                        )
+                    ]
+                    self._transition(run, RunState.NEEDS_INPUT)
+                    return
+
                 self._fail(
                     run,
                     FailureKind.TECHNICAL,
                     exc.code,
                     f"AI 결과를 쓸 수 없습니다. {exc.detail}",
-                    "잠시 뒤 새 작업으로 다시 시도해 주세요. 자료가 많으면 줄여 주세요.",
+                    "잠시 뒤 새 작업으로 다시 시도해 주세요.",
                 )
             return
 
@@ -229,6 +289,11 @@ class Orchestrator:
             sources, raw.source_role_candidates, evidence.locations
         )
         issues = list(role_issues)
+        if not issues:
+            # 근거를 확인하지 못해 버린 사실이 있으면 먼저 사람에게 알린다.
+            # 버린 값에 걸려 있던 충돌은 함께 사라지므로, 조용히 지나가면
+            # 시스템이 말없이 한쪽을 고른 것과 같아진다.
+            issues = _rejected_fact_issues(evidence)
         if not issues:
             issues = check_conflicts(ledger)
 

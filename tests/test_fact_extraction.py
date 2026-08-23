@@ -727,9 +727,15 @@ async def test_상한을_넘으면_잘라내지_않고_멈춘다() -> None:
     """
     big = "\n".join(f"의안번호: {2000 + i}\n제{i}조를 고친다." for i in range(40))
     run = await _run_flow([("큰 자료", big, SourceRole.BILL_INFORMATION)])
-    assert run.failure_code == "FACT_SCOPE_TOO_LARGE", (
+
+    # 잘라내지 않고 멈춘다. 다만 프로그램 고장이 아니라 지원 범위를 넘은
+    # 자료이므로, 기술 오류가 아니라 사람에게 묻는 자리로 보낸다.
+    assert run.state == "NEEDS_INPUT", (
         f"상한을 넘겼는데 멈추지 않았습니다: {run.state} / {run.failure_code}"
     )
+    assert run.failure_kind is None, "지원 범위 초과를 기술 오류로 보여 줬습니다."
+    assert run.issues and run.issues[0].subject == "UNSUPPORTED_SCOPE"
+    assert "범위" in run.issues[0].message
     assert run.draft_version == 0
     assert run.fact_ledger is None or run.fact_ledger.facts == []
 

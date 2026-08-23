@@ -27,11 +27,29 @@ from app.harness.source_normalizer import NormalizedSource, find_quote_offsets
 
 @dataclass
 class EvidenceProblem:
-    """근거를 확인하지 못한 항목 하나."""
+    """근거를 확인하지 못한 항목 하나.
+
+    사람이 무엇이 빠졌는지 알 수 있어야 한다. 내부 ID만 남기면 화면에서
+    `F-01`처럼 보여 아무도 알아볼 수 없고, 그 값에 걸려 있던 충돌이 함께
+    사라진 것도 눈치챌 수 없다.
+    """
 
     kind: str  # NOT_FOUND | AMBIGUOUS | UNKNOWN_SOURCE | UNKNOWN_EVIDENCE
     fact_id: str
     detail: str
+    fact_kind: str = ""
+    value: str = ""
+    source_name: str = ""
+    quote: str = ""
+    raw_line: int = 0
+
+    def describe(self) -> str:
+        """화면에 보여줄 한 줄. 값과 자료명을 반드시 담는다."""
+        head = f"{self.value}" if self.value else self.fact_id
+        where = f" — {self.source_name}" if self.source_name else ""
+        line = f" {self.raw_line}행" if self.raw_line else ""
+        quote = f": “{self.quote}”" if self.quote else ""
+        return f"{head}{where}{line}{quote} · {self.detail}"
 
 
 @dataclass
@@ -118,12 +136,7 @@ def build_fact_ledger(
         bill_relations=_keep_with_evidence(
             raw.bill_relations, evidence, "origin_bill_id", ("evidence_ids",)
         ),
-        provision_comparisons=_keep_with_evidence(
-            raw.provision_comparisons,
-            evidence,
-            "comparison_id",
-            ("current_evidence_id", "final_evidence_id"),
-        ),
+        provision_comparisons=_keep_comparisons(raw.provision_comparisons, evidence),
     )
 
     for fact in raw.facts:
@@ -178,6 +191,64 @@ def _keep_with_evidence(
     return kept
 
 
+def _keep_comparisons(items: list, evidence: EvidenceResult) -> list:
+    """조문 비교는 현행·최종 자료를 따로 가리키므로 짝을 맞춰 확인한다.
+
+    `source_id` 하나만 보는 공통 검사로는 이 항목의 자료 대조가 건너뛰어져,
+    다른 자료의 근거를 빌려 원장에 남을 수 있다.
+    """
+    kept = []
+    for item in items:
+        pairs = (
+            (item.current_source_id, item.current_evidence_id),
+            (item.final_source_id, item.final_evidence_id),
+        )
+        problem: EvidenceProblem | None = None
+        for source_id, evidence_id in pairs:
+            location = evidence.locations.get(evidence_id)
+            if location is None:
+                problem = EvidenceProblem(
+                    kind="UNKNOWN_EVIDENCE",
+                    fact_id=item.comparison_id,
+                    detail="근거를 확인하지 못해 쓰지 않았습니다.",
+                    fact_kind="PROVISION_COMPARISON",
+                    value=item.provision_id,
+                )
+                break
+            if location.source_id != source_id:
+                problem = EvidenceProblem(
+                    kind="UNKNOWN_SOURCE",
+                    fact_id=item.comparison_id,
+                    detail="조문 비교와 근거가 서로 다른 자료를 가리킵니다.",
+                    fact_kind="PROVISION_COMPARISON",
+                    value=item.provision_id,
+                    source_name=location.source_name,
+                    quote=location.quote,
+                    raw_line=location.raw_start_line,
+                )
+                break
+            if location.occurrence_count > 1:
+                problem = EvidenceProblem(
+                    kind="AMBIGUOUS",
+                    fact_id=item.comparison_id,
+                    detail=(
+                        f"근거 문구가 자료에서 {location.occurrence_count}군데 나와 "
+                        "어디를 가리키는지 알 수 없습니다."
+                    ),
+                    fact_kind="PROVISION_COMPARISON",
+                    value=item.provision_id,
+                    source_name=location.source_name,
+                    quote=location.quote,
+                    raw_line=location.raw_start_line,
+                )
+                break
+        if problem is not None:
+            evidence.problems.append(problem)
+            continue
+        kept.append(item)
+    return kept
+
+
 def _evidence_problem(
     item: object,
     item_id: str,
@@ -223,18 +294,26 @@ def _evidence_problem(
 
 def _check_fact(fact: RawFact, evidence: EvidenceResult) -> EvidenceProblem | None:
     """이 사실을 원장에 넣어도 되는지 본다. 문제가 없으면 None."""
+    value = fact.value if isinstance(fact.value, str) else ", ".join(fact.value)
     location = evidence.locations.get(fact.evidence_id)
     if location is None:
         return EvidenceProblem(
             kind="UNKNOWN_EVIDENCE",
             fact_id=fact.fact_id,
             detail="근거를 확인하지 못했습니다.",
+            fact_kind=fact.kind,
+            value=value,
         )
     if location.source_id != fact.source_id:
         return EvidenceProblem(
             kind="UNKNOWN_SOURCE",
             fact_id=fact.fact_id,
             detail="사실과 근거가 서로 다른 자료를 가리킵니다.",
+            fact_kind=fact.kind,
+            value=value,
+            source_name=location.source_name,
+            quote=location.quote,
+            raw_line=location.raw_start_line,
         )
     if location.occurrence_count > 1 and fact.kind in HIGH_RISK_FACT_KINDS:
         return EvidenceProblem(
@@ -244,6 +323,11 @@ def _check_fact(fact: RawFact, evidence: EvidenceResult) -> EvidenceProblem | No
                 f"근거 문구가 자료에서 {location.occurrence_count}군데 나와 "
                 "어디를 가리키는지 알 수 없습니다."
             ),
+            fact_kind=fact.kind,
+            value=value,
+            source_name=location.source_name,
+            quote=location.quote,
+            raw_line=location.raw_start_line,
         )
     return None
 
