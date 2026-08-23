@@ -1469,3 +1469,146 @@ def test_근거를_대지_않은_의안_기록에도_값과_자료명이_있다(
     )
     assert "2209999" in described, f"값이 없습니다: {described}"
     assert "표결 결과" in described, f"자료명이 없습니다: {described}"
+
+
+# 아래 시험들은 **없는 근거 ID**를 가리킨다. 위의 `_discard_record` 시험들은
+# 모두 있는 근거를 다른 자료가 빌려 쓰는 경우라 `UNKNOWN_SOURCE` 가지만 지나가고,
+# `location is None` 가지는 한 번도 밟지 않았다. 그 자리에도 값과 자료명이
+# 남는지 여기서 따로 확인한다.
+
+
+def _missing_evidence_record(**overrides) -> str:
+    normalized, names, evidence = _two_source_setup()
+    raw = _result(evidence=evidence, **overrides)
+    _, result = build_fact_ledger(raw, normalized, names)
+    problems = [p for p in result.problems if p.kind == "UNKNOWN_EVIDENCE"]
+    assert problems, (
+        "근거 없음 기록이 만들어지지 않았습니다: "
+        f"{[p.kind for p in result.problems]}"
+    )
+    return problems[-1].describe()
+
+
+def test_근거가_아예_없는_조문_비교에도_값과_자료명이_남는다() -> None:
+    from app.harness.fact_contracts import RawProvisionComparison
+
+    described = _missing_evidence_record(
+        provision_comparisons=[
+            RawProvisionComparison(
+                comparison_id="PC-01",
+                provision_id="제7조",
+                current_source_id="SRC-02",
+                current_evidence_id="EV-없음",
+                final_source_id="SRC-02",
+                final_evidence_id="EV-없음",
+            )
+        ]
+    )
+    assert "제7조" in described, f"값이 없습니다: {described}"
+    assert "표결 결과" in described, f"자료명이 없습니다: {described}"
+
+
+def test_근거가_아예_없는_부칙에도_값과_자료명이_남는다() -> None:
+    from app.harness.fact_contracts import RawSupplementaryRule
+
+    described = _missing_evidence_record(
+        supplementary_rules=[
+            RawSupplementaryRule(
+                rule_id="SR-01",
+                kind="EFFECTIVE_DATE",
+                applies_to="이 법은 공포 후 3개월이 경과한 날부터 시행한다",
+                source_id="SRC-02",
+                evidence_id="EV-없음",
+                valid_source_role_candidate_ids=[],
+            )
+        ]
+    )
+    assert "공포 후 3개월" in described, f"값이 없습니다: {described}"
+    assert "표결 결과" in described, f"자료명이 없습니다: {described}"
+
+
+def test_근거가_아예_없는_사실에도_값과_자료명이_남는다() -> None:
+    described = _missing_evidence_record(
+        facts=[
+            RawFact(
+                fact_id="F-01",
+                kind="VOTE_TOTAL",
+                value="재석 250인",
+                source_id="SRC-02",
+                evidence_id="EV-없음",
+                valid_source_role_candidate_ids=[],
+            )
+        ]
+    )
+    assert "재석 250인" in described, f"값이 없습니다: {described}"
+    assert "표결 결과" in described, f"자료명이 없습니다: {described}"
+
+
+def _reject_message(**overrides) -> str:
+    """형식 검사에서 거부될 때 나오는 안내."""
+    body = {
+        "result_status": "OK",
+        "scope_error": None,
+        "source_role_candidates": [],
+        "evidence": [
+            {"evidence_id": "EV-01", "source_id": "SRC-01", "quote": "의안번호: 2207285"}
+        ],
+        "facts": [],
+        "bill_identities": [],
+        "bill_relations": [],
+        "legislative_events": [],
+        "provision_comparisons": [],
+        "supplementary_rules": [],
+    }
+    body.update(overrides)
+    with pytest.raises(AgentResultError) as exc:
+        parse_result(_call({"schema_version": FACT_RESULT_SCHEMA_VERSION, "result": body}))
+    return exc.value.detail
+
+
+def test_의안이_없는_근거를_가리키면_값과_함께_거부한다() -> None:
+    detail = _reject_message(
+        bill_identities=[
+            {
+                "bill_id": "B-1",
+                "bill_number": "2209999",
+                "is_draft_subject": True,
+                "source_id": "SRC-01",
+                "evidence_ids": ["EV-없음"],
+            }
+        ]
+    )
+    assert "2209999" in detail, f"어떤 의안인지 말하지 않았습니다: {detail}"
+
+
+def test_대안_관계가_없는_근거를_가리키면_값과_함께_거부한다() -> None:
+    detail = _reject_message(
+        bill_relations=[
+            {
+                "origin_bill_id": "O-3001",
+                "alternative_bill_id": "A-3002",
+                "relation_type": "ALTERNATIVE_SUBSTITUTES",
+                "source_id": "SRC-01",
+                "evidence_ids": ["EV-없음"],
+            }
+        ]
+    )
+    assert "O-3001" in detail and "A-3002" in detail, (
+        f"어떤 관계인지 말하지 않았습니다: {detail}"
+    )
+
+
+def test_조문_비교가_없는_근거를_가리키면_값과_함께_거부한다() -> None:
+    detail = _reject_message(
+        provision_comparisons=[
+            {
+                "comparison_id": "PC-01",
+                "provision_id": "제12조",
+                "current_source_id": "SRC-01",
+                "current_evidence_id": "EV-없음",
+                "final_source_id": "SRC-01",
+                "final_evidence_id": "EV-01",
+            }
+        ]
+    )
+    assert "제12조" in detail, f"어떤 조문인지 말하지 않았습니다: {detail}"

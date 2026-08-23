@@ -1,0 +1,253 @@
+{
+  "gate_id": "DEMO-DAY3-GATE",
+  "run_id": "day3-confirm-20260823-185500",
+  "readme_version": "0.23.0-draft",
+  "pass_bar_file": "verification/day3-pass-bar.md",
+  "supersedes": "day3-recheck-final-20260823-180000",
+  "supersede_reason": "코드가 c19bcd5에서 dd8a286으로 바뀌어 직전 판정은 STALE",
+  "code_commit": "dd8a286",
+  "previous_code_commit": "c19bcd5",
+  "started_at": "2026-08-23T09:10:00Z",
+  "completed_at": "2026-08-23T09:55:00Z",
+  "verifier": "DayGateVerifier — 구현 담당자와 다른 새 문맥. 제품 소스·시험·Writing Contract·README·schema·합격선 파일을 고치지 않았다.",
+  "source_snapshot": {
+    "file_count": 34,
+    "scope": "backend/app/**/*.py + frontend/src/**/*.ts* + tests/*.py",
+    "combined_sha256": "6ddb50d0e01558825e903fe234de0c89c0cc5161bd5f4bbceca67a450cd34c80"
+  },
+  "verdict": "PASS",
+  "external_api_calls": 0,
+  "estimated_cost_usd": 0.0,
+  "pass_bar_items": [
+    {"id": "A1", "measures": "원장 사실 중 원문 근거(문구·자료명·행)가 없는 것", "threshold": "0건", "measured": "0건 (사실 106건 전수, 전 흐름·HTTP 양쪽)", "result": "PASS"},
+    {"id": "A2", "measures": "근거 문구가 정규화 원문에 완전 일치하지 않는 것", "threshold": "0건", "measured": "0건 (106건 전수)", "result": "PASS"},
+    {"id": "A3", "measures": "ACTUAL-PASS-001에서 사실이 한 건도 안 나오는가", "threshold": "아니오", "measured": "사실 10건", "result": "PASS"},
+    {"id": "B1", "measures": "SYN-RISK-001 3종 mutation의 차단 Issue", "threshold": "3종 모두 발생", "measured": "3/3 발생", "result": "PASS"},
+    {"id": "B2", "measures": "위 3종의 draft_version", "threshold": "모두 0", "measured": "0 / 0 / 0", "result": "PASS"},
+    {"id": "B3", "measures": "ACTUAL-BLOCK-002", "threshold": "NEEDS_INPUT, 초안 0", "measured": "NEEDS_INPUT, 초안 0", "result": "PASS"},
+    {"id": "B4", "measures": "고정 자료 5종 전체의 draft_version", "threshold": "모두 0", "measured": "0,0,0,0,0", "result": "PASS"},
+    {"id": "C1", "measures": "버린 값이 issues·rejected_evidence 어디에도 없이 사라짐", "threshold": "0건", "measured": "0건 (형식 위반 응답의 전체 거부는 직전 검사와 같은 기준으로 세지 않음)", "result": "PASS"},
+    {"id": "C2", "measures": "버린 기록에 값·자료명·행이 없는 것", "threshold": "0건", "measured": "값 0건 / 자료명 0건 / 행 0건(존재 가능한 49건 기준). 화면 기록 377건 전수", "result": "PASS", "previous": "자료명 없음 97건"},
+    {"id": "C3", "measures": "버린 사실이 있을 때 진짜 충돌 Issue가 가려짐", "threshold": "0건", "measured": "0건 (8사례 + 대조 실험 4종)", "result": "PASS"},
+    {"id": "C4", "measures": "어떤 입력으로도 Run이 예외로 죽어 정상 사실까지 사라짐", "threshold": "0건", "measured": "0건 (주입 121 + 흔들기 200 = 321사례)", "result": "PASS"},
+    {"id": "D1", "measures": "실제 외부 AI 호출 / 비용", "threshold": "0회 / 0달러", "measured": "0회 / 0.0달러 (361사례)", "result": "PASS"},
+    {"id": "D2", "measures": "API 응답·일반 로그의 자료 원문 전문·API 키", "threshold": "0건", "measured": "0건", "result": "PASS"},
+    {"id": "E1", "measures": "scripts/verify-day1.ps1", "threshold": "7개 PASS", "measured": "7/7 PASS, 차단 0건, exit 0", "result": "PASS"},
+    {"id": "E2", "measures": "백엔드 pytest · 프런트 typecheck/test/build", "threshold": "전부 exit 0, SKIP 0", "measured": "pytest 127 passed/0 skipped, tsc exit 0(출력 0바이트), vitest 6 passed, build exit 0", "result": "PASS"}
+  ],
+  "checks": [
+    {
+      "check_id": "D3G-01",
+      "title": "A1·A2 사실과 근거의 연결",
+      "status": "PASS",
+      "evidence": [
+        "고정 자료 5종 + SYN-RISK-001 mutation 3종(target_id SR1-S05, 자료 5개 전부 투입)",
+        "전 흐름(Orchestrator.process)과 HTTP(127.0.0.1:8799 실제 uvicorn) 양쪽",
+        "원장 사실 106건 중 근거 문구·자료명·행 결손 0건",
+        "106건 전부 근거 문구가 normalized_text에 완전 일치로 존재, 불일치 0건",
+        "두 경로의 state·draft_version·facts·issues·rejected_evidence가 8/8 사례 완전 일치"
+      ]
+    },
+    {
+      "check_id": "D3G-02",
+      "title": "A3 정상 자료에서 사실이 나오는가",
+      "status": "PASS",
+      "evidence": ["ACTUAL-PASS-001에서 사실 10건", "HTTP 경로에서도 값·자료명·행까지 동일한 10건"]
+    },
+    {
+      "check_id": "D3G-03",
+      "title": "B1·B2 충돌 자료가 초안 없이 멈추는가",
+      "status": "PASS",
+      "evidence": [
+        "DATE_CONFLICT -> NEEDS_INPUT / FACT_CONFLICT(plenary_decided_on) / draft 0",
+        "COUNT_CONFLICT -> NEEDS_INPUT / FACT_CONFLICT(vote_yes_count) / draft 0",
+        "WEEKDAY_MISMATCH -> NEEDS_INPUT / DATE_WEEKDAY_MISMATCH(plenary_decided_on) / draft 0",
+        "어느 값도 대신 고르지 않고 두 후보를 자료명·행·원문과 함께 제시"
+      ]
+    },
+    {
+      "check_id": "D3G-04",
+      "title": "B3·B4 초안 0건",
+      "status": "PASS",
+      "evidence": [
+        "ACTUAL-BLOCK-002 -> NEEDS_INPUT, 초안 0",
+        "고정 5종 draft_version 전부 0",
+        "C 주입 121사례 + 흔들기 200사례를 합쳐도 초안 합계 0"
+      ]
+    },
+    {
+      "check_id": "D3G-05",
+      "title": "C1~C4 값이 조용히 사라지지 않는가",
+      "status": "PASS",
+      "case_counts": {
+        "injected_cases": 121,
+        "fuzz_cases": 200,
+        "regression_comparison_runs": 12,
+        "role_control_runs": 4,
+        "fixture_runs_inprocess": 8,
+        "fixture_runs_http": 8,
+        "total_runs": 361,
+        "screen_rejected_records": 377,
+        "screen_issue_lines": 377
+      },
+      "c2_breakdown": {
+        "no_value": 0,
+        "no_source_name_structured": 0,
+        "no_source_name_rendered": 0,
+        "line_missing_but_possible": 0,
+        "line_missing_impossible": 328,
+        "all_three_present": 49,
+        "internal_id_leaked_as_source_name": 0
+      },
+      "c1_violations": 0,
+      "c3_violations": 0,
+      "c4_escaped_exceptions": 0,
+      "c4_internal_crashes": 0,
+      "evidence": [
+        "여섯 목록(사실·입법 사건·부칙·의안·대안 관계·조문 비교) x 네 이유(NOT_FOUND·UNKNOWN_EVIDENCE·UNKNOWN_SOURCE·AMBIGUOUS) 전조합 30사례",
+        "근거를 대지 않음 2사례(의안·대안 관계 — 형식이 허용하는 두 목록)",
+        "목록 두 개씩 짝짓기 15사례, 여섯 목록 한꺼번에 버림, 상한 전량 버림(사실 30·부칙 8·사건 6·비교 3)",
+        "값 400자·근거 600자·목록 값·이모지·제어문자·줄바꿈·NFD·중복 ID·부분 문자열 등 25사례",
+        "형식 위반 18사례, 무작위 흔들기 200사례",
+        "직접 만든 문제 목록의 describe()가 run.rejected_evidence와 103사례 전부 1:1 일치",
+        "issues의 버린 기록 줄 377줄이 rejected_evidence 377건과 정확히 대응(고아 줄 0건)",
+        "C3 대조 실험: 버린 사실 0건인 X9에서도 충돌이 가려짐 -> 원인은 역할 Gate이지 버린 사실이 아님"
+      ],
+      "c1_regression_note": {
+        "summary": "새 _check_references() 세 목록 검사로 이전에는 기록으로 남던 것이 형식 오류로 먼저 걸린다",
+        "compared_against": "c19bcd5 사본",
+        "single_item_dangling": "값은 여전히 화면(failure_message)에 남는다 — 후퇴 아님",
+        "multiple_items_dangling": "첫 항목만 이름이 나오고 두 번째부터 사라진다",
+        "good_facts_lost": "같은 응답의 정상 사실이 함께 사라진다 (c19bcd5에서는 남았다)",
+        "control": "사실·부칙·입법 사건은 이번 수정 이전부터 같은 동작 — 새 종류의 문제는 아님",
+        "ruling": "직전 검사와 같은 기준(형식 위반 전체 거부는 C1 아님)을 적용해 차단으로 올리지 않고 남은 일에 기록"
+      }
+    },
+    {
+      "check_id": "D3G-06",
+      "title": "D1·D2 안전",
+      "status": "PASS",
+      "evidence": [
+        "실제 외부 AI 호출 0회, 비용 0.0달러 — 361사례 전부 actual_model_calls=0",
+        "/api/health -> model_gateway=fake, external_api_calls=0; /api/bootstrap -> fake",
+        "조회 응답에 raw_text·normalized_text·raw_sha256·raw_excerpt·normalized_sha256·api_key·OPENAI 각 0건",
+        "sk- 형태 키 패턴 0건, 자료 원문 전문이 통째로 실린 응답 0건",
+        "응답에 실린 근거 문구 최대 137자 (원문 최대 1,276자)",
+        "8799 서버 로그 31줄에 의안번호·찬성:·의결일·기부금품·sk-·api_key·OPENAI_API_KEY 각 0건"
+      ]
+    },
+    {
+      "check_id": "D3G-07",
+      "title": "E1·E2 회귀",
+      "status": "PASS",
+      "evidence": [
+        "scripts/verify-day1.ps1 -RunId day1-d3confirm-20260823-1840 -> 판정 PASS, D1G-01~07 전부 PASS, 차단 0건, exit 0",
+        "python -m pytest ../tests -q -rs -> 127 passed, skipped 0, exit 0 (직전 122건)",
+        "npx tsc --noEmit -p tsconfig.app.json -> exit 0, 출력 0바이트, error TS 0건",
+        "npm test --silent -> 6 passed, exit 0",
+        "npm run build --silent -> exit 0",
+        "종료 코드만 믿지 않고 출력 내용을 함께 확인했다 (직전 npm notice 사례 때문)"
+      ]
+    }
+  ],
+  "blockers": [],
+  "warnings": [
+    {
+      "severity": "중",
+      "item": "참조 검사 확대의 후퇴 — 의안·대안 관계·조문 비교가 없는 근거 ID를 가리키면 Run 전체가 AGENT_SCHEMA_INVALID로 멈춘다. 여러 항목이 매달리면 첫 항목만 이름이 나오고, 같은 응답의 정상 사실이 함께 사라진다.",
+      "target_day": "누적 6일차"
+    },
+    {
+      "severity": "중",
+      "item": "이번 수정을 지키는 시험이 없다 — _evidence_problem의 UNKNOWN_EVIDENCE 자료명·값(M3·M6), _keep_comparisons의 자료명·값(M4·M11·M16), 세 목록 참조 검사(M14)를 되돌려도 죽는 시험이 0건. 담당자의 새 시험 3종은 수정 전부터 동작하던 UNKNOWN_SOURCE 가지만 지난다.",
+      "target_day": "누적 4일차(수정과 함께)"
+    },
+    {
+      "severity": "중",
+      "item": "자료 역할이 UNKNOWN이면 진짜 FACT_CONFLICT가 화면에서 사라진다. 대조 실험 X9/X10으로 확인했고 버린 사실과 무관하다.",
+      "target_day": "누적 5일차"
+    },
+    {
+      "severity": "중",
+      "item": "ACTUAL-BLOCK-002가 멈추는 이유가 oracle과 다르다. 기대는 대안 관계·최종문 차단인데 실제는 사실 31건이 상한 30을 넘긴 UNSUPPORTED_SCOPE다. 상태·초안 수는 B3을 만족한다.",
+      "target_day": "누적 6일차"
+    },
+    {
+      "severity": "중",
+      "item": "DATE_CONFLICT·COUNT_CONFLICT Issue가 NEW_RUN_WITH_SOURCES·requires_new_run=true로 나온다. fixture oracle은 ANSWER_IN_SAME_RUN을 기대한다.",
+      "target_day": "누적 5일차"
+    },
+    {
+      "severity": "중",
+      "item": "형식 위반 응답의 안내가 '잠시 뒤 새 작업으로 다시 시도해 주세요'다. 같은 입력이면 결정형으로 또 실패하므로 사실과 다른 안내다.",
+      "target_day": "누적 6일차"
+    },
+    {
+      "severity": "하",
+      "item": "값에 줄바꿈이 들어가면 issues 메시지의 목록이 여러 줄로 쪼개져 둘째 줄이 자료명 없는 별개 항목처럼 보인다(사례 ODD-NEWLINE). 기록 자체에는 값·자료명이 다 있다.",
+      "target_day": "누적 7일차"
+    },
+    {
+      "severity": "하",
+      "item": "scripts/verify-day1.ps1이 npx의 종료 코드를 그대로 믿는다. npm notice가 찍히면 TypeScript 오류 0건인데도 관문이 BLOCKED가 된다. 이번에는 재현되지 않았다.",
+      "target_day": "누적 7일차"
+    },
+    {
+      "severity": "하",
+      "item": "_normalize_value()가 '앞뒤 공백만 정리한다'면서 str.split()으로 안쪽 공백까지 합친다. SYN 1001과 SYN  1001이 같은 값이 되어 충돌이 접힌다.",
+      "target_day": "누적 7일차"
+    },
+    {
+      "severity": "하",
+      "item": "RunStatusScreen.tsx가 rejected_evidence 문자열을 React key로 쓴다. 같은 문구가 둘이면 key가 겹친다(사례 MIX-DUPTEXT로 재현).",
+      "target_day": "누적 7일차"
+    },
+    {
+      "severity": "하",
+      "item": "run_view()의 ', '.join(f.value) if isinstance(f.value, list)는 원장 경계를 닫은 뒤로 절대 참이 되지 않는 죽은 가지다.",
+      "target_day": "누적 7일차"
+    }
+  ],
+  "mutation_testing": {
+    "scope": "scratchpad 사본에서만 수행. 제품 트리는 건드리지 않았다.",
+    "baseline": "사본 그대로 pytest tests/test_fact_extraction.py -> 59 passed, exit 0",
+    "results": [
+      {"id": "M1", "reverted": "_check_fact의 UNKNOWN_EVIDENCE에 자료명을 안 넣게", "killed": 1},
+      {"id": "M2", "reverted": "근거를 대지 않아 가지에 자료명을 안 넣게", "killed": 1},
+      {"id": "M3", "reverted": "_evidence_problem의 UNKNOWN_EVIDENCE에 자료명을 안 넣게", "killed": 0},
+      {"id": "M4", "reverted": "_keep_comparisons의 UNKNOWN_EVIDENCE에 자료명을 안 넣게", "killed": 0},
+      {"id": "M5", "reverted": "UNKNOWN_SOURCE에 자료명을 안 넣게", "killed": 3},
+      {"id": "M6", "reverted": "_evidence_problem의 UNKNOWN_EVIDENCE에 값을 안 넣게", "killed": 0},
+      {"id": "M7", "reverted": "부칙의 value_of를 안 넘기게", "killed": 1},
+      {"id": "M8", "reverted": "입법 사건의 value_of를 안 넘기게", "killed": 1},
+      {"id": "M9", "reverted": "대안 관계의 value_of를 안 넘기게", "killed": 1},
+      {"id": "M10", "reverted": "의안 신원의 value_of를 안 넘기게", "killed": 1},
+      {"id": "M11", "reverted": "조문 비교의 버린 기록에 값을 안 넣게", "killed": 0},
+      {"id": "M12", "reverted": "_check_fact의 값을 안 넣게", "killed": 4},
+      {"id": "M14", "reverted": "새로 넣은 세 목록 참조 검사를 되돌림", "killed": 0},
+      {"id": "M15", "reverted": "네 목록 전부에 source_names를 안 넘기게", "killed": 1},
+      {"id": "M16", "reverted": "_keep_comparisons가 자료명 대신 빈 값을 쓰게", "killed": 0},
+      {"id": "M17", "reverted": "_evidence_problem의 own_name을 항상 빈 값으로", "killed": 1},
+      {"id": "M18", "reverted": "_check_fact이 source_names를 무시하게", "killed": 1}
+    ],
+    "conclusion": "담당자의 새 시험 5종 중 3종(부칙·입법 사건·대안 관계)은 M5에서만 죽고 M3에서는 죽지 않는다. 세 시험은 이번 수정 전부터 자료명을 채우던 UNKNOWN_SOURCE 가지만 지난다. 이번 수정이 실제로 고친 두 자리(_evidence_problem의 UNKNOWN_EVIDENCE, _keep_comparisons)는 시험이 하나도 없다."
+  },
+  "schema_conformance": {
+    "conforms": false,
+    "schema": "verification/day-gate-result.schema.json",
+    "reasons": [
+      "gate_id가 const 'DEMO-DAY1-GATE'로 고정돼 있는데 이 보고서는 지시에 따라 'DEMO-DAY3-GATE'다",
+      "checks[].check_id enum이 D1G-01~D1G-07만 허용하는데 이 보고서는 D3G-01~D3G-07이다"
+    ],
+    "note": "3일차용 결과 schema는 아직 만들어지지 않았다. 나머지 필수 필드·형식은 모두 맞췄다."
+  },
+  "verifier_constraints_honored": [
+    "제품 소스·테스트·Writing Contract·README·schema·합격선 파일을 고치지 않았다",
+    "실패 기준을 완화하거나 테스트를 지우지 않았다",
+    "패키지 설치·lock 변경을 하지 않았다",
+    "인터넷·OpenAI API를 호출하지 않았다",
+    "'.env'를 열지 않았다",
+    "코드를 고친 뒤 스스로 PASS 처리하지 않았다",
+    "git commit·push를 하지 않았다"
+  ]
+}
