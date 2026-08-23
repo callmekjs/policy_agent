@@ -113,3 +113,10 @@ button:disabled { opacity: 0.55; cursor: not-allowed; }
 .draft-title { margin: 8px 0 2px; font-size: 1.3rem; line-height: 1.35; }
 .draft-lead { margin: 12px 0 2px; font-weight: 600; }
 .draft-contact { margin-top: 16px; color: var(--muted); }
+
+/* 필요할 때만 나오는 사람 확인 질문 */
+.confirm {
+  border: 2px solid var(--accent); border-radius: 10px;
+  padding: 16px; margin-top: 20px; background: #f6faff;
+}
+.confirm h3 { margin-top: 0; }

@@ -64,6 +64,8 @@ export interface CreateRunPayload {
   announcement_subject: string | null
   external_ai_policy_version: string
   external_ai_transfer_confirmed: boolean
+  /** 발의안을 최종 의결 내용으로 대신 쓸 때만 묻는다. 첫 화면의 상시 입력이 아니다. */
+  final_text_completeness_confirmations?: { source_id: string; confirmed: boolean }[]
 }
 
 export const api = {

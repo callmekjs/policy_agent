@@ -5,9 +5,13 @@ import type { RunView } from '../types'
 
 interface Props {
   run: RunView
+  onConfirmFinalText: (sourceIds: string[]) => void
   onNewRun: () => void
   onDelete: () => void
 }
+
+/** 발의안을 최종 의결 내용으로 대신 쓸 때만 나오는 질문의 대상 이름. */
+const FINAL_TEXT_CONFIRMATION = 'FINAL_TEXT_COMPLETENESS_CONFIRMATION_REQUIRED'
 
 const BUSY_STATES = new Set([
   'CREATED',
@@ -19,7 +23,7 @@ const BUSY_STATES = new Set([
   'CHECKING_REVISION',
 ])
 
-export function RunStatusScreen({ run, onNewRun, onDelete }: Props) {
+export function RunStatusScreen({ run, onConfirmFinalText, onNewRun, onDelete }: Props) {
   const busy = BUSY_STATES.has(run.state)
   // 목록 하나가 비어 오더라도 화면 전체가 사라지면 안 된다. 사용자는 아무것도
   // 보지 못한 채 무엇이 잘못됐는지 알 수 없게 된다.
@@ -29,6 +33,8 @@ export function RunStatusScreen({ run, onNewRun, onDelete }: Props) {
   const facts = run.facts ?? []
   const rejected = run.rejected_evidence ?? []
   const issues = run.issues ?? []
+  // 이 질문은 필요할 때만 나온다. 첫 화면의 상시 입력이 아니다 (§2.16.2).
+  const confirmation = issues.find((i) => i.subject === FINAL_TEXT_CONFIRMATION)
 
   return (
     <div className="screen">
@@ -226,6 +232,32 @@ export function RunStatusScreen({ run, onNewRun, onDelete }: Props) {
               </li>
             ))}
           </ul>
+        </section>
+      )}
+
+      {confirmation && (
+        <section className="confirm">
+          <h3>사람이 확인해 주세요</h3>
+          <p>{confirmation.message}</p>
+          <p className="issue-question">{confirmation.question}</p>
+          <p className="hint">
+            이 질문은 사실이 맞는지 승인하는 절차가 아닙니다. 넣은 자료에 개정문과
+            부칙이 처음부터 끝까지 들어 있는지만 원문을 보고 답해 주세요. 모르겠으면
+            공식 최종 의결문을 넣어 새로 시작하는 편이 안전합니다.
+          </p>
+          <div className="actions">
+            <button
+              type="button"
+              className="primary"
+              onClick={() => onConfirmFinalText(confirmation.source_ids)}
+              disabled={busy}
+            >
+              예, 끝까지 들어 있습니다
+            </button>
+            <button type="button" className="ghost" onClick={onNewRun} disabled={busy}>
+              아니오, 자료를 다시 넣겠습니다
+            </button>
+          </div>
         </section>
       )}
 

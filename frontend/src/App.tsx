@@ -9,6 +9,22 @@ import type { Bootstrap, RunView, SourceDraft } from './types'
 
 const POLL_INTERVAL_MS = 1500
 
+/** 첫 화면이 보내는 입력 한 벌. */
+export interface SubmitInput {
+  purpose: string
+  disclosure: string
+  basisDate: string
+  announcementSubject: string
+  sources: SourceDraft[]
+  transferConfirmed: boolean
+}
+
+/** 최종 의결문이 완전한지에 대한 사람의 답. */
+export interface FinalTextAnswer {
+  source_id: string
+  confirmed: boolean
+}
+
 const BUSY_STATES = new Set([
   'CREATED',
   'VALIDATING_INPUT',
@@ -24,6 +40,8 @@ export function App() {
   const [bootstrapError, setBootstrapError] = useState<string | null>(null)
   const [run, setRun] = useState<RunView | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  // 마지막으로 보낸 입력. 최종 의결문 확인 질문에 답할 때 그대로 다시 쓴다.
+  const [lastInput, setLastInput] = useState<SubmitInput | null>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const requestIdRef = useRef(0)
 
@@ -53,15 +71,9 @@ export function App() {
   }, [run])
 
   const handleSubmit = useCallback(
-    async (input: {
-      purpose: string
-      disclosure: string
-      basisDate: string
-      announcementSubject: string
-      sources: SourceDraft[]
-      transferConfirmed: boolean
-    }) => {
+    async (input: SubmitInput, confirmations?: FinalTextAnswer[]) => {
       if (bootstrap === null) return
+      setLastInput(input)
       setSubmitting(true)
       setErrorMessage(null)
       requestIdRef.current += 1
@@ -78,6 +90,7 @@ export function App() {
           announcement_subject: input.announcementSubject.trim() || null,
           external_ai_policy_version: bootstrap.external_ai.policy_version,
           external_ai_transfer_confirmed: input.transferConfirmed,
+          ...(confirmations ? { final_text_completeness_confirmations: confirmations } : {}),
         })
         setRun(created)
       } catch (error: unknown) {
@@ -91,6 +104,28 @@ export function App() {
       }
     },
     [bootstrap],
+  )
+
+  // 최종 의결문 확인 질문에 "예"로 답한다. 같은 입력에 확인만 붙여 다시 만든다.
+  // 상태를 되돌리는 것이 아니라 새 작업이므로, 무엇을 확인했는지 기록이 남는다.
+  const handleConfirmFinalText = useCallback(
+    async (sourceIds: string[]) => {
+      if (lastInput === null) return
+      // 서버는 한 번에 한 건만 처리한다. 그래서 **먼저 지우고** 새로 만든다.
+      // 넣은 내용은 `lastInput`에 그대로 있으므로 새로 만들지 못해도 잃지 않는다.
+      if (run !== null) {
+        try {
+          await api.deleteRun(run.run_id)
+        } catch {
+          // 이미 지워졌거나 만료됐으면 그대로 진행한다.
+        }
+      }
+      await handleSubmit(
+        lastInput,
+        sourceIds.map((source_id) => ({ source_id, confirmed: true })),
+      )
+    },
+    [handleSubmit, lastInput, run],
   )
 
   const handleNewRun = useCallback(async () => {
@@ -144,7 +179,12 @@ export function App() {
           />
         )}
         {bootstrap !== null && run !== null && (
-          <RunStatusScreen run={run} onNewRun={handleNewRun} onDelete={handleDelete} />
+          <RunStatusScreen
+            run={run}
+            onConfirmFinalText={handleConfirmFinalText}
+            onNewRun={handleNewRun}
+            onDelete={handleDelete}
+          />
         )}
       </main>
 
