@@ -63,6 +63,28 @@ export interface RunSourceView {
   char_count: number
 }
 
+export interface FactView {
+  fact_id: string
+  kind: string
+  subject: string
+  value: string
+  unit: string
+  provenance: string
+  source_name: string
+  quote: string
+  raw_line: number
+  raw_column: number
+}
+
+export interface RoleChoice {
+  candidate_id: string
+  source_id: string
+  role: string
+  role_label: string
+  label: string
+  evidence_quote: string
+}
+
 export interface RunView {
   run_id: string
   state: RunState
@@ -84,6 +106,9 @@ export interface RunView {
   cost_limit_usd: number
   sources: RunSourceView[]
   issues: Issue[]
+  role_choices: RoleChoice[]
+  facts: FactView[]
+  rejected_evidence: string[]
   failure: {
     kind: string | null
     code: string | null

@@ -109,6 +109,9 @@ describe('App 입력 화면', () => {
         estimated_cost_usd: 0,
         cost_limit_usd: 1.1,
         sources: [],
+        role_choices: [],
+        facts: [],
+        rejected_evidence: [],
         issues: [
           {
             issue_id: 'ISS-001',

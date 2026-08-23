@@ -15,27 +15,36 @@ import json
 import uuid
 from datetime import UTC, date, datetime
 
+from app.agents.fact_extraction import AgentResultError, build_request, parse_result
+from app.gates.conflict_gate import check_conflicts
+from app.gates.evidence_gate import build_fact_ledger
 from app.gates.input_gate import check_input
+from app.gates.source_role_gate import candidate_choices, check_source_roles
 from app.harness.contracts import (
     ACTIVE_CONTRACT_ID,
+    SUPPORTED_PROCEDURE_STAGE_LABEL,
     CreateRunRequest,
     ExternalAiConfirmation,
+    Issue,
+    IssueCode,
+    ResolutionKind,
     Run,
     SourceRole,
     SourceUseScope,
     StoredSource,
 )
+from app.harness.source_normalizer import SourceNormalizationError, normalize_source
 from app.harness.states import FailureKind, RunState, assert_transition
 from app.infrastructure.model_gateway import (
     CONFIGURED_MODEL,
     CONFIGURED_PROVIDER,
-    ModelCallRequest,
     ModelGateway,
 )
 from app.infrastructure.run_store import RunStore
 
-#: 1일차에서 아직 구현하지 않은 단계에 도달했을 때의 코드.
+#: 아직 구현하지 않은 단계에 도달했을 때의 코드. 성공한 것처럼 보이지 않는다.
 DAY1_SCOPE_LIMIT = "DAY1_SCOPE_LIMIT"
+DAY3_SCOPE_LIMIT = "DAY3_SCOPE_LIMIT"
 
 
 def _now() -> datetime:
@@ -146,6 +155,129 @@ class Orchestrator:
         self.store.put(run)
         return run
 
+    # -- 사실 정리 ---------------------------------------------------------
+    async def _extract_facts(self, run_id: str) -> None:
+        """자료를 정규화하고 사실 후보를 뽑아 Gate를 통과시킨다 (§2.11 순서 2~4).
+
+        3일차 범위는 여기까지다. 통과하면 초안 작성 자리에서 정직하게 멈춘다.
+        """
+        async with self.store.lock:
+            run = self.store.get(run_id)
+            if run is None:
+                return
+            sources = list(run.sources)
+            purpose = run.purpose
+            disclosure = run.disclosure
+            basis_date = run.basis_date.isoformat()
+
+        # 2) 자료 정규화. 실패하면 AI를 부르지 않는다.
+        normalized = {
+            source.source_id: normalize_source(source.raw_text) for source in sources
+        }
+
+        async with self.store.lock:
+            run = self.store.get(run_id)
+            if run is None:
+                return
+            for source in run.sources:
+                shape = normalized[source.source_id]
+                source.text_version = shape.version
+                source.normalized_sha256 = shape.normalized_sha256
+                source.normalized_char_count = len(shape.normalized_text)
+
+        # 3) 사실·역할 후보 추출. 가짜 게이트웨이면 외부 호출 0회다.
+        request = build_request(
+            purpose=purpose,
+            disclosure=disclosure,
+            basis_date=basis_date,
+            procedure_stage_label=SUPPORTED_PROCEDURE_STAGE_LABEL,
+            effect_status_label="아직 법률 아님",
+            sources=sources,
+            normalized=normalized,
+        )
+        call = await self.gateway.call(request)
+
+        async with self.store.lock:
+            run = self.store.get(run_id)
+            if run is None:
+                return
+            if not call.is_fake:
+                run.actual_model_calls += 1
+                run.estimated_cost_usd += call.estimated_cost_usd
+
+        try:
+            raw = parse_result(call)
+        except AgentResultError as exc:
+            async with self.store.lock:
+                run = self.store.get(run_id)
+                if run is None:
+                    return
+                self._fail(
+                    run,
+                    FailureKind.TECHNICAL,
+                    exc.code,
+                    f"AI 결과를 쓸 수 없습니다. {exc.detail}",
+                    "잠시 뒤 새 작업으로 다시 시도해 주세요. 자료가 많으면 줄여 주세요.",
+                )
+            return
+
+        # 4) 근거·역할·충돌 Gate. 순서는 §2.11의 고정 우선순위를 따른다.
+        names = {s.source_id: s.display_name for s in sources}
+        ledger, evidence = build_fact_ledger(raw, normalized, names)
+
+        role_issues = check_source_roles(
+            sources, raw.source_role_candidates, evidence.locations
+        )
+        issues = list(role_issues)
+        if not issues:
+            issues = check_conflicts(ledger)
+
+        async with self.store.lock:
+            run = self.store.get(run_id)
+            if run is None:
+                return
+
+            run.fact_ledger = ledger
+            run.role_choices = candidate_choices(
+                raw.source_role_candidates, evidence.locations
+            )
+            run.rejected_evidence = [
+                f"{p.fact_id}: {p.detail}" for p in evidence.problems
+            ]
+
+            if issues:
+                run.issues = issues
+                self._transition(run, RunState.NEEDS_INPUT)
+                return
+
+            if not ledger.ready:
+                run.issues = [
+                    Issue(
+                        issue_id="ISS-001",
+                        code=IssueCode.REQUIRED_SOURCE_MISSING,
+                        subject="VERIFIED_FACT",
+                        message=(
+                            "자료에서 원문 근거가 확인된 사실을 하나도 찾지 못했습니다."
+                        ),
+                        question="의안번호·표결 결과가 담긴 공식 자료를 넣어 주세요.",
+                        resolution_kind=ResolutionKind.NEW_RUN_WITH_SOURCES,
+                        requires_new_run=True,
+                    )
+                ]
+                self._transition(run, RunState.NEEDS_INPUT)
+                return
+
+            # 여기까지가 3일차 범위다. 초안 작성은 4일차에 붙인다.
+            self._fail(
+                run,
+                FailureKind.TECHNICAL,
+                DAY3_SCOPE_LIMIT,
+                f"자료에서 사실 {len(ledger.facts)}건을 정리했습니다. "
+                "초안을 쓰는 단계는 아직 만들지 않았습니다.",
+                "사실과 원문 근거가 연결되는지 확인하는 단계입니다. "
+                "초안 작성은 4일차에 이어서 만듭니다.",
+            )
+
     # -- 처리 -------------------------------------------------------------
     async def process(self, run_id: str, request: CreateRunRequest, today: date | None = None) -> None:
         """백그라운드에서 Run을 진행한다. 모든 예외를 기술 실패로 기록한다."""
@@ -170,33 +302,18 @@ class Orchestrator:
 
                 self._transition(run, RunState.EXTRACTING_FACTS)
 
-            # 가짜 ModelGateway로 사실 추출 자리를 한 번 지난다.
-            # 실제 외부 호출은 0회이고 비용은 0달러다.
-            result = await self.gateway.call(
-                ModelCallRequest(
-                    agent_name="FactExtractionAgent",
-                    prompt_version="day1-placeholder",
-                    payload={"run_id": run_id},
-                    max_output_tokens=12_000,
-                )
-            )
-
+            await self._extract_facts(run_id)
+        except SourceNormalizationError as exc:
             async with self.store.lock:
                 run = self.store.get(run_id)
                 if run is None:
                     return
-                if not result.is_fake:  # 1일차에는 진짜 호출을 허용하지 않는다
-                    run.actual_model_calls += 1
-                    run.estimated_cost_usd += result.estimated_cost_usd
-
                 self._fail(
                     run,
                     FailureKind.TECHNICAL,
-                    DAY1_SCOPE_LIMIT,
-                    "여기까지가 개발 1일차 범위입니다. 자료에서 사실을 정리하는 단계는 "
-                    "아직 만들지 않았습니다.",
-                    "입력·상태·규칙 파일이 제대로 도는지 확인하는 단계입니다. "
-                    "사실 정리와 초안 작성은 2~3일차에 이어서 만듭니다.",
+                    SourceNormalizationError.code,
+                    f"자료 원문을 그대로 보존하지 못했습니다. {exc}",
+                    "자료를 다시 붙여 넣고 새 작업으로 시도해 주세요.",
                 )
         except Exception as exc:  # noqa: BLE001 - 모든 예외를 기술 실패로 남긴다
             async with self.store.lock:

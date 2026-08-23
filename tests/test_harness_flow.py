@@ -315,22 +315,54 @@ def test_부족한_입력은_초안_없이_보완_안내로_끝난다(client: Te
     assert any(i["subject"] == "PURPOSE" for i in body["issues"])
 
 
-def test_정상_입력은_1일차_범위에서_정직하게_멈춘다(client: TestClient) -> None:
-    _bootstrap(client)
-    created = _create(client)
-    run_id = created["run_id"]
-
-    for _ in range(50):
+def _settle(client: TestClient, run_id: str) -> dict:
+    """처리가 끝날 때까지 상태를 확인한다."""
+    body: dict = {}
+    for _ in range(80):
         body = client.get(f"/api/runs/{run_id}").json()
-        if body["state"] in {"NEEDS_INPUT", "FAILED", "REVIEW_READY"}:
+        if body["state"] in {"NEEDS_INPUT", "FAILED", "REVIEW_READY", "DRAFT_READY"}:
             break
+    return body
 
-    # 아직 만들지 않은 단계를 성공한 것처럼 보여주지 않는다.
+
+def test_역할이_정해진_정상_입력은_사실을_원문_근거와_연결한다(client: TestClient) -> None:
+    """3일차 범위: 사실과 원문 근거가 연결되는 데까지."""
+    _bootstrap(client)
+    created = _create(
+        client,
+        sources=[
+            {
+                "text": "의안번호: 2207285\n본회의 심의: 2025. 9. 25. 원안가결\n",
+                "role": "BILL_INFORMATION",
+            }
+        ],
+    )
+    body = _settle(client, created["run_id"])
+
+    assert body["facts"], "사실을 하나도 뽑지 못했습니다."
+    for fact in body["facts"]:
+        assert fact["quote"], "사실에 원문 근거가 없습니다."
+        assert fact["raw_line"] >= 1
+        assert fact["provenance"] == "OFFICIAL_SOURCE"
+
+    # 아직 만들지 않은 초안 단계를 성공한 것처럼 보여주지 않는다.
     assert body["state"] == "FAILED"
-    assert body["failure"]["kind"] == "TECHNICAL"
-    assert body["failure"]["code"] == "DAY1_SCOPE_LIMIT"
+    assert body["failure"]["code"] == "DAY3_SCOPE_LIMIT"
     assert body["draft_version"] == 0
     assert body["actual_model_calls"] == 0
+
+
+def test_자료_역할이_잘_모르겠음이면_후보를_보여주고_멈춘다(client: TestClient) -> None:
+    _bootstrap(client)
+    created = _create(client)  # 기본 역할은 UNKNOWN
+    body = _settle(client, created["run_id"])
+
+    assert body["state"] == "NEEDS_INPUT"
+    assert body["draft_version"] == 0
+    assert any(
+        i["code"] == "SOURCE_ROLE_CONTENT_MISMATCH" for i in body["issues"]
+    ), "자료 역할을 묻지 않았습니다."
+    assert body["role_choices"], "고를 수 있는 후보가 없습니다."
 
 
 def test_같은_멱등키_같은_내용은_한_번만_만들어진다(client: TestClient) -> None:

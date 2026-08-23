@@ -86,3 +86,17 @@ button:disabled { opacity: 0.55; cursor: not-allowed; }
 
 .actions { display: flex; gap: 8px; margin-top: 24px; }
 .app-footer { margin-top: 40px; border-top: 1px solid var(--line); padding-top: 12px; color: var(--muted); font-size: 0.85rem; }
+
+/* 자료에서 확인한 사실과 원문 근거 */
+.facts { list-style: none; padding: 0; }
+.facts li {
+  border: 1px solid var(--line); border-radius: 8px;
+  padding: 12px; margin-bottom: 10px; background: #fbfcfd;
+}
+.fact-value { margin: 0; font-weight: 700; font-size: 1.05rem; }
+.fact-unit { font-weight: 400; color: var(--muted); }
+.fact-source { margin: 2px 0 6px; color: var(--muted); font-size: 0.8rem; }
+.fact-quote {
+  margin: 0; padding: 6px 10px; border-left: 3px solid var(--accent);
+  background: #fff; color: var(--fg); font-size: 0.9rem;
+}

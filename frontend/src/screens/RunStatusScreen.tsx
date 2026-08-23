@@ -62,6 +62,52 @@ export function RunStatusScreen({ run, onNewRun, onDelete }: Props) {
 
       {busy && <p className="hint">처리 중입니다. 완료율은 알 수 없어 표시하지 않습니다.</p>}
 
+      {run.facts.length > 0 && (
+        <section>
+          <h3>자료에서 확인한 사실 {run.facts.length}건</h3>
+          <p className="hint">
+            모든 사실에 원문 근거가 붙어 있습니다. 근거를 찾지 못한 값은 쓰지 않습니다.
+          </p>
+          <ul className="facts">
+            {run.facts.map((fact) => (
+              <li key={fact.fact_id}>
+                <p className="fact-value">
+                  {fact.value}
+                  {fact.unit && <span className="fact-unit"> {fact.unit}</span>}
+                </p>
+                <p className="fact-source">
+                  {fact.source_name} {fact.raw_line}행
+                </p>
+                <blockquote className="fact-quote">{fact.quote}</blockquote>
+                <details>
+                  <summary>근거 보기</summary>
+                  <p className="mono">
+                    {fact.kind} / {fact.subject} / {fact.provenance} /{' '}
+                    {fact.raw_line}행 {fact.raw_column}칸
+                  </p>
+                </details>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {run.rejected_evidence.length > 0 && (
+        <section>
+          <h3>근거를 찾지 못해 쓰지 않은 것 {run.rejected_evidence.length}건</h3>
+          <p className="hint">
+            AI가 제시한 근거 문구가 자료 원문에 그대로 없어서 사실로 쓰지 않았습니다.
+          </p>
+          <ul className="issues">
+            {run.rejected_evidence.map((item) => (
+              <li key={item}>
+                <p className="mono">{item}</p>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
       {run.issues.length > 0 && (
         <section>
           <h3>확인이 필요합니다</h3>

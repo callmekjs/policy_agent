@@ -9,9 +9,12 @@ from __future__ import annotations
 
 from datetime import date, datetime
 from enum import StrEnum
-from typing import Annotated
+from typing import TYPE_CHECKING, Annotated
 
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints
+
+if TYPE_CHECKING:  # 순환 참조를 피한다
+    from app.harness.fact_contracts import FactLedger
 
 # ---------------------------------------------------------------------------
 # 고정 enum
@@ -271,6 +274,9 @@ class StoredSource(BaseModel):
     char_count: int
     raw_text: str
     raw_sha256: str
+    text_version: str = Field(default="", description="원문 보존 규칙 버전")
+    normalized_sha256: str = ""
+    normalized_char_count: int = 0
 
 
 class ExternalAiConfirmation(BaseModel):
@@ -316,6 +322,12 @@ class Run(BaseModel):
 
     external_ai: ExternalAiConfirmation | None = None
     issues: list[Issue] = Field(default_factory=list)
+
+    fact_ledger: "FactLedger | None" = None
+    role_choices: list[dict[str, str]] = Field(default_factory=list)
+    rejected_evidence: list[str] = Field(
+        default_factory=list, description="근거를 찾지 못해 버린 항목"
+    )
 
     draft_version: int = 0
     actual_model_calls: int = Field(default=0, description="SDK가 실제 보낸 요청 수")

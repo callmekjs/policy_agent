@@ -12,6 +12,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Protocol
 
+from app.infrastructure.fake_agents import FAKE_RESPONDERS
+
 #: README §7.2에서 확정한 1차 모델. 실행 중 자동 변경은 금지한다.
 CONFIGURED_PROVIDER = "openai"
 CONFIGURED_MODEL = "gpt-5.6-terra"
@@ -67,7 +69,7 @@ class FakeModelGateway:
         self.calls: list[ModelCallRequest] = []
 
     def set_response(self, agent_name: str, result: dict[str, Any]) -> None:
-        """특정 Agent가 돌려줄 고정 답을 등록한다."""
+        """특정 Agent가 돌려줄 고정 답을 등록한다. 규칙 기반 응답보다 우선한다."""
         self._responses[agent_name] = result
 
     async def call(self, request: ModelCallRequest) -> ModelCallResult:
@@ -76,7 +78,15 @@ class FakeModelGateway:
             agent_name=request.agent_name,
             requested_model=CONFIGURED_MODEL,
             actual_model=CONFIGURED_MODEL,
-            result=self._responses.get(request.agent_name, {}),
+            result=self._build(request),
             estimated_cost_usd=0.0,
             is_fake=True,
         )
+
+    def _build(self, request: ModelCallRequest) -> dict[str, Any]:
+        if request.agent_name in self._responses:
+            return self._responses[request.agent_name]
+        responder = FAKE_RESPONDERS.get(request.agent_name)
+        if responder is None:
+            return {}
+        return responder(request.payload)

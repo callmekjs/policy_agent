@@ -155,6 +155,27 @@ def run_view(run: Run) -> dict[str, Any]:
             for s in run.sources
         ],
         "issues": [i.model_dump(mode="json") for i in run.issues],
+        "role_choices": run.role_choices,
+        "facts": (
+            [
+                {
+                    "fact_id": f.fact_id,
+                    "kind": f.kind,
+                    "subject": f.subject,
+                    "value": f.value,
+                    "unit": f.unit,
+                    "provenance": f.provenance.value,
+                    "source_name": f.evidence.source_name,
+                    "quote": f.evidence.quote,
+                    "raw_line": f.evidence.raw_start_line,
+                    "raw_column": f.evidence.raw_start_column,
+                }
+                for f in run.fact_ledger.facts
+            ]
+            if run.fact_ledger
+            else []
+        ),
+        "rejected_evidence": run.rejected_evidence,
         "failure": (
             {
                 "kind": run.failure_kind,
