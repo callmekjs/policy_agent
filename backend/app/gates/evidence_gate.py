@@ -336,5 +336,11 @@ def _normalize_value(fact: RawFact) -> str:
     """값을 비교하기 좋게 다듬는다. 원래 값은 그대로 남긴다.
 
     반올림하거나 자릿수를 더하지 않는다. 앞뒤 공백만 정리한다.
+
+    값은 하나일 수도, 목록일 수도 있다. 고정 형식과 Pydantic이 둘 다 허용하므로
+    여기서도 둘 다 받아야 한다. 목록을 못 받으면 Run 전체가 죽으면서 같은
+    작업의 정상 사실과 진짜 충돌까지 함께 사라진다.
     """
+    if isinstance(fact.value, list):
+        return ", ".join(" ".join(item.split()) for item in fact.value)
     return " ".join(fact.value.split())

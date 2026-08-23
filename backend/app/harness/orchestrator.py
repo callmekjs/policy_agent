@@ -79,10 +79,15 @@ def _rejected_fact_issues(evidence, next_index: int = 1) -> list[Issue]:
     남기면 화면에서 알아볼 수 없고, 그 값에 걸려 있던 충돌이 사라진 것도
     눈치챌 수 없다.
     """
+    # 근거를 확인하지 못한 **모든** 종류를 보여 준다.
+    # 특히 `UNKNOWN_EVIDENCE`·`NOT_FOUND`는 AI가 원문에 없는 문장을 지어냈을 때
+    # 밟는 길이다. 이것을 빼면 지어낸 근거로 만든 사실이 조용히 사라지고
+    # 그 값에 걸린 충돌도 함께 없어진다.
     blocking = [
         p
         for p in evidence.problems
-        if p.kind in ("AMBIGUOUS", "UNKNOWN_SOURCE") and p.value
+        if p.kind in ("AMBIGUOUS", "UNKNOWN_SOURCE", "UNKNOWN_EVIDENCE", "NOT_FOUND")
+        and p.value
     ]
     if not blocking:
         return []

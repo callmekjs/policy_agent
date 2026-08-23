@@ -794,3 +794,178 @@ async def test_입법_사건도_다른_자료의_근거를_빌리지_못한다()
     ledger, evidence = build_fact_ledger(raw, normalized, names)
     assert ledger.legislative_events == [], "다른 자료의 근거를 빌려 원장에 남았습니다."
     assert any(p.kind == "UNKNOWN_SOURCE" for p in evidence.problems)
+
+
+# ---------------------------------------------------------------------------
+# Gate가 어떤 입력이 와도 값과 충돌을 잃지 않는가
+#
+# 아래 시험은 가짜 추출기를 거치지 않고 사실 묶음을 직접 넣는다. 추출기가
+# 무엇을 뽑든 Gate는 같은 동작을 해야 한다.
+# ---------------------------------------------------------------------------
+
+
+def _fact(fact_id: str, kind: str, value, source_id: str, evidence_id: str) -> RawFact:
+    return RawFact(
+        fact_id=fact_id,
+        kind=kind,
+        value=value,
+        source_id=source_id,
+        evidence_id=evidence_id,
+    )
+
+
+@pytest.mark.asyncio
+async def test_지어낸_근거로_만든_사실이_조용히_사라지지_않는다() -> None:
+    """AI가 원문에 없는 문장을 지어냈을 때 밟는 길.
+
+    6일차에 진짜 AI를 붙이면 가장 자주 만나는 경우다. 버린 사실을 알리지
+    않으면 그 값에 걸려 있던 충돌도 함께 사라져, 시스템이 말없이 한쪽을
+    고른 것과 같아진다.
+    """
+    from app.harness.orchestrator import _rejected_fact_issues
+
+    normalized, names = _sources()
+    raw = _result(
+        evidence=[
+            EvidenceCandidate(
+                evidence_id="EV-01", source_id="SRC-01", quote="원문에 없는 문장"
+            )
+        ],
+        facts=[_fact("F-01", "BILL_IDENTITY", "2207285", "SRC-01", "EV-01")],
+    )
+    ledger, evidence = build_fact_ledger(raw, normalized, names)
+    assert ledger.facts == []
+
+    issues = _rejected_fact_issues(evidence)
+    assert issues, "지어낸 근거로 만든 사실이 알림 없이 사라졌습니다."
+    assert "2207285" in issues[0].message, "어떤 값이 빠졌는지 보여 주지 않았습니다."
+
+
+@pytest.mark.asyncio
+async def test_없는_자료를_가리켜도_알린다() -> None:
+    from app.harness.orchestrator import _rejected_fact_issues
+
+    normalized, names = _sources()
+    raw = _result(
+        evidence=[
+            EvidenceCandidate(
+                evidence_id="EV-01", source_id="SRC-없음", quote="의안번호: 2207285"
+            )
+        ],
+        facts=[_fact("F-01", "BILL_IDENTITY", "2207285", "SRC-없음", "EV-01")],
+    )
+    ledger, evidence = build_fact_ledger(raw, normalized, names)
+    assert ledger.facts == []
+    assert _rejected_fact_issues(evidence), "없는 자료를 가리킨 사실이 조용히 사라졌습니다."
+
+
+def test_값이_목록이어도_원장이_죽지_않는다() -> None:
+    """고정 형식과 Pydantic이 목록 값을 허용한다. Gate도 받아야 한다.
+
+    받지 못하면 Run 전체가 죽으면서 같은 작업의 정상 사실과 진짜 충돌까지
+    함께 사라진다.
+    """
+    normalized, names = _sources()
+    raw = _result(
+        evidence=[
+            EvidenceCandidate(
+                evidence_id="EV-01", source_id="SRC-01", quote="의안번호: 2207285"
+            )
+        ],
+        facts=[
+            _fact(
+                "F-01",
+                "SUPPLEMENTARY_EFFECTIVE_DATES",
+                ["2026-01-01", "2026-07-01"],
+                "SRC-01",
+                "EV-01",
+            )
+        ],
+    )
+    ledger, _ = build_fact_ledger(raw, normalized, names)
+    assert len(ledger.facts) == 1
+    assert ledger.facts[0].normalized_value == "2026-01-01, 2026-07-01"
+
+
+def test_버린_사실은_값과_자료명과_행을_함께_남긴다() -> None:
+    """내부 ID만 남기면 화면에서 아무도 알아볼 수 없다."""
+    text = "의안번호: 2207285\n의안번호: 2207285\n"
+    normalized = {"SRC-01": normalize_source(text)}
+    raw = _result(
+        evidence=[
+            EvidenceCandidate(
+                evidence_id="EV-01", source_id="SRC-01", quote="의안번호: 2207285"
+            )
+        ],
+        facts=[_fact("F-01", "BILL_IDENTITY", "2207285", "SRC-01", "EV-01")],
+    )
+    _, evidence = build_fact_ledger(raw, normalized, {"SRC-01": "의안정보"})
+    problem = evidence.problems[-1]
+    described = problem.describe()
+    for expected in ("2207285", "의안정보", "1행"):
+        assert expected in described, f"버린 기록에 `{expected}`가 없습니다: {described}"
+
+
+def test_부칙과_의안도_다른_자료의_근거를_빌리지_못한다() -> None:
+    """사실만이 아니라 다섯 목록 전부에 같은 기준을 적용한다."""
+    from app.harness.fact_contracts import RawBillIdentity, RawSupplementaryRule
+
+    normalized, names = _sources()
+    normalized["SRC-02"] = normalize_source("다른 자료입니다.\n")
+    names["SRC-02"] = "다른 자료"
+    evidence_item = EvidenceCandidate(
+        evidence_id="EV-01", source_id="SRC-01", quote="의안번호: 2207285"
+    )
+    raw = _result(
+        evidence=[evidence_item],
+        supplementary_rules=[
+            RawSupplementaryRule(
+                rule_id="R-01",
+                kind="EFFECTIVE_DATE",
+                applies_to="법률 전체",
+                source_id="SRC-02",
+                evidence_id="EV-01",
+                valid_source_role_candidate_ids=[],
+            )
+        ],
+        bill_identities=[
+            RawBillIdentity(
+                bill_id="B-01",
+                bill_number="2207285",
+                is_draft_subject=True,
+                source_id="SRC-02",
+                evidence_ids=["EV-01"],
+            )
+        ],
+    )
+    ledger, _ = build_fact_ledger(raw, normalized, names)
+    assert ledger.supplementary_rules == [], "부칙이 다른 자료의 근거를 빌렸습니다."
+    assert ledger.bill_identities == [], "의안이 다른 자료의 근거를 빌렸습니다."
+
+
+def test_조문_비교도_현행과_최종_자료를_각각_대조한다() -> None:
+    from app.harness.fact_contracts import RawProvisionComparison
+
+    normalized, names = _sources()
+    normalized["SRC-02"] = normalize_source("현행 조문입니다.\n")
+    names["SRC-02"] = "현행 조문"
+    raw = _result(
+        evidence=[
+            EvidenceCandidate(
+                evidence_id="EV-01", source_id="SRC-01", quote="의안번호: 2207285"
+            )
+        ],
+        provision_comparisons=[
+            RawProvisionComparison(
+                comparison_id="PC-01",
+                provision_id="제7조",
+                current_source_id="SRC-02",  # 근거는 SRC-01에 있다
+                current_evidence_id="EV-01",
+                final_source_id="SRC-01",
+                final_evidence_id="EV-01",
+            )
+        ],
+    )
+    ledger, evidence = build_fact_ledger(raw, normalized, names)
+    assert ledger.provision_comparisons == [], "조문 비교가 다른 자료의 근거를 빌렸습니다."
+    assert any(p.fact_id == "PC-01" for p in evidence.problems)

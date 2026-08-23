@@ -1,0 +1,713 @@
+{
+  "gate_id": "DEMO-DAY3-GATE",
+  "run_id": "day3-gate8-20260823-153000",
+  "readme_version": "0.23.0-draft",
+  "started_at": "2026-08-23T14:30:00Z",
+  "completed_at": "2026-08-23T06:18:30Z",
+  "verifier": {
+    "context": "구현 담당자와 다른 새 문맥의 DayGateVerifier. 코드를 만들거나 고치지 않았다. 검사 대상 commit 55d2444. 직전 보고서 day3-gate7-20260823-140500(BLOCKED)은 코드 변경으로 STALE이며 이 보고서가 대체한다.",
+    "is_separate_from_implementer": true
+  },
+  "source_snapshot": {
+    "file_count": 121,
+    "combined_sha256": "c59cbcecc34fc64013c1b75ff0eeaec284b41a5c23d4bb3aa870d35b9ce722e3",
+    "files": [
+      {
+        "path": ".claude/launch.json",
+        "sha256": "e905dd7ff6a9e6f9497aa575b7f3d15b7bb044ecc2fca59eb9ad3497972ff74a"
+      },
+      {
+        "path": ".gitattributes",
+        "sha256": "ab30b6fcbc2f8910514f5103a2e47267e6a1441dcbcd179b697255365f4b3ca3"
+      },
+      {
+        "path": ".gitignore",
+        "sha256": "db2577af3cb887580dbd283bf844fcf14d715e84a29d11f25281a49f4055c842"
+      },
+      {
+        "path": "README.md",
+        "sha256": "9333228cd420c1438a5e34018d3cc092081f98f5289abb1d2a3737efc34c90d5"
+      },
+      {
+        "path": "backend/.env.example",
+        "sha256": "db38b9cc05ed99867ee98198ea408f5a1b04d79a0c63c9773b6bccb626ad802c"
+      },
+      {
+        "path": "backend/app/__init__.py",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "backend/app/agents/__init__.py",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "backend/app/agents/fact_extraction.py",
+        "sha256": "9ae54a8f23c97ea5b0c9444c393db6dd3346371513aca80daa72cb318ee849b0"
+      },
+      {
+        "path": "backend/app/api/__init__.py",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "backend/app/api/runs.py",
+        "sha256": "01fa900b01b524dc40776cdec77672ff2105dfdc7cec3e40887156cbec741b5b"
+      },
+      {
+        "path": "backend/app/gates/__init__.py",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "backend/app/gates/conflict_gate.py",
+        "sha256": "6778aea60adc9e4c3f2f5205bac3a4d27113bfba1d13e133f7af178062b1e384"
+      },
+      {
+        "path": "backend/app/gates/evidence_gate.py",
+        "sha256": "94f187cd6da6b8689edb2c696f1f700ea916c37f5aee8843a362063816e7640a"
+      },
+      {
+        "path": "backend/app/gates/input_gate.py",
+        "sha256": "69faf53ee7f63da367c6c510f85549b0edf181f0237f59ada7ed9cf06e3f824e"
+      },
+      {
+        "path": "backend/app/gates/source_role_gate.py",
+        "sha256": "36cd3c0c0d14119fa42b04ca73c6e39a7cd9271ee560b142019b975ceecbe8b8"
+      },
+      {
+        "path": "backend/app/harness/__init__.py",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "backend/app/harness/contract_loader.py",
+        "sha256": "a49a8ed1b9d204d4fdfdef91fab4d914f0ececca971bdd5630cbfa9a8d33383a"
+      },
+      {
+        "path": "backend/app/harness/contracts.py",
+        "sha256": "cd3a8033751f78ea94ae144c43e93ba1428dd1de4694f71d0527f19c62ce6b2b"
+      },
+      {
+        "path": "backend/app/harness/fact_contracts.py",
+        "sha256": "6e70a43be42badccedaa34eb5d7743b8f1fc70c5a2c69e95c685d8bbee80134e"
+      },
+      {
+        "path": "backend/app/harness/orchestrator.py",
+        "sha256": "a9af9e208a9a0ba855aeac83d408690d68929f3adad1c202740c6bc3508c9903"
+      },
+      {
+        "path": "backend/app/harness/runtime.py",
+        "sha256": "adb8394f5c16e73ad4969e14f62940d7a82c6177fb7f328422e1cbd417a24b2c"
+      },
+      {
+        "path": "backend/app/harness/source_normalizer.py",
+        "sha256": "dd1d9513b6598f94fd7f8430283c38270211b5341c4143898069869839f9713d"
+      },
+      {
+        "path": "backend/app/harness/states.py",
+        "sha256": "a75afd52f696b966b507326ba31e1dc42976986ec50b1dfb015cd2c428adad03"
+      },
+      {
+        "path": "backend/app/infrastructure/__init__.py",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "backend/app/infrastructure/fake_agents.py",
+        "sha256": "550009e3e9833280293f9e6df2f75f98b26b040a6b726f932798d429ef4e66f0"
+      },
+      {
+        "path": "backend/app/infrastructure/model_gateway.py",
+        "sha256": "ec8804f1b6949a0a6dc53b04cbb279946140535fd8728737eb4791f128eace1e"
+      },
+      {
+        "path": "backend/app/infrastructure/run_store.py",
+        "sha256": "518fea31c2af082ca83333c03bcf6ae4563131135dda07455d67cc337fac984a"
+      },
+      {
+        "path": "backend/app/main.py",
+        "sha256": "e5b6bb9719b1acc89f337e4d7c569fd2d836d95c3c9049c598d1ccf408ce6c76"
+      },
+      {
+        "path": "backend/app/writing_contracts/assembly_law_amendment_v1/contract.yaml",
+        "sha256": "9065fa6d7d3f31d8d487517ef43c770a1003aec034d099ab21eadf579a5af6bc"
+      },
+      {
+        "path": "backend/app/writing_contracts/assembly_law_amendment_v1/profile.yaml",
+        "sha256": "29c13548a7504677bf12dd80016c989071d8fb1b37cd557527b812f5237a507c"
+      },
+      {
+        "path": "backend/app/writing_contracts/assembly_law_amendment_v1/style.yaml",
+        "sha256": "13434349ee3564b2fd389889eb4e1cd286ca4d618466435ceef4fc57dd7cb9ba"
+      },
+      {
+        "path": "backend/app/writing_contracts/assembly_law_amendment_v1/template.yaml",
+        "sha256": "0fe4f17dd0d01e1cb6255fd4e541a102ccedde6891f9a6933749b7e5e980c7ef"
+      },
+      {
+        "path": "backend/app/writing_contracts/assembly_law_amendment_v1/validation.yaml",
+        "sha256": "fa672e462157407ab4edb70965cbbf34ce69febdc4e87a2c079419fb0b2246bf"
+      },
+      {
+        "path": "backend/pyproject.toml",
+        "sha256": "c68ce8bca861b20f51d72c0a9aa7128bd400661cba47051b2e464036f87e4c3b"
+      },
+      {
+        "path": "frontend/index.html",
+        "sha256": "b6bddd47a343b1b27d14755c79a9a4b40343944daa1071a9dfa3905fc9a2fb3a"
+      },
+      {
+        "path": "frontend/package-lock.json",
+        "sha256": "648be3061068e2cc1ad3f88a6e3760abc306c64d7f3cb88c5a5c3191f2526ab5"
+      },
+      {
+        "path": "frontend/package.json",
+        "sha256": "8bd6cd686d2a6dc65c50a32bcd9df80db97c50eeac8700f4575cda51cd1b544a"
+      },
+      {
+        "path": "frontend/src/App.test.tsx",
+        "sha256": "028195da963747366c0cdcefa640ad24079c622c835ce48465c6321a76b3dc1b"
+      },
+      {
+        "path": "frontend/src/App.tsx",
+        "sha256": "dd865cd5e5f5eeb30a9d0f1072439a27f0c0ca1de4037c8603a6d50d4ebd43cc"
+      },
+      {
+        "path": "frontend/src/api/client.ts",
+        "sha256": "d7642940572b68e3f8fcf4f495584f8bb3817bad4a861a0f9b0688513765d401"
+      },
+      {
+        "path": "frontend/src/main.tsx",
+        "sha256": "8070aefba6d43f5300a919f02adb3071318bee89f10cffe07c64df74e85a1635"
+      },
+      {
+        "path": "frontend/src/screens/NewRunScreen.tsx",
+        "sha256": "77f78e0e37846568b2058a34e1f32a743feb8c461f0a1bd1bf14dcdd9a96ddaf"
+      },
+      {
+        "path": "frontend/src/screens/RunStatusScreen.tsx",
+        "sha256": "dd67621cc54201714b447857f83ef9d2e3a0f45eb177a9b3cba6d89813670c3b"
+      },
+      {
+        "path": "frontend/src/styles.css",
+        "sha256": "f9e5f80cafaceaa27559a71f65b2a1dd5a4c2774645c28c927004203969b0e8b"
+      },
+      {
+        "path": "frontend/src/test-setup.ts",
+        "sha256": "977afde26bba6a51325908cd7713cbfdc87d18f06b78b237c8f364c44864b7de"
+      },
+      {
+        "path": "frontend/src/types.ts",
+        "sha256": "fec82a0b4909d5f3057d473a4a37a20ac705f6377c02b5b65901344fc20d6292"
+      },
+      {
+        "path": "frontend/tsconfig.app.json",
+        "sha256": "36fc5ff2a20b4b02ebf37497e1e699cc0631dd3c807cffd6920e79fd28ab28dc"
+      },
+      {
+        "path": "frontend/tsconfig.json",
+        "sha256": "770b4140bbb581e2dfd9ea9946ffc9c75a1d86ba7d2db5f77c83e37cbdf9d808"
+      },
+      {
+        "path": "frontend/tsconfig.node.json",
+        "sha256": "7c1b2141d926a54487e8f8fcb86577a8b06513897cc5564e44ffdcc6630c3662"
+      },
+      {
+        "path": "frontend/vite.config.ts",
+        "sha256": "0876f63a96ea1731d17098889f9deb5c9d1c555e3c267340d82ba524c894cca8"
+      },
+      {
+        "path": "scripts/verify-day1.ps1",
+        "sha256": "dcc321effa7030f9f2228a0531daca1c3967548d8fcb5b220dd8a44a6b02679b"
+      },
+      {
+        "path": "start-local.cmd",
+        "sha256": "bf6f2dfbd57aba02018dfde5fd69668b498f6fd6a51462e26feb935a4d1b10a9"
+      },
+      {
+        "path": "stop-local.cmd",
+        "sha256": "08c4daa5d14b3699c7a090612ea52faebbb09aac867b277af0f7a8394a1b6669"
+      },
+      {
+        "path": "test_sets/ACTUAL-BLOCK-002/manifest.json",
+        "sha256": "70603a1e966361ebe6ded9e469e2d1260b133d67693be670d44c5c699989c174"
+      },
+      {
+        "path": "test_sets/ACTUAL-BLOCK-002/oracle.md",
+        "sha256": "400cef96b5d463cac7cc04c97affe058923c3a5e0fccfb63b8a41723ffda4fa0"
+      },
+      {
+        "path": "test_sets/ACTUAL-BLOCK-002/sources/01_press_statement.md",
+        "sha256": "994c5423fe1a49d693125ea629a9fd41d0ab587ad266e674e37c426a800dfd5d"
+      },
+      {
+        "path": "test_sets/ACTUAL-BLOCK-002/sources/02_original_bill.md",
+        "sha256": "a942dc70d417ddfaf143c6c77c503adc2a728def486a4c932864aa57f4674d68"
+      },
+      {
+        "path": "test_sets/ACTUAL-BLOCK-002/sources/03_alternative_relation.md",
+        "sha256": "8cd17673fba7eac36476f06d09da3af7867cedc0ea64c7f66d78b46eaf8299ac"
+      },
+      {
+        "path": "test_sets/ACTUAL-BLOCK-002/sources/04_plenary_vote.md",
+        "sha256": "863ec28ceddb298a76dae1a17289eef1c68323da739b7948087757e0a40e7e3c"
+      },
+      {
+        "path": "test_sets/ACTUAL-BLOCK-002/sources/05_current_law.md",
+        "sha256": "45548d0226a56f664125261129684e1d8ed30795b05c7eb7a843658b43b8957b"
+      },
+      {
+        "path": "test_sets/ACTUAL-BLOCK-002/sources/06_alternative_final_text.md",
+        "sha256": "909308a5a5dc07adc878d6179cc85928ac4432bfb8cec56772341790bab1d645"
+      },
+      {
+        "path": "test_sets/ACTUAL-PASS-001/manifest.json",
+        "sha256": "33366e835697777e1c7d0b095d2ed27e2dd228a4fed6a595f9c582609ca819a1"
+      },
+      {
+        "path": "test_sets/ACTUAL-PASS-001/oracle.md",
+        "sha256": "060e81d858bde2c03d15d6520d5e3cd74d2b735e21f871ca8b7e6e14fefb9c2f"
+      },
+      {
+        "path": "test_sets/ACTUAL-PASS-001/sources/01_bill_information.md",
+        "sha256": "43606a635d1463fd195d652fc40cdfc5df3443f85c9388764fb59a19c589b7d1"
+      },
+      {
+        "path": "test_sets/ACTUAL-PASS-001/sources/02_current_provision.md",
+        "sha256": "20b259754e6c765b1b9e51752dc9f70e5e9c95cc31ca1e7d29ac174f5a1220bc"
+      },
+      {
+        "path": "test_sets/ACTUAL-PASS-001/sources/03_plenary_vote_result.md",
+        "sha256": "a0b4421236c77312a06ebb7dca555608fe691184729fe61a502d418f7970b3f6"
+      },
+      {
+        "path": "test_sets/ACTUAL-PASS-001/sources/04_introduced_text.md",
+        "sha256": "7ad623ccc620fdc834af94d2ea2515f145fbe7174d64336f85d1f6ab2c9a97dd"
+      },
+      {
+        "path": "test_sets/CHECKSUMS.sha256",
+        "sha256": "34e30c211be2c160a441aa9698f624863dffcd10e769b941caf3c6f8e9cf1d4f"
+      },
+      {
+        "path": "test_sets/README.md",
+        "sha256": "f70d7e7dd93f0ce3cc1bc00de53d1be022d26318b7e11d1aced7a056eebe4f47"
+      },
+      {
+        "path": "test_sets/SYN-RISK-001/manifest.json",
+        "sha256": "253105a8978654a3598e15d64fae35c1c6d993c5243d601f73a9cc21b743c0e0"
+      },
+      {
+        "path": "test_sets/SYN-RISK-001/mutations/count_conflict.json",
+        "sha256": "ef2d6c3bf7acb9dae833facf8b066a5391d7b31f40f1b35641d42c40213e7069"
+      },
+      {
+        "path": "test_sets/SYN-RISK-001/mutations/date_conflict.json",
+        "sha256": "3750bd59f735c6b2ceffe554ebc9e6bc7e2ac237352cf0c7b8eacae16856bac8"
+      },
+      {
+        "path": "test_sets/SYN-RISK-001/mutations/weekday_mismatch.json",
+        "sha256": "89b48b660761389292374f4eb22565c10346fa62153f71feb3950064355fc526"
+      },
+      {
+        "path": "test_sets/SYN-RISK-001/oracle.md",
+        "sha256": "bbce2d7cde064b0ec08b65bcadb1b820ed3eff58db8d964ca73864dc39f128de"
+      },
+      {
+        "path": "test_sets/SYN-RISK-001/sources/01_bill_information.md",
+        "sha256": "c519c307a4bab6120bd3edfa869ac00f31642aed3b7b20d09694345b485446a3"
+      },
+      {
+        "path": "test_sets/SYN-RISK-001/sources/02_current_provision.md",
+        "sha256": "c4776ba6049b6a883e312ccdd0077406d2a3ed33b9d5f6842524e13fd8d9c20a"
+      },
+      {
+        "path": "test_sets/SYN-RISK-001/sources/03_plenary_vote.md",
+        "sha256": "38a64524a7063043ef635c715b045f50fcb8971c31e3c2cf99ec704279905c96"
+      },
+      {
+        "path": "test_sets/SYN-RISK-001/sources/04_final_text.md",
+        "sha256": "15c49424979b3178e870be89f39cf19ea3987c9c3f2016e9e2927665ee95d0b4"
+      },
+      {
+        "path": "test_sets/SYN-RISK-001/sources/05_independent_vote_notice.md",
+        "sha256": "9d9e8762b825e7a7dd1ed1118132185bc5ab7b95ea0b969cdf7cfe219f214948"
+      },
+      {
+        "path": "test_sets/SYN-RISK-002/manifest.json",
+        "sha256": "98a4de23e06b2339aac0294f2f97723a4895c9bda4dc30ca2ef94c0730ab84b1"
+      },
+      {
+        "path": "test_sets/SYN-RISK-002/mutations/agenda_as_final.json",
+        "sha256": "6b34700f2f23619e1cbb52fdae1b0b649948862e8415ae3db277c13becffe82b"
+      },
+      {
+        "path": "test_sets/SYN-RISK-002/mutations/speech_as_vote.json",
+        "sha256": "6bd0eee8064d9825ab214bbf2cdc8f43e7a6fd1d430a331ebd776a2a964bfdd4"
+      },
+      {
+        "path": "test_sets/SYN-RISK-002/oracle.md",
+        "sha256": "9b4ee5f3cee42e542b54134f6bcda66cd83349c7eb1ee7cea71f847a84dbd76f"
+      },
+      {
+        "path": "test_sets/SYN-RISK-002/sources/01_bill_information_pending.md",
+        "sha256": "04860828abfb9e39b727e132d0315738e25e01652ac1b3a3e5879a4dfc17859f"
+      },
+      {
+        "path": "test_sets/SYN-RISK-002/sources/02_current_provision.md",
+        "sha256": "2db8764f3029a3f34f2c945c15f41d412014674ebc1db41f117b01f72165e825"
+      },
+      {
+        "path": "test_sets/SYN-RISK-002/sources/03_plenary_speech.md",
+        "sha256": "39916ab06caa15eab6632f3b4ca78e906326a09b6a8c699aba8352f6a0023f8d"
+      },
+      {
+        "path": "test_sets/SYN-RISK-002/sources/04_vote_result.md",
+        "sha256": "aa23615460563a9121482e5b8dae0cb45569496793375cc377dcec25cfe0ebb9"
+      },
+      {
+        "path": "test_sets/SYN-RISK-002/sources/05_agenda_text.md",
+        "sha256": "c20b693f90e3c72ba307827e2b8dc339de56c85f9ac1137b973baaa7e7e6f01f"
+      },
+      {
+        "path": "test_sets/SYN-RISK-002/sources/06_modified_final_text.md",
+        "sha256": "2508aa6c11c1b10d1123a2fe4fb7986cd41f04c12996712306a4319d83535523"
+      },
+      {
+        "path": "test_sets/SYN-RISK-003/candidates/baseline_draft.json",
+        "sha256": "d260ecf71f1cabd5bc2ef77ff17664e4ef32e24c81d395da661817b9cda7d776"
+      },
+      {
+        "path": "test_sets/SYN-RISK-003/candidates/baseline_fact_extraction_result.json",
+        "sha256": "91588ac2e6cd5c103ff0d87f2ea8fee49b3952d243bba81b3ea01b8e34ab3c48"
+      },
+      {
+        "path": "test_sets/SYN-RISK-003/manifest.json",
+        "sha256": "93f2f42f91dcc2a4ad25b25d681e1ed9f3f749c0249f10f6e2e0577ce2301f97"
+      },
+      {
+        "path": "test_sets/SYN-RISK-003/mutations/already_effective.json",
+        "sha256": "443887e836e9e463f6c0c1fcd27055faa1476f590e3a8d6f31b7188ee8f8f1f5"
+      },
+      {
+        "path": "test_sets/SYN-RISK-003/mutations/calculate_from_vote.json",
+        "sha256": "c6937b2c23441b5e0f2f1ff76468404f6ccfc139ae512b6f7cdcdbf08b69a5e5"
+      },
+      {
+        "path": "test_sets/SYN-RISK-003/mutations/legal_effect_hallucination.json",
+        "sha256": "176241649924898bdecdfd6901eaab3c9eac65a541b61ee0aefe2e75232d3eb2"
+      },
+      {
+        "path": "test_sets/SYN-RISK-003/mutations/merge_effective_dates.json",
+        "sha256": "3a1ae9e56894bd69f1e50a46c7f3bd4e8f74da324424fc653a596d2f874811eb"
+      },
+      {
+        "path": "test_sets/SYN-RISK-003/mutations/next_procedure_hallucination.json",
+        "sha256": "c70802f0a16dfd79ee4ab13ed61ff06bbf5f19db0e800bcf9a1daa368d40d0a7"
+      },
+      {
+        "path": "test_sets/SYN-RISK-003/mutations/omit_application.json",
+        "sha256": "43df797164147ccb92aeb16c52ae190d2fcbb6b5c61cc95c948fb6683dd35b10"
+      },
+      {
+        "path": "test_sets/SYN-RISK-003/mutations/omit_transition.json",
+        "sha256": "f190431afc76f484138509fa695d65c680806aa8b59c231b002e0ec7fd63fb15"
+      },
+      {
+        "path": "test_sets/SYN-RISK-003/mutations/original_as_passed.json",
+        "sha256": "8d21f497ba477d850dc7b7684edef4afbb570648038dcec30bac56035da8d88d"
+      },
+      {
+        "path": "test_sets/SYN-RISK-003/mutations/revision_delete_supplement.json",
+        "sha256": "6543014752e5747549c78dd3515eef12a7f2c6b23f65e72c58c8630ff295240d"
+      },
+      {
+        "path": "test_sets/SYN-RISK-003/mutations/revision_fix_effective_date.json",
+        "sha256": "fb7f3b5750ab41eb6ee9faf00189795b9d4e6d36bb75e8149140a5973a0db651"
+      },
+      {
+        "path": "test_sets/SYN-RISK-003/mutations/revision_original_as_passed.json",
+        "sha256": "dd6665d90c4a140176bc4973a9f234488463c70a02e8f7aa281d1880e7f59e9d"
+      },
+      {
+        "path": "test_sets/SYN-RISK-003/mutations/revision_remove_draft.json",
+        "sha256": "e0fce360fe72e1764d1b3de070a52d1f98b75d9545bc36dd7bde04288658093b"
+      },
+      {
+        "path": "test_sets/SYN-RISK-003/oracle.md",
+        "sha256": "6f1f0e29acfd8a118180765cae7f1cba5f3e585a837617c198f881a4aa8579bb"
+      },
+      {
+        "path": "test_sets/SYN-RISK-003/sources/01_original_bill.md",
+        "sha256": "6d96b8bfe01d5ea07b28cd0611556a462b13bb5d8b85badda5ec4e3ad802a999"
+      },
+      {
+        "path": "test_sets/SYN-RISK-003/sources/02_committee_alternative.md",
+        "sha256": "74278e48b7a31f8a56c6ed38ba715e0b8078910d1fbf4c47483ba9d6221bcd4c"
+      },
+      {
+        "path": "test_sets/SYN-RISK-003/sources/03_current_provisions.md",
+        "sha256": "4a391e8854b939f5f8024ecc0b386a7fdd0b84b91484cd3da4e3974cb2788bb8"
+      },
+      {
+        "path": "test_sets/SYN-RISK-003/sources/04_plenary_vote.md",
+        "sha256": "44d8556af25630b6aeb4c46886a5d28a5485596b9b94e8bdb464f9a33dede717"
+      },
+      {
+        "path": "test_sets/SYN-RISK-003/sources/05_plenary_final_text.md",
+        "sha256": "940e1a7b7f3a3e4764c2333f5ec7b8a506f1433060a9d40163313246125cf433"
+      },
+      {
+        "path": "test_sets/SYN-RISK-003/sources/06_alternative_relation.md",
+        "sha256": "af446a9e7cf71cc5ca2fae0187b4c76f149452ed38d232dc87c70b840e448168"
+      },
+      {
+        "path": "test_sets/catalog.json",
+        "sha256": "c0a75d8d0281399287d88bf30fde18e2afde25333d28b8e7b2d3150f6b5f919a"
+      },
+      {
+        "path": "test_sets/draft_candidate.schema.json",
+        "sha256": "5bc21d6126ce2028570298620f02304cdea101aa9f9565d60f766bd9fc24d641"
+      },
+      {
+        "path": "test_sets/fact_extraction_result.schema.json",
+        "sha256": "50632cdfae2a7a2a9d5f68df2b2dd2abcbe404d5c65c33900a6189b71e0c1d8d"
+      },
+      {
+        "path": "test_sets/fixture.schema.json",
+        "sha256": "de4c0096442622c90d1b41bd02bd00ee6b8023c9078e6c9fcd6b04959f2f5ead"
+      },
+      {
+        "path": "test_sets/mutation.schema.json",
+        "sha256": "630c76a3ca3d47ff9ea5da1c0cdc2afa8ac521400b339939c1c32562265bc2bd"
+      },
+      {
+        "path": "tests/test_day1_gate.py",
+        "sha256": "bd7b2b75f4485f113c6a84ec86de6421c8985c06fdc8538187c60e5189aeeeb5"
+      },
+      {
+        "path": "tests/test_fact_extraction.py",
+        "sha256": "c7a4b543838cd5c94d611b8a6066f96a80a01f3a99a4923b25d453bb42ce9ee6"
+      },
+      {
+        "path": "tests/test_harness_flow.py",
+        "sha256": "a8b27906fabd2c1d89073663dc733bcaaed319ff40822bbc8024a3637877bb0a"
+      },
+      {
+        "path": "verification/day-gate-result.schema.json",
+        "sha256": "1c0f59930f119be9f8d725e5c1c848725f02b76c674298e9d31b97e202773dd7"
+      },
+      {
+        "path": "verification/day-gate-verifier.md",
+        "sha256": "1b0e7934decea5a2711b5cf8c579ceb39d73be9e6c1db7bd5fb9b44ddee3b149"
+      }
+    ]
+  },
+  "verdict": "BLOCKED",
+  "checks": [
+    {
+      "check_id": "D3G-01",
+      "title": "Gate 안전성 — 손으로 만든 raw 결과를 직접 넣어 값·충돌이 기록 없이 사라지는 조합을 찾는다",
+      "status": "FAIL",
+      "commands": [
+        {
+          "command": "python scratchpad/probe_gate.py (build_fact_ledger -> check_conflicts 직접 호출, 손으로 만든 raw 19가지)",
+          "exit_code": 0,
+          "summary": "값 목록형 2가지에서 AttributeError로 Gate가 죽음. 나머지는 정상 분류."
+        },
+        {
+          "command": "python scratchpad/probe_orch.py (FakeModelGateway.set_response로 추출기를 통째로 대체, Orchestrator 전체 경로 14가지)",
+          "exit_code": 0,
+          "summary": "A1(근거가 원문에 없음)은 FAILED/DAY3_SCOPE_LIMIT로 끝나고 값 2207285가 응답 전체에 0건. D1(값 목록)은 AttributeError로 전부 소멸."
+        },
+        {
+          "command": "python scratchpad/probe_invariant.py (근거 4형태 x 종류 3 x 자료주장 2 = 24조합 기계 훑기)",
+          "exit_code": 0,
+          "summary": "24조합 중 12조합에서 값이 원장·issues·conflicts·rejected_evidence 어디에도 남지 않고 멈추지도 않음."
+        }
+      ],
+      "evidence": [
+        "불변식 훑기 24조합 중 12조합 '값 소멸': 근거 문구가 원문에 없음(6), 근거가 없는 자료를 가리킴(6). 12조합 모두 충돌 0건, 멈춤 False.",
+        "HTTP/Orchestrator A1: state=FAILED code=DAY3_SCOPE_LIMIT message='자료에서 사실 1건을 정리했습니다.' — 응답 JSON 전체에 '2207285' 0건, issues 0건, rejected_evidence는 'EV-01: 제시한 근거 문구가 자료 원문에 없습니다.' / 'F-01: 근거를 확인하지 못했습니다.' 내부 ID만.",
+        "orchestrator.py:82-86 `_rejected_fact_issues`가 p.kind in ('AMBIGUOUS','UNKNOWN_SOURCE')만 사람에게 보여 준다. 'UNKNOWN_EVIDENCE'와 'NOT_FOUND'는 빠져 있다.",
+        "값 목록형: evidence_gate.py:340 `_normalize_value`가 `fact.value.split()`을 부른다. schema fact_value와 Pydantic RawFact.value가 모두 배열을 허용하고 `_check_fact`(:297)도 배열을 처리하는데 이 한 줄만 처리하지 않는다. AttributeError -> run.failure_code='AttributeError', message='처리 중 문제가 생겼습니다.', facts 0건 rejected_evidence 0건 issues 0건.",
+        "정상 분류 확인: 근거 반복(AMBIGUOUS)·자료 불일치(UNKNOWN_SOURCE)·같은 종류 여러 값·같은 자료 안 모순·빈 결과·30건 경계(29/30 통과, 31 정지)·FACT_SCOPE_TOO_LARGE는 모두 값이 보이거나 정상 멈춤."
+      ]
+    },
+    {
+      "check_id": "D3G-02",
+      "title": "B9 확인 — 버린 사실이 값·자료명·행·원문과 함께 사람에게 보이는가",
+      "status": "PASS",
+      "commands": [
+        {
+          "command": "python scratchpad/probe_orch.py :: B1_같은_줄_두_번 (신구조문대비표 모양)",
+          "exit_code": 0,
+          "summary": "NEEDS_INPUT + EVIDENCE_NOT_PINNED, 값·자료명·행·원문이 모두 나옴."
+        },
+        {
+          "command": "python scratchpad/probe_orch.py :: C1_빌린_근거",
+          "exit_code": 0,
+          "summary": "동일하게 NEEDS_INPUT에서 값과 함께 멈춤."
+        }
+      ],
+      "evidence": [
+        "직전 관문의 B9 재현 입력(한 자료에 같은 줄 2회)이 이제 NEEDS_INPUT에서 멈춘다. draft_version=0.",
+        "화면 문구: '다음 값은 근거를 한 곳으로 특정하지 못해 쓰지 않았습니다. · 제12조 — 신구조문대비표 2행: “제12조를 고친다.” · 근거 문구가 자료에서 2군데 나와 어디를 가리키는지 알 수 없습니다.'",
+        "frontend/src/screens/RunStatusScreen.tsx:111-129가 issues를 화면에 그대로 보여 준다. 사람이 실제로 읽을 수 있다.",
+        "다만 run.rejected_evidence는 여전히 orchestrator.py:309-311에서 `f'{p.fact_id}: {p.detail}'`로 만들어 describe()를 쓰지 않는다. 값은 issues 쪽에만 있다."
+      ]
+    },
+    {
+      "check_id": "D3G-03",
+      "title": "B10 확인 — 범위 초과가 NEEDS_INPUT이고 안내가 사실인가, ACTUAL-BLOCK-002가 정답표대로 멈추는가",
+      "status": "PASS",
+      "commands": [
+        {
+          "command": "python scratchpad/run_fixtures.py (고정 자료 5종 + SYN-RISK-001 3종 mutation을 127.0.0.1:8799 HTTP로 끝까지)",
+          "exit_code": 0,
+          "summary": "ACTUAL-BLOCK-002 = NEEDS_INPUT/UNSUPPORTED_SCOPE, 초안 0건."
+        },
+        {
+          "command": "python scratchpad/probe_sources.py (같은 자료·다른 자료를 1~6개로 늘림)",
+          "exit_code": 0,
+          "summary": "4개부터 UNSUPPORTED_SCOPE. 안내는 정직하고 초안 0건."
+        }
+      ],
+      "evidence": [
+        "ACTUAL-BLOCK-002 BASELINE(자료 6개, HTTP): state=NEEDS_INPUT, issue subject=UNSUPPORTED_SCOPE, facts 0건, draft_version 0, actual_model_calls 0, estimated_cost_usd 0.",
+        "안내 문구: '이 자료는 지금 버전이 한 번에 처리할 수 있는 범위를 넘습니다. …' / '이번 보도자료에 꼭 필요한 공식 자료만 남겨 새 작업으로 다시 넣어 주세요.' — 'AI 결과를 쓸 수 없습니다'와 '잠시 뒤 다시 시도해 주세요'가 둘 다 사라졌다. 결정형이므로 이 안내는 사실이다.",
+        "oracle.md가 요구한 '지원 범위를 넘는다고 쉽게 설명하고 NEEDS_INPUT에서 새 작업을 안내'가 성립한다. 금지 문구('원안가결')는 초안이 0건이라 나올 수 없다.",
+        "같은 값 접기(fake_agents.py:147,207-210) 효과: ACTUAL-PASS-001 13->10, SYN-RISK-001 16->15, SYN-RISK-003 24->21. 값을 버린 것이 아니라 같은 자료의 같은 종류·같은 값을 접은 것이다.",
+        "역할 후보 상한이 자료별로 고쳐진 것 확인: 내용이 같은 UNKNOWN 자료 2개에서 Counter({'SRC-01': 3, 'SRC-02': 3}). 이전에는 3+1이었다.",
+        "경고: ACTUAL-BLOCK-002는 사실 31건으로 상한 30을 **1건 차이**로 넘겨 막힌다. manifest가 정한 진짜 차단 사유(UNSUPPORTED_ORIGIN_BILL_COUNT=11, UNSUPPORTED_CHANGED_PROVISION_COUNT=6)는 구현돼 있지 않다."
+      ]
+    },
+    {
+      "check_id": "D3G-04",
+      "title": "B11 확인 — 다섯 목록이 각각 다른 자료의 근거를 빌리지 못하는가 / 고정 형식 준수",
+      "status": "PASS",
+      "commands": [
+        {
+          "command": "python scratchpad/probe_gate.py :: H1~H9 (사건·부칙·의안·관계·조문 비교)",
+          "exit_code": 0,
+          "summary": "다섯 목록 모두 빌린 근거·반복 근거·없는 근거를 버린다."
+        },
+        {
+          "command": "python scratchpad/probe_contract.py (jsonschema 4.26.0으로 양방향 검사)",
+          "exit_code": 0,
+          "summary": "실제 출력 5가지 위반 0건. schema가 허용하는데 Pydantic이 거부하는 입력 6건."
+        }
+      ],
+      "evidence": [
+        "조문 비교(H5 빌린 근거 -> UNKNOWN_SOURCE, H6 반복 근거 -> AMBIGUOUS, H7 없는 근거 -> UNKNOWN_EVIDENCE, H8 정상 -> 원장에 남음). 직전 관문의 B11이 실제로 닫혔다.",
+        "입법 사건·부칙·의안·관계도 빌린 근거·반복 근거·근거 없음을 모두 버린다(H1~H4, H9).",
+        "evidence_gate.py:194-249 `_keep_comparisons`가 current/final 짝을 각각 대조한다. RawProvisionComparison에 source_id가 없어 공통 검사가 건너뛰던 구멍이 막혔다.",
+        "고정 형식: 가짜 추출기 출력 5가지(ACTUAL-PASS-001 / SYN-RISK-001 / ACTUAL-BLOCK-002 / 빈 자료 / UNKNOWN 역할)를 test_sets/fact_extraction_result.schema.json에 검사해 위반 0건. FACT_SCOPE_TOO_LARGE 응답도 아홉 배열 maxItems 0을 지킨다.",
+        "다만 조문 비교 목록에서 버린 항목은 issues로 나가지 않는다. `_rejected_fact_issues`가 AMBIGUOUS/UNKNOWN_SOURCE만 보므로 UNKNOWN_EVIDENCE는 rejected_evidence에만 남는다."
+      ]
+    },
+    {
+      "check_id": "D3G-05",
+      "title": "진짜 충돌 검출 — SYN-RISK-001 3종 mutation(자료 5개 전부, target_id SR1-S05), HTTP",
+      "status": "PASS",
+      "commands": [
+        {
+          "command": "python scratchpad/run_fixtures.py :: SYN-RISK-001 COUNT_CONFLICT / DATE_CONFLICT / WEEKDAY_MISMATCH",
+          "exit_code": 0,
+          "summary": "3종 모두 BLOCKING 1건씩, NEEDS_INPUT, 초안 0건."
+        }
+      ],
+      "evidence": [
+        "COUNT_CONFLICT: FACT_CONFLICT/vote_yes_count — '201 — 03_plenary_vote.md 8행' vs '202 — 05_independent_vote_notice.md 6행'.",
+        "DATE_CONFLICT: FACT_CONFLICT/plenary_decided_on — '2026. 8. 20' vs '2026. 8. 21'.",
+        "WEEKDAY_MISMATCH: DATE_WEEKDAY_MISMATCH/plenary_decided_on — '2026. 8. 20은(는) 목요일인데 자료에는 금요일로 적혀 있습니다. 자동으로 고치지 않았습니다.'",
+        "3종 모두 자료 5개 전부를 넣고 mutation의 target_id=SR1-S05를 지켜 적용했다. 전부 NEEDS_INPUT, facts 15건, draft_version 0, actual_model_calls 0, estimated_cost_usd 0.",
+        "BASELINE(변조 없음)은 차단 0건으로 지나간다. 거짓 충돌 없음.",
+        "ACTUAL-PASS-001(정상 자료)도 차단 0건, 사실 10건이 원문 근거와 연결된 채 DAY3_SCOPE_LIMIT에 도달한다."
+      ]
+    },
+    {
+      "check_id": "D3G-06",
+      "title": "2일차 회귀 — verify-day1.ps1 7개 PASS",
+      "status": "PASS",
+      "commands": [
+        {
+          "command": "powershell -ExecutionPolicy Bypass -File C:\\policy_agent\\scripts\\verify-day1.ps1 -RunId day3gate8-regress",
+          "exit_code": 0,
+          "summary": "=== 판정: PASS ==="
+        },
+        {
+          "command": "python -m pytest -q (backend)",
+          "exit_code": 0,
+          "summary": "106 passed"
+        }
+      ],
+      "evidence": [
+        "script 출력을 직접 확인했다. D1G-01 필수 파일·모듈 로드 exit 0.",
+        "D1G-05 물리적 파일 5개, Contract parse exit 0.",
+        "D1G-06 백엔드 pytest / 프런트 typecheck / vitest / production build 전부 exit 0.",
+        "D1G-02 start-local.cmd로 8765 health 200, stop-local.cmd 정상 종료.",
+        "D1G-03·D1G-04 네 가지 입력, 빈 입력 차단, 멱등 키 재사용, 쿠키 없는 요청 403, 경로 탈출 6종 차단.",
+        "D1G-07 API 키 패턴 0건, .env 접근 0건, wildcard CORS 0건, 생명과학 잔재 0건.",
+        "최종 줄: '=== 판정: PASS ===' (보고서 day3gate8-regress.json/.md 생성).",
+        "백엔드 단위시험 별도 실행 106 passed."
+      ]
+    },
+    {
+      "check_id": "D3G-07",
+      "title": "새 시험이 형식적이지 않은지 — 변이 시험",
+      "status": "FAIL",
+      "commands": [
+        {
+          "command": "git diff ca233f7 55d2444 -- tests/test_fact_extraction.py",
+          "exit_code": 0,
+          "summary": "새로 추가된 시험 0개. 기존 시험 1개만 B10에 맞춰 고쳤다."
+        },
+        {
+          "command": "python scratchpad/mutate.py (사본에서 변이 10종 x pytest)",
+          "exit_code": 0,
+          "summary": "10종 중 8종이 시험을 하나도 죽이지 못했다."
+        },
+        {
+          "command": "전체 suite로 Y1·Y4 재확인",
+          "exit_code": 0,
+          "summary": "baseline과 완전히 같은 결과. 어느 시험도 반응하지 않음."
+        }
+      ],
+      "evidence": [
+        "이번 commit 55d2444는 제품 코드 3곳을 고쳤지만 **새 시험을 하나도 넣지 않았다.** 시험 파일 변경은 기존 test_상한을_넘으면_잘라내지_않고_멈춘다 하나를 B10 동작에 맞춘 것뿐이다.",
+        "Y1 `_rejected_fact_issues`의 blocking을 []로 만듦(B9 수정 전부 무효화) -> 죽은 시험 0개.",
+        "Y2 describe()가 내부 ID만 돌려주게 함 -> 죽은 시험 0개.",
+        "Y3 버린 사실에 자료명·행·원문을 안 담게 함 -> 죽은 시험 0개.",
+        "Y4 `_keep_comparisons`를 통째로 통과시킴(B11 수정 전부 무효화) -> 죽은 시험 0개.",
+        "Y5 조문 비교의 자료 대조만 끔 -> 죽은 시험 0개. Y6 조문 비교의 반복 근거만 통과 -> 죽은 시험 0개.",
+        "Y8 같은 값 접기 제거 -> 죽은 시험 0개. Y9 역할 후보 상한을 전체 누계로 되돌림 -> 죽은 시험 0개.",
+        "죽은 것은 둘뿐: Y7 범위 초과를 다시 기술 오류로(test_상한을_넘으면_잘라내지_않고_멈춘다), Y10 사실의 자료 대조를 끔(test_사실과_근거가_다른_자료를_가리키면_버린다).",
+        "변이는 scratchpad 사본에서만 했고 복원 후 baseline 실패 0건. 제품 파일 통합 해시는 시작 시점과 같다."
+      ]
+    }
+  ],
+  "blockers": [
+    {
+      "check_id": "D3G-01",
+      "message": "B12 (1급) 근거 문구를 원문에서 찾지 못하거나 근거가 없는 자료를 가리키면, 그 사실의 값이 원장·issues·conflicts·rejected_evidence 어디에도 남지 않고 사라지며 그 값에 걸려 있던 충돌도 함께 사라진다. 게다가 멈추지 않고 3일차 종료 지점(FAILED/DAY3_SCOPE_LIMIT, '사실 N건을 정리했습니다')까지 간다. 24조합 중 12조합에서 재현. 고칠 자리는 orchestrator.py:85의 튜플에 'UNKNOWN_EVIDENCE'를 넣는 것."
+    },
+    {
+      "check_id": "D3G-01",
+      "message": "B13 (1급) 사실의 값이 목록이면 evidence_gate.py:340 `_normalize_value`가 AttributeError로 죽어 Run 전체가 FAILED가 되고, 같은 Run에 있던 정상 사실과 진짜 충돌까지 전부 사라진다(facts 0, issues 0, rejected_evidence 0). 고정 형식·Pydantic·`_check_fact` 모두 목록을 허용하는데 이 한 줄만 처리하지 않는다. 화면 안내는 '처리 중 문제가 생겼습니다 / 잠시 뒤 새 작업으로 다시 시도해 주세요'로, 결정형이므로 이 처방은 통하지 않는다."
+    },
+    {
+      "check_id": "D3G-07",
+      "message": "B14 (2급) 이번에 고쳤다는 B9·B11에 시험이 하나도 없다. 두 수정을 통째로 되돌려도 시험 106개가 전부 통과한다. 회귀 검사기가 결함이 있는 코드를 PASS로 보고한다."
+    }
+  ],
+  "warnings": [
+    "N1 (3급) test_sets/fact_extraction_result.schema.json이 허용하는데 Pydantic이 거부하는 입력 6건: 값이 숫자, 값이 참/거짓, 값 450자(schema 500 / Pydantic 400), 근거 문구 800자(schema 1000 / Pydantic 600), id 100자(schema 128 / Pydantic 64), 입법사건 procedure_stage·disposition 자유문자(schema text / Pydantic enum). 전부 AGENT_SCHEMA_INVALID로 안전하게 멈추지만 '잠시 뒤 다시 시도'라는 틀린 처방을 준다. 누적 7일차 '안전 보강 1일차 — 형식 통일'이 이 일을 배정한다.",
+    "N2 (3급) ACTUAL-BLOCK-002는 사실 31건으로 상한 30을 1건 차이로 넘겨 막힌다. manifest가 정한 진짜 차단 사유(UNSUPPORTED_ORIGIN_BILL_COUNT=11, UNSUPPORTED_CHANGED_PROVISION_COUNT=6, gate=PROFILE_SCOPE)는 아직 없다. 지금은 우연히 맞는 자리에 도착한다.",
+    "N3 (3급) MAX_SOURCES=6을 화면에 알려 주면서 촘촘한 표결 자료는 4개부터 UNSUPPORTED_SCOPE로 막힌다(32/40/48건). 다만 안내가 정직해졌고 초안 0건이므로 직전 관문보다 나아졌다. 실제 고정 자료는 자료 6개(SYN-RISK-003, 21건)까지 통과한다.",
+    "N4 (3급) SYN-RISK-003 정상본이 거짓 충돌 3건으로 막힌다. bill_identity(원안 O-3001 vs 대안 A-3002), plenary_result(대안반영폐기 vs 원안가결), provision_change(제8조·제12조·제1조). oracle.md는 이 정상본으로 초안을 만들 수 있어야 한다고 정한다. 원인은 서로 다른 대상의 사실에 같은 kind를 붙이는 것이며, 고정 형식이 Agent에게 kind와 value만 허용해 대상을 구분할 칸이 없다. 추출기 품질 축이므로 누적 6일차로 보내되, 구조 문제이므로 누적 9일차 '법률 단계와 조문'에서 같이 본다.",
+    "N5 (3급) 화면의 rejected_evidence 절 안내문이 'AI가 제시한 근거 문구가 자료 원문에 그대로 없어서 사실로 쓰지 않았습니다'로 고정돼 있다(RunStatusScreen.tsx:97-99). 근거가 두 군데 나와 버린 경우에는 사실이 아니다. 바로 아래 항목 문구가 맞는 이유를 적어 주므로 사람이 오해할 여지는 작다.",
+    "N6 (3급) run.rejected_evidence 문자열은 여전히 `내부ID: 설명`이다(orchestrator.py:309-311이 describe() 대신 p.detail을 쓴다). 값·자료명·행은 issues 쪽에만 있다.",
+    "N7 (3급) `_keep_with_evidence`가 만드는 problem(사건·부칙·의안·관계)에는 value·source_name·raw_line·quote가 비어 있다. 조문 비교만 채운다. 그 결과 이 네 목록에서 버린 항목은 issues에 나가지 못한다.",
+    "N8 (3급) 역할 확인 Issue가 있으면 `_rejected_fact_issues`가 실행되지 않아(orchestrator.py:291-296) 버린 사실 안내가 가려진다. NEEDS_INPUT에서 멈추므로 초안으로 새지는 않는다.",
+    "N9 (3급) 실제 AI가 사실 31건을 돌려주면 FACT_SCOPE_TOO_LARGE가 아니라 Pydantic max_length로 AGENT_SCHEMA_INVALID가 되어 기술 오류로 끝난다. B10의 쉬운 안내는 result_status가 FACT_SCOPE_TOO_LARGE인 경우에만 붙는다.",
+    "이 보고서 JSON은 verification/day-gate-result.schema.json을 통과하지 못한다. schema가 gate_id를 const 'DEMO-DAY1-GATE'로, check_id를 enum D1G-01~07로 고정하기 때문이다. 위반은 gate_id 1건 + check_id 7건 = 8건이며 나머지 필드는 모두 schema를 따른다. 3일차용 ID를 schema에 넣는 것은 담당자 몫이므로 검사원은 고치지 않았다."
+  ],
+  "external_api_calls": 0,
+  "estimated_cost_usd": 0
+}

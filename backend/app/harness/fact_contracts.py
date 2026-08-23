@@ -273,7 +273,8 @@ class VerifiedFact(BaseModel):
     fact_id: str
     kind: str
     subject: str = ""
-    value: str
+    #: 원래 값. 하나일 수도 목록일 수도 있다. 고정 형식이 둘 다 허용한다.
+    value: str | list[str]
     normalized_value: str = ""
     unit: str = ""
     provenance: FactProvenance = FactProvenance.OFFICIAL_SOURCE

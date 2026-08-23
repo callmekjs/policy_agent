@@ -162,7 +162,9 @@ def run_view(run: Run) -> dict[str, Any]:
                     "fact_id": f.fact_id,
                     "kind": f.kind,
                     "subject": f.subject,
-                    "value": f.value,
+                    "value": (
+                        ", ".join(f.value) if isinstance(f.value, list) else f.value
+                    ),
                     "unit": f.unit,
                     "provenance": f.provenance.value,
                     "source_name": f.evidence.source_name,
