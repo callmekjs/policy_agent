@@ -119,7 +119,8 @@ def fake_draft_writing(payload: dict[str, Any]) -> dict[str, Any]:
                 # 개정문 본칙을 그대로 옮긴다. 요약하면 없는 말이 섞일 수 있다.
                 "text": (
                     f"바뀐 조문은 {', '.join(articles)}이다. "
-                    f"공식 자료의 개정 문구는 다음과 같다. {body.strip()}"
+                    f"아직 확정 전인 공식 자료의 개정 문구는 다음과 같다. "
+                    f"{body.strip()}"
                 ),
                 "claim_ids": [],
                 "fact_ids": fact_ids[:1],

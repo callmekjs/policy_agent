@@ -196,17 +196,27 @@ def _confirmations() -> list[FinalTextConfirmation]:
     return [FinalTextConfirmation(source_id=INTRODUCED_SOURCE_ID, confirmed=True)]
 
 
+#: 고정 자료의 보도 대상 의안번호. 실제 흐름에서는 Harness가 원장에서 꺼내 넘긴다.
+PASS_BILL_NUMBER = "2207285"
+
+
+def _resolve(sources, normalized, bill_number: str = PASS_BILL_NUMBER):
+    return resolve_final_text(
+        sources, normalized, _confirmations(), draft_bill_number=bill_number
+    )
+
+
 def test_소관위가_수정가결이면_발의안을_최종문으로_쓰지_않는다() -> None:
     """§2.16.2 조건 3·4. 중간에 내용이 바뀌었으면 발의안은 최종 내용이 아니다."""
     sources, normalized = _chain_setup(("처리결과 원안가결", "처리결과 수정가결"))
-    final_text, issues = resolve_final_text(sources, normalized, _confirmations())
+    final_text, issues = _resolve(sources, normalized)
     assert final_text is None, "수정가결인데 발의안을 최종문으로 썼습니다."
     assert issues and issues[0].subject == "FINAL_TEXT_DERIVATION_UNSAFE"
 
 
 def test_본회의가_부결이면_발의안을_최종문으로_쓰지_않는다() -> None:
     sources, normalized = _chain_setup(("회의결과: 원안가결", "회의결과: 부결"))
-    final_text, issues = resolve_final_text(sources, normalized, _confirmations())
+    final_text, issues = _resolve(sources, normalized)
     assert final_text is None, "부결인데 발의안을 최종문으로 썼습니다."
     assert issues and issues[0].subject == "FINAL_TEXT_DERIVATION_UNSAFE"
 
@@ -214,7 +224,7 @@ def test_본회의가_부결이면_발의안을_최종문으로_쓰지_않는다
 def test_의안번호가_다르면_발의안을_최종문으로_쓰지_않는다() -> None:
     """§2.16.2 조건 2. 서로 다른 의안의 자료를 이어 붙이면 안 된다."""
     sources, normalized = _chain_setup(("대상 의안번호: 2207285", "대상 의안번호: 2209999"))
-    final_text, issues = resolve_final_text(sources, normalized, _confirmations())
+    final_text, issues = _resolve(sources, normalized)
     assert final_text is None, "의안번호가 다른데 발의안을 최종문으로 썼습니다."
     assert issues and "의안번호가 다릅니다" in issues[0].message
 
@@ -224,7 +234,7 @@ def test_개정문_경계가_없으면_최종문을_만들지_않는다() -> Non
     sources, normalized = _chain_setup(
         ("문화예술진흥법 일부를 다음과 같이 개정한다.", "[중략]")
     )
-    final_text, issues = resolve_final_text(sources, normalized, _confirmations())
+    final_text, issues = _resolve(sources, normalized)
     assert final_text is None
     assert issues and issues[0].subject == "SOURCE_TEXT:BOUNDARY_MISSING_OR_AMBIGUOUS"
 
@@ -232,7 +242,7 @@ def test_개정문_경계가_없으면_최종문을_만들지_않는다() -> Non
 def test_최종문에는_표결_문장을_섞지_않는다() -> None:
     """개정문은 발의안의 확인된 구간만 쓴다 (§2.16.2)."""
     sources, normalized = _chain_setup()
-    final_text, _ = resolve_final_text(sources, normalized, _confirmations())
+    final_text, _ = _resolve(sources, normalized)
     assert final_text is not None
     assert final_text.source_id == INTRODUCED_SOURCE_ID
     assert "원안가결" not in final_text.body_text, final_text.body_text
@@ -343,7 +353,7 @@ ATTACKS = [
         lambda d: d["lead"].__setitem__(
             "text", d["lead"]["text"] + " 의원은 “국민을 위한 법”이라고 말했다."
         ),
-        "QUOTE_NOT_IN_SOURCE",
+        "STATEMENT_WITHOUT_SOURCE",
     ),
     ("DRAFT 표시를 지운다", lambda d: d.__setitem__("draft_label", ""), "DRAFT_LABEL_REQUIRED"),
     (
@@ -419,3 +429,195 @@ def test_막힌_이유에는_규칙과_기준_문서와_초안_위치가_있다(
         assert finding.rule_id, finding
         assert finding.rule_document.startswith("README §"), finding
         assert finding.affected_part, finding
+
+
+# ---------------------------------------------------------------------------
+# 검토가 "되돌려도 죽는 시험이 없다"고 지적한 자리들
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_AI가_센_조문이_코드와_다르면_초안을_만들지_않는다() -> None:
+    """§2.16.3. 코드 집합과 AI 집합이 정확히 같아야 진행한다."""
+    from app.harness.fact_contracts import FACT_RESULT_SCHEMA_VERSION
+
+    store = RunStore()
+    gateway = FakeModelGateway()
+    # AI가 조문 비교를 하나도 만들지 않은 응답. 코드는 제7조 1개를 센다.
+    gateway.set_response(
+        "FactExtractionAgent",
+        {
+            "schema_version": FACT_RESULT_SCHEMA_VERSION,
+            "result": {
+                "result_status": "OK",
+                "scope_error": None,
+                "source_role_candidates": [],
+                "evidence": [
+                    {
+                        "evidence_id": "EV-01",
+                        "source_id": "SRC-04",
+                        "quote": "- 의안번호: 2207285",
+                    }
+                ],
+                "facts": [
+                    {
+                        "fact_id": "F-01",
+                        "kind": "BILL_IDENTITY",
+                        "value": "2207285",
+                        "source_id": "SRC-04",
+                        "evidence_id": "EV-01",
+                        "valid_source_role_candidate_ids": [],
+                    }
+                ],
+                "bill_identities": [
+                    {
+                        "bill_id": "B-01",
+                        "bill_number": "2207285",
+                        "is_draft_subject": True,
+                        "source_id": "SRC-04",
+                        "evidence_ids": ["EV-01"],
+                    }
+                ],
+                "bill_relations": [],
+                "legislative_events": [],
+                "provision_comparisons": [],
+                "supplementary_rules": [],
+            },
+        },
+    )
+    orchestrator = Orchestrator(store, gateway)
+    request = CreateRunRequest(
+        client_request_id="mismatch",
+        purpose="조문 집합이 어긋날 때 멈추는지 확인합니다.",
+        disclosure=Disclosure.PUBLIC,
+        basis_date=date(2025, 10, 26),
+        sources=_source_inputs(),
+        announcement_subject="조계원 의원실",
+        external_ai_policy_version=EXTERNAL_AI_POLICY_VERSION,
+        external_ai_transfer_confirmed=True,
+        final_text_completeness_confirmations=[
+            FinalTextConfirmation(source_id=INTRODUCED_SOURCE_ID, confirmed=True)
+        ],
+    )
+    run = orchestrator.create_run(request)
+    await orchestrator.process(run.run_id, request, date(2025, 10, 26))
+    result = store.get(run.run_id)
+    assert result.draft_version == 0, "조문 집합이 어긋나는데 초안을 만들었습니다."
+    assert result.failure_code == "PROVISION_SET_MISMATCH", result.failure_code
+    assert "제7조" in (result.failure_message or "")
+
+
+def test_다른_자료에_대안_근거가_있으면_발의안을_최종문으로_쓰지_않는다() -> None:
+    """§2.16.2 조건 4. 수정·대체 근거가 **어느 자료에든** 있으면 안 된다."""
+    sources, normalized = _chain_setup(
+        ("법령 버전:", "이 의안은 대안반영폐기되었다. 법령 버전:")
+    )
+    final_text, issues = _resolve(sources, normalized)
+    assert final_text is None, "대안 근거가 있는데 발의안을 최종문으로 썼습니다."
+    assert issues and "수정·대체" in issues[0].message, issues[0].message
+
+
+def test_자료가_바뀌면_발의안을_최종문으로_쓰지_않는다() -> None:
+    """§2.16.2 조건 6. 저장된 해시와 다시 센 해시가 같아야 한다."""
+    sources, normalized = _chain_setup()
+    # 저장된 해시만 다른 값으로 바꾼다. 원문은 그대로다.
+    for source in sources:
+        if source.source_id == INTRODUCED_SOURCE_ID:
+            source.normalized_sha256 = "0" * 64
+    final_text, issues = _resolve(sources, normalized)
+    assert final_text is None, "원문이 달라졌는데 최종문을 만들었습니다."
+    assert issues and "달라졌습니다" in issues[0].message, issues[0].message
+
+
+def test_보도_대상_의안을_모르면_발의안을_최종문으로_쓰지_않는다() -> None:
+    """§2.16.2 조건 2는 보도 대상 의안과의 대조를 요구한다."""
+    sources, normalized = _chain_setup()
+    final_text, issues = _resolve(sources, normalized, bill_number="")
+    assert final_text is None, "보도 대상을 모르는데 최종문을 만들었습니다."
+    assert issues and "어느 의안을" in issues[0].message, issues[0].message
+
+
+def _draft_dict(run) -> dict:
+    return {"schema_version": "1.1.0", "result": json.loads(run.draft.model_dump_json())}
+
+
+@pytest.mark.asyncio
+async def test_자료_기준일이_비면_초안을_만들지_않는다() -> None:
+    payload = _draft_dict(await _run())
+    payload["result"]["basis_date"] = ""
+    run = await _run(canned_draft=payload)
+    assert run.draft_version == 0
+    rules = {f.rule_id for f in run.validation_findings}
+    assert "BASIS_DATE_REQUIRED" in rules, rules
+
+
+@pytest.mark.asyncio
+async def test_필수_문단이_없으면_초안을_만들지_않는다() -> None:
+    payload = _draft_dict(await _run())
+    for paragraph in payload["result"]["paragraphs"]:
+        paragraph["section_kind"] = "EXTRA"
+    run = await _run(canned_draft=payload)
+    assert run.draft_version == 0
+    rules = {f.rule_id for f in run.validation_findings}
+    assert "REQUIRED_SECTION_MISSING" in rules, rules
+
+
+@pytest.mark.asyncio
+async def test_없는_주장을_가리키면_초안을_만들지_않는다() -> None:
+    payload = _draft_dict(await _run())
+    payload["result"]["title"]["claim_ids"] = ["CL-없음"]
+    run = await _run(canned_draft=payload)
+    assert run.draft_version == 0
+    rules = {f.rule_id for f in run.validation_findings}
+    assert "CLAIM_REFERENCE_UNKNOWN" in rules, rules
+
+
+@pytest.mark.asyncio
+async def test_없는_부칙을_가리키면_초안을_만들지_않는다() -> None:
+    payload = _draft_dict(await _run())
+    payload["result"]["paragraphs"][-1]["supplementary_rule_ids"] = ["SR-없음"]
+    run = await _run(canned_draft=payload)
+    assert run.draft_version == 0
+    rules = {f.rule_id for f in run.validation_findings}
+    assert "RULE_REFERENCE_UNKNOWN" in rules, rules
+
+
+@pytest.mark.asyncio
+async def test_발표_주체가_없으면_초안을_만들지_않는다() -> None:
+    """§2.11 4단계. 누가 발표하는지 확정되지 않으면 초안을 내주지 않는다."""
+    store = RunStore()
+    orchestrator = Orchestrator(store, FakeModelGateway())
+    request = CreateRunRequest(
+        client_request_id="no-subject",
+        purpose="발표 주체 없이 초안이 나오는지 확인합니다.",
+        disclosure=Disclosure.PUBLIC,
+        basis_date=date(2025, 10, 26),
+        sources=_source_inputs(),
+        announcement_subject=None,
+        external_ai_policy_version=EXTERNAL_AI_POLICY_VERSION,
+        external_ai_transfer_confirmed=True,
+        final_text_completeness_confirmations=[
+            FinalTextConfirmation(source_id=INTRODUCED_SOURCE_ID, confirmed=True)
+        ],
+    )
+    run = orchestrator.create_run(request)
+    await orchestrator.process(run.run_id, request, date(2025, 10, 26))
+    result = store.get(run.run_id)
+    assert result.draft_version == 0, "발표 주체 없이 초안을 만들었습니다."
+    rules = {f.rule_id for f in result.validation_findings}
+    assert "ANNOUNCEMENT_SUBJECT_REQUIRED" in rules, rules
+
+
+def test_바뀐_조문을_하나도_찾지_못하면_멈춘다() -> None:
+    with pytest.raises(ArticleParseError) as exc:
+        parse_changed_articles(_body("다만, 지시문이 하나도 없다."))
+    assert exc.value.code == UNDETERMINABLE
+
+
+def test_신설_조문_본문_속_참조는_바뀐_조문으로_세지_않는다() -> None:
+    """§2.16.3. 새 조문 본문 안의 단순 참조는 세지 않는다."""
+    result = parse_changed_articles(
+        _body("제12조를 다음과 같이 신설한다.\n제7조의 규정에도 불구하고 접수할 수 있다.")
+    )
+    assert result.article_ids == ["제12조"], result.article_ids
+    assert result.fully_consumed

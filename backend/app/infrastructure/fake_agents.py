@@ -225,6 +225,7 @@ def fake_fact_extraction(payload: dict[str, Any]) -> dict[str, Any]:
     # 부칙과 조문 비교를 만든다. 둘 다 근거 문구를 원문에서 그대로 잘라 쓴다.
     rules = _supplementary_rules(payload, add_evidence)
     comparisons = _provision_comparisons(payload, add_evidence)
+    identities = _bill_identities(payload, add_evidence)
 
     # 고정 형식의 상한을 넘으면 **잘라내지 않고** 범위 초과로 멈춘다.
     # 잘라내면 뒤에 있던 값이 기록 없이 사라지고, 그 값이 걸려 있던 충돌도
@@ -255,7 +256,7 @@ def fake_fact_extraction(payload: dict[str, Any]) -> dict[str, Any]:
             "source_role_candidates": role_candidates,
             "evidence": evidence,
             "facts": facts,
-            "bill_identities": [],
+            "bill_identities": identities,
             "bill_relations": [],
             "legislative_events": [],
             "provision_comparisons": comparisons,
@@ -351,3 +352,49 @@ def _provision_comparisons(payload, add_evidence) -> list[dict[str, Any]]:
             }
         )
     return comparisons
+
+
+#: 의안번호를 원문에서 읽는다. 최종 의결문 Gate가 쓰는 것과 같은 모양이다.
+BILL_NUMBER_IN_TEXT = [
+    re.compile(r"의안\s*번호[^0-9]{0,10}(\d{6,8})"),
+    re.compile(r"제\s*(\d{6,8})\s*호"),
+]
+
+
+def _bill_identities(payload, add_evidence) -> list[dict[str, Any]]:
+    """자료에서 읽은 의안번호로 의안 신원을 만든다.
+
+    자료들이 **하나의 의안번호로만** 모이면 그것이 이번 보도 대상이다.
+    번호가 갈리면 어느 쪽도 보도 대상으로 정하지 않는다. 그래야 Harness가
+    "의안번호가 다르다"를 보고 멈출 수 있다.
+    """
+    found: list[tuple[str, str, str]] = []  # (source_id, number, quote)
+    for source in payload.get("sources", []):
+        text: str = source["text"]
+        for pattern in BILL_NUMBER_IN_TEXT:
+            for match in pattern.finditer(text):
+                quote = _line_of(text, match.start())
+                if quote:
+                    found.append((source["source_id"], match.group(1), quote))
+
+    numbers = {number for _, number, _ in found}
+    single = len(numbers) == 1
+
+    # 신원은 **의안 하나당 하나**다. 자료마다 만들면 같은 의안이 여러 번
+    # 올라가 고정 형식의 상한(2개)을 넘고, 형식 위반으로 전체가 멈춘다.
+    identities: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for source_id, number, quote in found:
+        if number in seen:
+            continue
+        seen.add(number)
+        identities.append(
+            {
+                "bill_id": f"B-{len(identities) + 1:02d}",
+                "bill_number": number,
+                "is_draft_subject": single,
+                "source_id": source_id,
+                "evidence_ids": [add_evidence(source_id, quote)],
+            }
+        )
+    return identities

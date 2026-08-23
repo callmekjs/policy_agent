@@ -28,6 +28,12 @@ MAX_CHANGED_ARTICLES = 3
 #: 줄 처음에 오는 대상 최상위 조문. `제23조의8` 같은 가지번호를 함께 읽는다.
 ARTICLE_TARGET = re.compile(r"^제\s*(\d+)\s*조(?:\s*의\s*(\d+))?")
 
+#: 개정 지시문의 끝맺음. 줄 처음에 조문 번호가 있어도 **이렇게 끝나지 않으면**
+#: 지시문이 아니라 새 조문 본문이다 (§2.16.3).
+#: 이것이 없으면 `제12조를 신설한다. / 제7조의 규정에도 불구하고 …`에서
+#: 뒷줄의 단순 참조까지 바뀐 조문으로 세어 없는 조문이 초안에 실린다.
+DIRECTIVE_TAIL = re.compile(r"(?:한다|본다|바꾼다|고친다|삭제)\s*\.?\s*$")
+
 #: 지시문에 딸린 하위 단위 줄. 바로 앞 조문의 새 본문으로 소비한다.
 PAYLOAD_PREFIX = re.compile(r"^(?:다만|단서|[①-⑳]|\d+\.|[가-힣]\.|[-*]\s)")
 
@@ -97,6 +103,11 @@ def parse_changed_articles(final_text: ResolvedFinalText) -> ChangedArticleSet:
             continue
 
         target = ARTICLE_TARGET.match(stripped)
+        if target and not DIRECTIVE_TAIL.search(stripped) and directives:
+            # 조문 번호로 시작하지만 지시문 모양이 아니다. 앞 지시문의 새 본문이다.
+            directives[-1].end = end
+            directives[-1].text += "\n" + stripped
+            continue
         if target:
             directives.append(
                 ProvisionDirective(
@@ -143,6 +154,8 @@ def parse_changed_articles(final_text: ResolvedFinalText) -> ChangedArticleSet:
         if directive.article_id not in article_ids:
             article_ids.append(directive.article_id)
 
+    # 앞의 두 검사(미해석 줄, 100% 소비)가 먼저 잡으므로 여기까지 오는 길은
+    # 사실상 없다. 그 검사들이 바뀌었을 때를 대비한 마지막 그물로만 둔다.
     if not article_ids:
         raise ArticleParseError(
             UNDETERMINABLE,

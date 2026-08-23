@@ -359,13 +359,24 @@ def _original_unchanged_chain(
             )
         numbers[source.source_id] = next(iter(found))
 
-    distinct = set(numbers.values())
-    if draft_bill_number:
-        distinct.add(draft_bill_number)
+    # §2.16.2 조건 2는 세 값이 **현재 보도 대상 의안과도** 같기를 요구한다.
+    # 보도 대상을 모르면 비교할 것이 없으므로 파생하지 않는다. 예전에는
+    # 보도 대상이 없으면 이 비교를 통째로 건너뛰었고, 그래서 이 팔이 죽어 있었다.
+    if not draft_bill_number:
+        return block(
+            FINAL_TEXT_UNSAFE_SUBJECT,
+            "이번 보도자료가 어느 의안을 다루는지 자료에서 확정하지 못했습니다. "
+            "발의안을 최종 의결 내용으로 대신 쓰려면 보도 대상 의안이 분명해야 "
+            "합니다.",
+            "의안번호가 분명히 적힌 공식 의안정보를 넣어 새 작업으로 다시 시도해 "
+            "주세요.",
+            [s.source_id for s in chain],
+        )
+
+    distinct = set(numbers.values()) | {draft_bill_number}
     if len(distinct) != 1:
         detail = ", ".join(f"{names[sid]} {num}" for sid, num in numbers.items())
-        if draft_bill_number:
-            detail += f", 보도 대상 의안 {draft_bill_number}"
+        detail += f", 보도 대상 의안 {draft_bill_number}"
         return block(
             FINAL_TEXT_UNSAFE_SUBJECT,
             f"자료마다 의안번호가 다릅니다: {detail}.",

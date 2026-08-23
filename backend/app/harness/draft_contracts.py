@@ -21,6 +21,14 @@ DRAFT_SCHEMA_VERSION = "1.1.0"
 #: 화면과 파일에서 절대 사라지면 안 되는 표시 (§4.2).
 DRAFT_LABEL = "DRAFT / 내부 검토용"
 
+#: 상태 칸에 쓸 수 있는 코드. 여기 없는 값은 막는다.
+#: 이 칸들은 사람이 읽는 글이 아니라 정해진 코드다. 자유로운 글을 허용하면
+#: 화면에 그대로 나가는 자리에 지어낸 사실을 담을 수 있다.
+STATUS_CODES = frozenset({"OK", "NEEDS_CONFIRMATION", "MISSING", "NOT_APPLICABLE"})
+
+#: 육하원칙 칸의 열쇠말.
+SIX_W_KEYS = frozenset({"who", "what", "when", "where", "why", "how"})
+
 #: 핵심 요약 개수. schema의 minItems·maxItems와 같은 값이다.
 MIN_KEY_POINTS = 2
 MAX_KEY_POINTS = 3

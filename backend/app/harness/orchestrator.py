@@ -63,6 +63,7 @@ EFFECT_STATUS_LABEL = "아직 법률 아님"
 
 #: 문의처는 사람이 확인해야 채워진다. 만들어 내지 않는다.
 CONTACT_PLACEHOLDER = "[문의처 확인 필요]"
+RELEASE_DATE_PLACEHOLDER = "[보도일 확인 필요]"
 
 
 def _now() -> datetime:
@@ -565,6 +566,17 @@ class Orchestrator:
             article_set,
             normalized,
             announcement_subject=announcement_subject,
+            # 공식 발언문 자료가 있을 때만 남의 말을 옮길 수 있다 (§2.16.2).
+            has_statement_source=any(
+                s.use_scope is SourceUseScope.ATTRIBUTED_STATEMENT_ONLY for s in sources
+            ),
+            # Harness가 스스로 넣는 정형 표시. AI가 지어낸 말이 아니다.
+            fixed_labels=(
+                SUPPORTED_PROCEDURE_STAGE_LABEL,
+                EFFECT_STATUS_LABEL,
+                CONTACT_PLACEHOLDER,
+                RELEASE_DATE_PLACEHOLDER,
+            ),
         )
         blocked = blocking(findings)
 
