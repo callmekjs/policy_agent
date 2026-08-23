@@ -30,6 +30,10 @@ PLENARY_SCOPED_KINDS = frozenset(
 #: 다른 회의를 가리키는 표현. 이 말이 붙은 자리의 값은 본회의 사실로 쓰지 않는다.
 OTHER_BODY_PATTERN = re.compile(r"소관위|법사위|위원회|소위")
 
+#: 사용자가 위원회 자료라고 표시한 역할. 화면에서 이미 확인받은 값이므로
+#: 본문 표기보다 확실한 근거다.
+COMMITTEE_ROLES = frozenset({"COMMITTEE_FINAL_TEXT"})
+
 #: 자료 원문에서 찾을 표현들. (사실 종류, 비교 항목, 정규식)
 FACT_PATTERNS: tuple[tuple[str, str, re.Pattern[str]], ...] = (
     ("BILL_IDENTITY", "bill_number", re.compile(r"의안\s*번호[:\s]*([0-9A-Z\-]+)")),
@@ -81,19 +85,25 @@ def _heading_of(text: str, index: int) -> str:
     return ""
 
 
-def _is_plenary_scope(text: str, index: int) -> bool:
-    """이 자리의 값이 본회의 사건의 것인가.
+def _is_plenary_scope(text: str, index: int, role: str) -> bool:
+    """이 자리의 값을 본회의 사실로 쓸 수 있는가.
 
-    줄이나 바로 위 제목에 `본회의`가 있어야 한다. 위원회를 가리키는 말이
-    함께 있으면 본회의 사실로 쓰지 않는다.
+    **다른 회의 것이라는 근거가 있을 때만 뺀다.** 반대로 하면(본회의라는
+    근거가 있을 때만 넣으면) 제목 없는 평문 붙여넣기에서 값이 통째로
+    사라진다. 값이 사라지면 두 자료의 충돌도 함께 사라져, 시스템이 말없이
+    한쪽을 고른 것과 같아진다. 그것이 거짓 충돌보다 훨씬 나쁘다.
     """
+    if role in COMMITTEE_ROLES:
+        return False
     line = _line_of(text, index)
-    heading = _heading_of(text, index)
     if OTHER_BODY_PATTERN.search(line):
         return False
     if "본회의" in line:
         return True
-    return "본회의" in heading and not OTHER_BODY_PATTERN.search(heading)
+    heading = _heading_of(text, index)
+    if heading and OTHER_BODY_PATTERN.search(heading) and "본회의" not in heading:
+        return False
+    return True
 
 
 def fake_fact_extraction(payload: dict[str, Any]) -> dict[str, Any]:
@@ -151,7 +161,7 @@ def fake_fact_extraction(payload: dict[str, Any]) -> dict[str, Any]:
                 if not quote:
                     continue
                 if kind in PLENARY_SCOPED_KINDS and not _is_plenary_scope(
-                    text, match.start()
+                    text, match.start(), source.get("role", "UNKNOWN")
                 ):
                     continue
                 evidence_id = add_evidence(source_id, quote)

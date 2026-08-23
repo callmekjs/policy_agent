@@ -593,3 +593,59 @@ async def test_위원회_표결_수를_본회의_것과_섞지_않는다() -> No
         "서로 다른 회의의 값을 충돌로 보고 정상 자료를 막았습니다: "
         f"{[i.subject for i in blocking]}"
     )
+
+
+@pytest.mark.asyncio
+async def test_제목이_없어도_충돌이_사라지지_않는다() -> None:
+    """README §2.3의 기본 입력은 제목 없는 평문 붙여넣기다.
+
+    값이 조용히 빠지면 두 자료의 충돌도 함께 사라져, 시스템이 말없이 한쪽을
+    고른 것과 같아진다. 거짓 충돌보다 훨씬 나쁘다.
+    """
+    a = "의결일: 2026. 8. 20.\n결과: 원안가결\n찬성: 201명\n"
+    b = "의결일: 2026. 8. 21.\n결과: 원안가결\n찬성: 202명\n"
+    run = await _run_flow(
+        [
+            ("표결 결과", a, SourceRole.PLENARY_VOTE_RESULT),
+            ("표결 안내", b, SourceRole.BILL_INFORMATION),
+        ]
+    )
+    subjects = [i.subject for i in run.issues if i.code.value == "FACT_CONFLICT"]
+    assert "plenary_decided_on" in subjects, f"날짜 충돌이 사라졌습니다: {subjects}"
+    assert "vote_yes_count" in subjects, f"찬성 수 충돌이 사라졌습니다: {subjects}"
+    assert run.draft_version == 0
+
+
+@pytest.mark.asyncio
+async def test_고정_자료의_제목을_지워도_충돌을_잡는다() -> None:
+    """검증에서 제목 한 줄만 지우면 충돌 3종이 모두 사라지는 문제가 나왔다."""
+    vote_name, vote_text, vote_role = _vote_source("date_conflict")
+    other_name, other_text, other_role = _other_vote_source()
+    without_heading = "\n".join(
+        line for line in other_text.splitlines() if not line.lstrip().startswith("#")
+    )
+    run = await _run_flow(
+        [(vote_name, vote_text, vote_role), (other_name, without_heading, other_role)]
+    )
+    conflicts = [i for i in run.issues if i.code.value == "FACT_CONFLICT"]
+    assert conflicts, "제목을 지우자 충돌이 사라졌습니다."
+    assert "2026. 8. 20" in conflicts[0].message
+    assert "2026. 8. 21" in conflicts[0].message
+
+
+@pytest.mark.asyncio
+async def test_사용자가_위원회_자료라고_표시하면_본회의_값으로_쓰지_않는다() -> None:
+    """화면에서 이미 확인받은 역할은 본문 표기보다 확실한 근거다."""
+    text = "의결일: 2025. 9. 18.\n재석: 24명\n찬성: 24명\n"
+    run = await _run_flow(
+        [
+            ("위원회 최종문", text, SourceRole.COMMITTEE_FINAL_TEXT),
+            (
+                "본회의 표결 결과",
+                "의결일: 2025. 9. 25.\n재석: 205명\n찬성: 201명\n",
+                SourceRole.PLENARY_VOTE_RESULT,
+            ),
+        ]
+    )
+    blocking = [i for i in run.issues if i.severity.value == "BLOCKING"]
+    assert blocking == [], f"위원회 값을 본회의 것과 섞었습니다: {[i.subject for i in blocking]}"
