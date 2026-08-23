@@ -621,3 +621,65 @@ def test_신설_조문_본문_속_참조는_바뀐_조문으로_세지_않는다
     )
     assert result.article_ids == ["제12조"], result.article_ids
     assert result.fully_consumed
+
+
+# ---------------------------------------------------------------------------
+# 검토가 뚫었던 공격들. 다시 뚫리면 여기서 죽는다.
+# ---------------------------------------------------------------------------
+
+ATTACKS_V2 = [
+    ("한글 숫자", lambda d: _append(d, "재석 이백오십인 중 찬성 이백사십구인이었다.")),
+    ("한자 숫자", lambda d: _append(d, "재석 二百五十인이었다.")),
+    ("전각 숫자", lambda d: _append(d, "재석 ２５０인이었다.")),
+    ("원장 날짜 조각 재사용", lambda d: _append(d, "재석 26인 중 찬성 10인으로 의결됐다.")),
+    ("없는 인명", lambda d: _lead(d, "김영수 위원장은 이번 의결을 환영했다.")),
+    ("없는 기관", lambda d: _lead(d, "문화체육관광부가 후속 조치를 맡는다.")),
+    ("따옴표 없는 인용", lambda d: _lead(d, "조계원 의원은 현장의 오랜 숙원이 풀렸다고 밝혔다.")),
+    ("낫표 인용", lambda d: _lead(d, "의원은 「현장의 숙원이 풀렸다」고 말했다.")),
+    ("자료 낱말로 조립한 발언", lambda d: _lead(d, "의원은 “기부금품을 모집할 수 있다”고 밝혔다.")),
+    ("공포되어", lambda d: _lead(d, "이 법은 공포되어 곧 효력을 갖는다.")),
+    ("시행됩니다", lambda d: _lead(d, "이 법은 공포한 날부터 시행됩니다.")),
+    ("개정이 완료됐습니다", lambda d: _lead(d, "문화예술진흥법 개정이 완료됐습니다.")),
+    ("띄어쓴 공 포되었다", lambda d: _lead(d, "이 법은 공 포되었다.")),
+    ("요약에 다른 시행일", lambda d: _point(d, "공포 후 6개월이 지난 날부터 시행된다.")),
+    ("제목에 공포 즉시 시행", lambda d: _title(d, "공포 즉시 시행")),
+    ("부칙 ID는 두고 내용만 바꿈", lambda d: d["paragraphs"][-1].__setitem__("text", "공포 후 6개월이 지난 날부터 시행된다.")),
+    ("빈칸 표시에 지어낸 수", lambda d: d.__setitem__("placeholders", ["재석 250인 중 찬성 249인"])),
+    ("주장에 지어낸 인명", lambda d: d["claims"][0].__setitem__("text", "김영수 장관이 발표했다")),
+    ("기준일 조작", lambda d: d.__setitem__("basis_date", "2099-12-31")),
+    ("육하원칙에 자유 글", lambda d: d.__setitem__("six_w_status", {"who": "김영수 장관"})),
+    ("인용 칸에 지어낸 발언", lambda d: d.__setitem__("quote", {"text": "국민을 위한 법이다"})),
+    ("붙임에 지어낸 값", lambda d: d.__setitem__("attachments", [{"title": "재석 250인 표결표"}])),
+    ("상태 코드에 자유 글", lambda d: d.__setitem__("contact_status", "김영수 장관실")),
+    ("대외 공개 가능 문서", lambda d: _title(d, "대외 공개 가능 문서")),
+    ("띄어쓴 최 종 본", lambda d: _title(d, "최 종 본 문화예술진흥법")),
+    ("띄어쓴 안 센 조문", lambda d: _point(d, "바뀐 조문은 제 99 조이다.")),
+]
+
+
+def _lead(d: dict, text: str) -> None:
+    d["lead"]["text"] = text
+
+
+def _title(d: dict, text: str) -> None:
+    d["title"]["text"] = text
+
+
+def _point(d: dict, text: str) -> None:
+    d["key_points"][1]["text"] = text
+
+
+def _append(d: dict, text: str) -> None:
+    d["paragraphs"][0]["text"] += " " + text
+
+
+@pytest.mark.parametrize(
+    ("name", "mutate"), ATTACKS_V2, ids=[a[0] for a in ATTACKS_V2]
+)
+def test_검토가_뚫었던_공격은_이제_막힌다(good_draft, name, mutate) -> None:
+    run = asyncio.run(_run(canned_draft=_spoil(good_draft, mutate)))
+    assert run.draft_version == 0, f"{name}: 오염된 초안이 나갔습니다."
+    assert run.draft is None
+    assert [f for f in run.validation_findings if f.severity.value == "BLOCKING"], (
+        f"{name}: 초안은 막혔지만 이유가 기록되지 않았습니다."
+    )
