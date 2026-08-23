@@ -873,7 +873,9 @@ async def test_지어낸_근거로_만든_사실이_조용히_사라지지_않�
 
     issues = _rejected_fact_issues(evidence)
     assert issues, "지어낸 근거로 만든 사실이 알림 없이 사라졌습니다."
-    assert "2207285" in issues[0].message, "어떤 값이 빠졌는지 보여 주지 않았습니다."
+    shown = chr(10).join(i.message for i in issues)
+    assert "2207285" in shown, "어떤 값이 빠졌는지 보여 주지 않았습니다."
+    assert "원문에 없는 문장" in shown, "AI가 제시한 근거 문구를 보여 주지 않았습니다."
 
 
 @pytest.mark.asyncio
@@ -1218,3 +1220,120 @@ async def test_전체_흐름에서도_버린_사실이_충돌을_가리지_않�
     )
     assert any(s.startswith("EVIDENCE_") for s in subjects), "버린 사실을 알리지 않았습니다."
     assert run.draft_version == 0
+
+
+# ---------------------------------------------------------------------------
+# 합격선 C1·C2 — 버린 값은 반드시 값과 함께 남는다
+# ---------------------------------------------------------------------------
+
+
+def _canned(**overrides) -> dict:
+    base = {
+        "result_status": "OK",
+        "scope_error": None,
+        "source_role_candidates": [],
+        "evidence": [
+            {"evidence_id": "EV-01", "source_id": "SRC-01", "quote": "의안번호: 2207285"}
+        ],
+        "facts": [],
+        "bill_identities": [],
+        "bill_relations": [],
+        "legislative_events": [],
+        "provision_comparisons": [],
+        "supplementary_rules": [],
+    }
+    base.update(overrides)
+    return {"schema_version": FACT_RESULT_SCHEMA_VERSION, "result": base}
+
+
+async def _shown_text(response: dict) -> str:
+    """화면에 실제로 나가는 글을 전부 모은다."""
+    run = await _run_flow_with_response(
+        [("의안정보", "의안번호: 2207285\n", SourceRole.BILL_INFORMATION)], response
+    )
+    parts = [run.failure_message or ""]
+    parts += [i.message for i in run.issues]
+    parts += run.rejected_evidence
+    assert run.draft_version == 0
+    return "\n".join(parts)
+
+
+@pytest.mark.asyncio
+async def test_버린_부칙의_내용이_화면에_남는다() -> None:
+    shown = await _shown_text(
+        _canned(
+            supplementary_rules=[
+                {
+                    "rule_id": "SR-01",
+                    "kind": "EFFECTIVE_DATE",
+                    "applies_to": "이 법은 공포 후 3개월이 경과한 날부터 시행한다",
+                    "source_id": "SRC-01",
+                    "evidence_id": "EV-없음",
+                    "valid_source_role_candidate_ids": [],
+                }
+            ]
+        )
+    )
+    assert "공포 후 3개월" in shown, f"부칙 내용이 기록 없이 사라졌습니다: {shown}"
+
+
+@pytest.mark.asyncio
+async def test_버린_입법_사건의_내용이_화면에_남는다() -> None:
+    shown = await _shown_text(
+        _canned(
+            legislative_events=[
+                {
+                    "event_id": "LE-01",
+                    "bill_id": "B-1",
+                    "procedure_stage": "PLENARY_DECIDED",
+                    "disposition": "REJECTED",
+                    "occurred_on": "2099-01-01",
+                    "source_id": "SRC-01",
+                    "evidence_id": "EV-없음",
+                    "valid_source_role_candidate_ids": [],
+                }
+            ]
+        )
+    )
+    assert "2099-01-01" in shown, f"입법 사건 내용이 기록 없이 사라졌습니다: {shown}"
+
+
+@pytest.mark.asyncio
+async def test_버린_의안의_번호가_화면에_남는다() -> None:
+    shown = await _shown_text(
+        _canned(
+            bill_identities=[
+                {
+                    "bill_id": "B-1",
+                    "bill_number": "2209999",
+                    "is_draft_subject": True,
+                    "source_id": "SRC-01",
+                    "evidence_ids": ["EV-없음"],
+                }
+            ]
+        )
+    )
+    assert "2209999" in shown, f"의안번호가 기록 없이 사라졌습니다: {shown}"
+
+
+@pytest.mark.asyncio
+async def test_지어낸_근거_문구도_화면에_남는다() -> None:
+    shown = await _shown_text(
+        _canned(
+            evidence=[
+                {"evidence_id": "EV-01", "source_id": "SRC-01", "quote": "원문에 없는 문장"}
+            ],
+            facts=[
+                {
+                    "fact_id": "F-01",
+                    "kind": "BILL_IDENTITY",
+                    "value": "2207285",
+                    "source_id": "SRC-01",
+                    "evidence_id": "EV-01",
+                    "valid_source_role_candidate_ids": [],
+                }
+            ],
+        )
+    )
+    assert "원문에 없는 문장" in shown, "AI가 지어낸 근거 문구를 보여 주지 않았습니다."
+    assert "2207285" in shown, "버린 사실의 값을 보여 주지 않았습니다."

@@ -74,6 +74,9 @@ def locate_evidence(
                     kind="UNKNOWN_SOURCE",
                     fact_id=candidate.evidence_id,
                     detail=f"없는 자료를 가리킵니다: {candidate.source_id}",
+                    value=candidate.quote,
+                    source_name=source_names.get(candidate.source_id, candidate.source_id),
+                    quote=candidate.quote,
                 )
             )
             continue
@@ -85,6 +88,9 @@ def locate_evidence(
                     kind="NOT_FOUND",
                     fact_id=candidate.evidence_id,
                     detail="제시한 근거 문구가 자료 원문에 없습니다.",
+                    value=candidate.quote,
+                    source_name=source_names.get(candidate.source_id, candidate.source_id),
+                    quote=candidate.quote,
                 )
             )
             continue
@@ -125,16 +131,36 @@ def build_fact_ledger(
     # 근거를 찾지 못한 항목이 원장에 남으면 초안 Agent가 그것을 읽게 된다.
     ledger = FactLedger(
         legislative_events=_keep_with_evidence(
-            raw.legislative_events, evidence, "event_id", ("evidence_id",)
+            raw.legislative_events,
+            evidence,
+            "event_id",
+            ("evidence_id",),
+            "LEGISLATIVE_EVENT",
+            lambda i: f"{i.procedure_stage.value} {i.disposition.value} {i.occurred_on}",
         ),
         supplementary_rules=_keep_with_evidence(
-            raw.supplementary_rules, evidence, "rule_id", ("evidence_id",)
+            raw.supplementary_rules,
+            evidence,
+            "rule_id",
+            ("evidence_id",),
+            "SUPPLEMENTARY_RULE",
+            lambda i: f"{i.kind.value} {i.applies_to}",
         ),
         bill_identities=_keep_with_evidence(
-            raw.bill_identities, evidence, "bill_id", ("evidence_ids",)
+            raw.bill_identities,
+            evidence,
+            "bill_id",
+            ("evidence_ids",),
+            "BILL_IDENTITY",
+            lambda i: i.bill_number,
         ),
         bill_relations=_keep_with_evidence(
-            raw.bill_relations, evidence, "origin_bill_id", ("evidence_ids",)
+            raw.bill_relations,
+            evidence,
+            "origin_bill_id",
+            ("evidence_ids",),
+            "BILL_RELATION",
+            lambda i: f"{i.origin_bill_id} -> {i.alternative_bill_id} ({i.relation_type})",
         ),
         provision_comparisons=_keep_comparisons(raw.provision_comparisons, evidence),
     )
@@ -173,6 +199,8 @@ def _keep_with_evidence(
     evidence: EvidenceResult,
     id_field: str,
     evidence_fields: tuple[str, ...],
+    item_kind: str = "",
+    value_of=None,
 ) -> list:
     """근거가 실제 원문에서 확인된 항목만 남긴다.
 
@@ -186,7 +214,14 @@ def _keep_with_evidence(
             needed.extend(value if isinstance(value, list) else [value])
 
         item_id = str(getattr(item, id_field))
-        problem = _evidence_problem(item, item_id, needed, evidence)
+        problem = _evidence_problem(
+            item,
+            item_id,
+            needed,
+            evidence,
+            item_kind,
+            value_of(item) if value_of else "",
+        )
         if problem is not None:
             evidence.problems.append(problem)
             continue
@@ -257,13 +292,21 @@ def _evidence_problem(
     item_id: str,
     needed: list[str],
     evidence: EvidenceResult,
+    item_kind: str = "",
+    value: str = "",
 ) -> EvidenceProblem | None:
-    """항목의 근거가 쓸 만한지 본다. 사실과 같은 기준을 적용한다."""
+    """항목의 근거가 쓸 만한지 본다. 사실과 같은 기준을 적용한다.
+
+    버릴 때는 **무엇을 버렸는지** 사실과 같은 수준으로 남긴다. 내부 ID만 남기면
+    화면에서 `SR-01`처럼 보여 아무도 알아볼 수 없다.
+    """
     if not needed:
         return EvidenceProblem(
             kind="UNKNOWN_EVIDENCE",
             fact_id=item_id,
             detail="근거를 대지 않아 쓰지 않았습니다.",
+            fact_kind=item_kind,
+            value=value,
         )
 
     for evidence_id in needed:
@@ -273,6 +316,8 @@ def _evidence_problem(
                 kind="UNKNOWN_EVIDENCE",
                 fact_id=item_id,
                 detail="근거를 확인하지 못해 쓰지 않았습니다.",
+                fact_kind=item_kind,
+                value=value,
             )
         # 항목이 가리키는 자료와 근거가 있는 자료가 달라도 안 된다.
         # 그러지 않으면 다른 자료의 진짜 근거를 빌려 붙일 수 있다.
@@ -282,6 +327,11 @@ def _evidence_problem(
                 kind="UNKNOWN_SOURCE",
                 fact_id=item_id,
                 detail="항목과 근거가 서로 다른 자료를 가리킵니다.",
+                fact_kind=item_kind,
+                value=value,
+                source_name=location.source_name,
+                quote=location.quote,
+                raw_line=location.raw_start_line,
             )
         if location.occurrence_count > 1:
             return EvidenceProblem(
@@ -291,6 +341,11 @@ def _evidence_problem(
                     f"근거 문구가 자료에서 {location.occurrence_count}군데 나와 "
                     "어디를 가리키는지 알 수 없습니다."
                 ),
+                fact_kind=item_kind,
+                value=value,
+                source_name=location.source_name,
+                quote=location.quote,
+                raw_line=location.raw_start_line,
             )
     return None
 

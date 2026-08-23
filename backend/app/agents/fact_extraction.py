@@ -125,35 +125,42 @@ def parse_result(call: ModelCallResult) -> FactExtractionResult:
 
 
 def _check_references(result: FactExtractionResult) -> None:
-    """항목들이 서로 있는 것만 가리키는지 확인한다."""
+    """항목들이 서로 있는 것만 가리키는지 확인한다.
+
+    거부할 때는 **어떤 항목의 어떤 값이 문제인지** 함께 말한다. 항목 이름만
+    말하면 사용자가 무엇이 빠졌는지 알 수 없다.
+    """
     evidence_ids = {e.evidence_id for e in result.evidence}
     candidate_ids = {c.candidate_id for c in result.source_role_candidates}
 
     if len(evidence_ids) != len(result.evidence):
         raise AgentResultError("AGENT_SCHEMA_INVALID", "근거 ID가 중복됩니다.")
 
-    def require_evidence(evidence_id: str, where: str) -> None:
-        if evidence_id not in evidence_ids:
-            raise AgentResultError(
-                "AGENT_SCHEMA_INVALID", f"{where}가 없는 근거를 가리킵니다."
-            )
-
-    def require_candidates(ids: list[str], where: str) -> None:
-        missing = [i for i in ids if i not in candidate_ids]
+    def check(evidence_refs: list[str], candidate_refs: list[str], label: str) -> None:
+        missing = [e for e in evidence_refs if e not in evidence_ids]
         if missing:
             raise AgentResultError(
-                "AGENT_SCHEMA_INVALID", f"{where}가 없는 역할 후보를 가리킵니다."
+                "AGENT_SCHEMA_INVALID",
+                f"{label}이(가) 없는 근거를 가리켜 쓸 수 없습니다.",
+            )
+        missing_candidates = [c for c in candidate_refs if c not in candidate_ids]
+        if missing_candidates:
+            raise AgentResultError(
+                "AGENT_SCHEMA_INVALID",
+                f"{label}이(가) 없는 자료 역할 후보를 가리켜 쓸 수 없습니다.",
             )
 
     for fact in result.facts:
-        require_evidence(fact.evidence_id, "사실")
-        require_candidates(fact.valid_source_role_candidate_ids, "사실")
+        value = fact.value if isinstance(fact.value, str) else ", ".join(fact.value)
+        check([fact.evidence_id], fact.valid_source_role_candidate_ids, f"사실 `{value}`")
     for event in result.legislative_events:
-        require_evidence(event.evidence_id, "입법 사건")
-        require_candidates(event.valid_source_role_candidate_ids, "입법 사건")
+        label = f"입법 사건 `{event.procedure_stage.value} {event.disposition.value} {event.occurred_on}`"
+        check([event.evidence_id], event.valid_source_role_candidate_ids, label)
     for rule in result.supplementary_rules:
-        require_evidence(rule.evidence_id, "부칙")
-        require_candidates(rule.valid_source_role_candidate_ids, "부칙")
+        check(
+            [rule.evidence_id],
+            rule.valid_source_role_candidate_ids,
+            f"부칙 `{rule.kind.value} {rule.applies_to}`",
+        )
     for candidate in result.source_role_candidates:
-        for evidence_id in candidate.evidence_ids:
-            require_evidence(evidence_id, "역할 후보")
+        check(candidate.evidence_ids, [], f"자료 역할 후보 `{candidate.label}`")
