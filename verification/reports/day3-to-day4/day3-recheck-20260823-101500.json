@@ -1,0 +1,418 @@
+{
+  "gate_id": "DEMO-DAY3-GATE",
+  "run_id": "day3-recheck-20260823-101500",
+  "readme_version": "0.23.0-draft",
+  "started_at": "2026-08-23T10:00:00+09:00",
+  "completed_at": "2026-08-23T10:15:00+09:00",
+  "verifier": {
+    "context": "구현 담당자와 다른 새 문맥의 DayGateVerifier. 재검증(직전 day3-gate-20260823-095500은 BLOCKED이며 소스 변경으로 STALE). 제품 코드·시험·README를 고치지 않았다.",
+    "is_separate_from_implementer": true
+  },
+  "source_snapshot": {
+    "file_count": 45,
+    "combined_sha256": "22b662ab22bd1d37b23cc0d750f842f1d7cef406b5e77898ed80ddb3956f27b7",
+    "files": [
+      {
+        "path": "backend/app/__init__.py",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "backend/app/agents/__init__.py",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "backend/app/agents/fact_extraction.py",
+        "sha256": "9ae54a8f23c97ea5b0c9444c393db6dd3346371513aca80daa72cb318ee849b0"
+      },
+      {
+        "path": "backend/app/api/__init__.py",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "backend/app/api/runs.py",
+        "sha256": "01fa900b01b524dc40776cdec77672ff2105dfdc7cec3e40887156cbec741b5b"
+      },
+      {
+        "path": "backend/app/gates/__init__.py",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "backend/app/gates/conflict_gate.py",
+        "sha256": "6778aea60adc9e4c3f2f5205bac3a4d27113bfba1d13e133f7af178062b1e384"
+      },
+      {
+        "path": "backend/app/gates/evidence_gate.py",
+        "sha256": "bfd89b059718695fb5546c22f05bbb397847961c11ccc73e818c0a73e4613128"
+      },
+      {
+        "path": "backend/app/gates/input_gate.py",
+        "sha256": "69faf53ee7f63da367c6c510f85549b0edf181f0237f59ada7ed9cf06e3f824e"
+      },
+      {
+        "path": "backend/app/gates/source_role_gate.py",
+        "sha256": "36cd3c0c0d14119fa42b04ca73c6e39a7cd9271ee560b142019b975ceecbe8b8"
+      },
+      {
+        "path": "backend/app/harness/__init__.py",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "backend/app/harness/contract_loader.py",
+        "sha256": "a49a8ed1b9d204d4fdfdef91fab4d914f0ececca971bdd5630cbfa9a8d33383a"
+      },
+      {
+        "path": "backend/app/harness/contracts.py",
+        "sha256": "cd3a8033751f78ea94ae144c43e93ba1428dd1de4694f71d0527f19c62ce6b2b"
+      },
+      {
+        "path": "backend/app/harness/fact_contracts.py",
+        "sha256": "4ad373d76c71a1eae94210ae469f8291d538933ac74c0bb4ce50ed7e238385e0"
+      },
+      {
+        "path": "backend/app/harness/orchestrator.py",
+        "sha256": "efbb0711f315f77fcbe244b1203d197f8e09fd12b333a053c9bd18d23e290eda"
+      },
+      {
+        "path": "backend/app/harness/runtime.py",
+        "sha256": "adb8394f5c16e73ad4969e14f62940d7a82c6177fb7f328422e1cbd417a24b2c"
+      },
+      {
+        "path": "backend/app/harness/source_normalizer.py",
+        "sha256": "dd1d9513b6598f94fd7f8430283c38270211b5341c4143898069869839f9713d"
+      },
+      {
+        "path": "backend/app/harness/states.py",
+        "sha256": "a75afd52f696b966b507326ba31e1dc42976986ec50b1dfb015cd2c428adad03"
+      },
+      {
+        "path": "backend/app/infrastructure/__init__.py",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "backend/app/infrastructure/fake_agents.py",
+        "sha256": "94787140ee07d87b78b09f808d482233762d891ea69d11f3dfbd1cab19f5e92c"
+      },
+      {
+        "path": "backend/app/infrastructure/model_gateway.py",
+        "sha256": "ec8804f1b6949a0a6dc53b04cbb279946140535fd8728737eb4791f128eace1e"
+      },
+      {
+        "path": "backend/app/infrastructure/run_store.py",
+        "sha256": "518fea31c2af082ca83333c03bcf6ae4563131135dda07455d67cc337fac984a"
+      },
+      {
+        "path": "backend/app/main.py",
+        "sha256": "e5b6bb9719b1acc89f337e4d7c569fd2d836d95c3c9049c598d1ccf408ce6c76"
+      },
+      {
+        "path": "backend/app/writing_contracts/assembly_law_amendment_v1/contract.yaml",
+        "sha256": "9065fa6d7d3f31d8d487517ef43c770a1003aec034d099ab21eadf579a5af6bc"
+      },
+      {
+        "path": "backend/app/writing_contracts/assembly_law_amendment_v1/profile.yaml",
+        "sha256": "29c13548a7504677bf12dd80016c989071d8fb1b37cd557527b812f5237a507c"
+      },
+      {
+        "path": "backend/app/writing_contracts/assembly_law_amendment_v1/style.yaml",
+        "sha256": "13434349ee3564b2fd389889eb4e1cd286ca4d618466435ceef4fc57dd7cb9ba"
+      },
+      {
+        "path": "backend/app/writing_contracts/assembly_law_amendment_v1/template.yaml",
+        "sha256": "0fe4f17dd0d01e1cb6255fd4e541a102ccedde6891f9a6933749b7e5e980c7ef"
+      },
+      {
+        "path": "backend/app/writing_contracts/assembly_law_amendment_v1/validation.yaml",
+        "sha256": "fa672e462157407ab4edb70965cbbf34ce69febdc4e87a2c079419fb0b2246bf"
+      },
+      {
+        "path": "frontend/src/App.test.tsx",
+        "sha256": "028195da963747366c0cdcefa640ad24079c622c835ce48465c6321a76b3dc1b"
+      },
+      {
+        "path": "frontend/src/App.tsx",
+        "sha256": "dd865cd5e5f5eeb30a9d0f1072439a27f0c0ca1de4037c8603a6d50d4ebd43cc"
+      },
+      {
+        "path": "frontend/src/api/client.ts",
+        "sha256": "d7642940572b68e3f8fcf4f495584f8bb3817bad4a861a0f9b0688513765d401"
+      },
+      {
+        "path": "frontend/src/main.tsx",
+        "sha256": "8070aefba6d43f5300a919f02adb3071318bee89f10cffe07c64df74e85a1635"
+      },
+      {
+        "path": "frontend/src/screens/NewRunScreen.tsx",
+        "sha256": "77f78e0e37846568b2058a34e1f32a743feb8c461f0a1bd1bf14dcdd9a96ddaf"
+      },
+      {
+        "path": "frontend/src/screens/RunStatusScreen.tsx",
+        "sha256": "dd67621cc54201714b447857f83ef9d2e3a0f45eb177a9b3cba6d89813670c3b"
+      },
+      {
+        "path": "frontend/src/styles.css",
+        "sha256": "f9e5f80cafaceaa27559a71f65b2a1dd5a4c2774645c28c927004203969b0e8b"
+      },
+      {
+        "path": "frontend/src/test-setup.ts",
+        "sha256": "977afde26bba6a51325908cd7713cbfdc87d18f06b78b237c8f364c44864b7de"
+      },
+      {
+        "path": "frontend/src/types.ts",
+        "sha256": "fec82a0b4909d5f3057d473a4a37a20ac705f6377c02b5b65901344fc20d6292"
+      },
+      {
+        "path": "scripts/verify-day1.ps1",
+        "sha256": "dcc321effa7030f9f2228a0531daca1c3967548d8fcb5b220dd8a44a6b02679b"
+      },
+      {
+        "path": "start-local.cmd",
+        "sha256": "bf6f2dfbd57aba02018dfde5fd69668b498f6fd6a51462e26feb935a4d1b10a9"
+      },
+      {
+        "path": "stop-local.cmd",
+        "sha256": "08c4daa5d14b3699c7a090612ea52faebbb09aac867b277af0f7a8394a1b6669"
+      },
+      {
+        "path": "tests/test_day1_gate.py",
+        "sha256": "bd7b2b75f4485f113c6a84ec86de6421c8985c06fdc8538187c60e5189aeeeb5"
+      },
+      {
+        "path": "tests/test_fact_extraction.py",
+        "sha256": "3bb520a764891701a4495ed3ce4d1453a174e442d352d82626151df51d964332"
+      },
+      {
+        "path": "tests/test_harness_flow.py",
+        "sha256": "a8b27906fabd2c1d89073663dc733bcaaed319ff40822bbc8024a3637877bb0a"
+      },
+      {
+        "path": "verification/day-gate-result.schema.json",
+        "sha256": "1c0f59930f119be9f8d725e5c1c848725f02b76c674298e9d31b97e202773dd7"
+      },
+      {
+        "path": "verification/day-gate-verifier.md",
+        "sha256": "1b0e7934decea5a2711b5cf8c579ceb39d73be9e6c1db7bd5fb9b44ddee3b149"
+      }
+    ]
+  },
+  "verdict": "PASS",
+  "checks": [
+    {
+      "check_id": "D3G-01",
+      "title": "1일차 회귀 (D1G-01~07)",
+      "status": "PASS",
+      "commands": [
+        {
+          "command": "powershell -ExecutionPolicy Bypass -File scripts\\verify-day1.ps1",
+          "exit_code": 0,
+          "summary": "DEMO-DAY1-GATE=PASS, D1G-01~07 전부 PASS, blockers 0 warnings 0"
+        }
+      ],
+      "evidence": [
+        "verification/reports/day1-to-day2/day1-20260823-100132.json: gate_id=DEMO-DAY1-GATE verdict=PASS blockers=[] warnings=[]",
+        "D1G-01 PASS / D1G-02 PASS / D1G-03 PASS / D1G-04 PASS / D1G-05 PASS / D1G-06 PASS / D1G-07 PASS",
+        "실행 바로가기로 8765의 /api/health 200, 실행기가 스스로 종료, stop-local.cmd 뒤 포트 0개",
+        "경로 탈출 6종 모두 첫 화면 413 bytes로 되돌림, 쿠키 없는 요청 403",
+        "소스 snapshot 45개 통합 해시 22b662ab22bd1d37 (직전 보고서 621494e1f4188490과 다름 -> 직전 보고서 STALE 확인)",
+        "검사원이 45개 파일 해시를 독립 재계산해 script 결과와 파일별로 전부 일치함을 확인"
+      ]
+    },
+    {
+      "check_id": "D3G-02",
+      "title": "원문 보존 source_text_v1",
+      "status": "PASS",
+      "commands": [
+        {
+          "command": "python scratchpad/probe_preserve.py (검사원 자작 경계·무작위 시험)",
+          "exit_code": 0,
+          "summary": "경계 9종 통과, 무작위 4000건 역매핑 오류 0건"
+        }
+      ],
+      "evidence": [
+        "source_normalizer.py는 직전 보고서 snapshot 이후 변경 0건 (git diff a3895f8~1..HEAD 비어 있음)",
+        "공백 합침·앞뒤 자르기 없음: 앞뒤 공백과 탭·빈 줄이 한 글자도 안 변함",
+        "NFKC 아님: 전각 문자가 그대로, 이모지 ZWJ 가족 이모지 보존",
+        "BOM 제거·CRLF/CR->LF 확인, raw_sha256과 normalized_sha256이 각각 다르게 기록됨",
+        "분해 한글 U+1112 U+1161 U+11AB -> 한 글자로 합쳐지고, 확장 U+0958도 처리됨",
+        "빈 입력·공백만·BOM만은 SOURCE_NORMALIZATION_FAILED로 AI 호출 전 차단",
+        "무작위 4000건: 정상 역매핑 3978, 역매핑 오류 0, 정규화 거부 22(공백만 생성분)"
+      ]
+    },
+    {
+      "check_id": "D3G-03",
+      "title": "근거 대조와 원장 진입 통제 (D2 포함)",
+      "status": "PASS",
+      "commands": [
+        {
+          "command": "python scratchpad/probe_evidence_role.py",
+          "exit_code": 0,
+          "summary": "지어낸 근거 0건 통과, Harness 전용 필드 5종 모두 AGENT_SCHEMA_INVALID"
+        },
+        {
+          "command": "python scratchpad/probe_d2.py",
+          "exit_code": 0,
+          "summary": "5개 목록 전부 근거 없으면 원장 진입 0건, 진짜 근거는 1건 통과"
+        }
+      ],
+      "evidence": [
+        "원문에 없는 근거 -> facts=0, rejected=[F-01], problems=[NOT_FOUND, UNKNOWN_EVIDENCE]",
+        "진짜 1건 + 지어낸 1건 -> F-01만 통과, F-02는 버린 목록",
+        "공백 1칸 다른 근거도 0건 (비슷한 문장을 찾아 주지 않음)",
+        "Agent가 provenance/protected/normalized_start/raw_start_line/confirmed_role 보내면 5종 모두 AGENT_SCHEMA_INVALID",
+        "D2 해결 확인: legislative_events·supplementary_rules·bill_identities·bill_relations·provision_comparisons 5개 모두 근거 미확인·근거 문구 NOT_FOUND·근거 목록 빈 경우에 원장 진입 0건, 이유가 evidence.problems에 기록됨",
+        "과잉 차단 없음: 진짜 근거를 단 5개 목록은 각각 1건 그대로 통과",
+        "잔여 구멍(미룸): _keep_with_evidence가 항목 source_id와 근거 source_id 불일치를 보지 않아, 다른 자료의 진짜 근거를 인용한 disposition=REJECTED / occurred_on=2099-01-01 사건이 원장에 남음. 같은 조건의 사실은 UNKNOWN_SOURCE로 버려짐. 반복 근거(AMBIGUOUS)도 5개 목록에는 적용되지 않음"
+      ]
+    },
+    {
+      "check_id": "D3G-04",
+      "title": "충돌·요일 검사 (B1·B2)",
+      "status": "PASS",
+      "commands": [
+        {
+          "command": "python scratchpad/fixture_flow.py (manifest 4개 variant를 전 흐름에)",
+          "exit_code": 0,
+          "summary": "BASELINE 0건 / DATE_CONFLICT·COUNT_CONFLICT·WEEKDAY_MISMATCH 각 1건 차단"
+        },
+        {
+          "command": "python scratchpad/probe_api2.py (같은 4개를 HTTP API로)",
+          "exit_code": 0,
+          "summary": "HTTP 202 -> NEEDS_INPUT, draft_version=0, calls=0, cost=0"
+        }
+      ],
+      "evidence": [
+        "검사원이 manifest의 target_id를 그대로 읽어 mutation을 SR1-S05에만 적용하고 5개 자료 전부를 넣었다",
+        "BASELINE: state=FAILED/DAY3_SCOPE_LIMIT, 사실 16건, BLOCKING 0건 (정상 자료가 막히지 않음)",
+        "DATE_CONFLICT: NEEDS_INPUT + FACT_CONFLICT/plenary_decided_on. 2026. 8. 20 - SR1-S03 5행 과 2026. 8. 21 - SR1-S05 4행 두 값·두 자료·두 원문이 모두 보이고 자동 선택 없음",
+        "COUNT_CONFLICT: NEEDS_INPUT + FACT_CONFLICT/vote_yes_count. 201 - SR1-S03 8행 vs 202 - SR1-S05 6행",
+        "WEEKDAY_MISMATCH: NEEDS_INPUT + DATE_WEEKDAY_MISMATCH. 2026. 8. 20은 목요일인데 자료에는 금요일로 적혀 있다고 알리고 자동으로 고치지 않음",
+        "B1 해결: WEEKDAY_PATTERN이 (목)과 (목요일) 두 표기를 모두 읽음 (고정 자료는 전부 긴 표기)",
+        "B2 해결: PLENARY_DECIDED_ON이 의결일 표기를 읽고 VOTE_PRESENT/YES/NO_COUNT 규칙이 추가됨",
+        "네 경우 모두 draft_version=0, actual_model_calls=0, estimated_cost_usd=0",
+        "manifest는 FACT_CONFLICT의 resolution_kind를 ANSWER_IN_SAME_RUN/false로 얼려 두었으나 구현은 NEW_RUN_WITH_SOURCES/true (직전 보고서 D5, 누적 7일차로 미룸)"
+      ]
+    },
+    {
+      "check_id": "D3G-05",
+      "title": "자료 역할 후보와 고정 우선순위",
+      "status": "PASS",
+      "commands": [
+        {
+          "command": "python scratchpad/probe_evidence_role.py (역할 UNKNOWN 전 흐름)",
+          "exit_code": 0,
+          "summary": "NEEDS_INPUT, draft_version=0, 근거 붙은 후보 제시"
+        },
+        {
+          "command": "python scratchpad/probe_api.py (HTTP API, 5개 자료 UNKNOWN)",
+          "exit_code": 0,
+          "summary": "역할 Issue 5건이 충돌 검사보다 먼저 나오고 초안 0건"
+        }
+      ],
+      "evidence": [
+        "source_role_gate.py는 직전 보고서 snapshot 이후 변경 0건",
+        "역할 UNKNOWN -> NEEDS_INPUT, draft_version=0, resolution_kind=ANSWER_IN_SAME_RUN",
+        "후보에 근거가 붙음: role_choices에 candidate_id/source_id/role/role_label/label/evidence_quote",
+        "예: candidate_id=RC-01, role=BILL_INFORMATION, role_label=의안정보, evidence_quote=- 대상 의안번호: 2207285",
+        "역할 Issue가 있으면 충돌 검사보다 먼저 멈춤 (§2.11 고정 우선순위). DATE_CONFLICT 자료도 역할 UNKNOWN이면 역할 Issue만 5건",
+        "직전 보고서 D6 그대로: IssueCode에 SOURCE_ROLE_CONFIRMATION_REQUIRED가 없어 SOURCE_ROLE_CONTENT_MISMATCH로 나감 (누적 7일차)",
+        "직전 보고서 D10 그대로: POST /api/runs/{id}/answers 경로 없음 (누적 4~5일차)"
+      ]
+    },
+    {
+      "check_id": "D3G-06",
+      "title": "반복 가능한 검사와 시험의 진위 (B3)",
+      "status": "PASS",
+      "commands": [
+        {
+          "command": "python -m pytest ../tests -q -rs",
+          "exit_code": 0,
+          "summary": "96 passed, SKIP 0건"
+        },
+        {
+          "command": "npx tsc --noEmit -p tsconfig.app.json",
+          "exit_code": 0,
+          "summary": "오류 0건"
+        },
+        {
+          "command": "npm test --silent (vitest)",
+          "exit_code": 0,
+          "summary": "6 passed / 1 file"
+        },
+        {
+          "command": "npm run build --silent",
+          "exit_code": 0,
+          "summary": "32 modules, 208.16 kB"
+        },
+        {
+          "command": "python scratchpad/mutate.py (변이 7종, scratchpad 사본에서만)",
+          "exit_code": 0,
+          "summary": "7종 전부 죽음(잡힘)"
+        }
+      ],
+      "evidence": [
+        "필수 명령 4개 전부 exit 0, SKIP 0건 (직전 91 -> 96, 새 시험 5개 추가)",
+        "B3 해결 확인 - 변이 시험 7종을 scratchpad 사본에 넣고 전부 잡히는지 봤다",
+        "N1 요일 정규식을 (목)만으로 되돌림 -> 죽음: test_고정_자료의_요일_불일치를_실제로_잡는다",
+        "N2 의결일 정규식을 본회의만으로 되돌림 -> 죽음: 요일 시험 + test_고정_자료의_날짜_충돌을_실제로_잡는다",
+        "N3 찬성 수 추출 규칙 삭제 -> 죽음: test_고정_자료의_찬성_수_충돌을_실제로_잡는다",
+        "N4 5개 목록 근거 확인 제거 -> 죽음: test_근거가_없는_입법_사건은_원장에_남지_않는다",
+        "N5 충돌 시 첫 값 자동 선택 -> 죽음: test_값이_다르면_어느_쪽도_고르지_않고_차단한다",
+        "N6 요일 불일치 무시 -> 죽음: test_날짜와_요일이_다르면_자동으로_고치지_않는다",
+        "N7 고정 mutation 파일(weekday_mismatch.json)의 replacement를 정상 값으로 바꿈 -> 죽음. 시험이 고정 자료와 mutation 파일을 실제로 읽는다는 직접 증거",
+        "정상 자료 보호 시험도 있음: test_변조하지_않은_고정_자료는_충돌_없이_지나간다",
+        "충실도 미비(차단 아님): _apply_mutation이 mutation 파일의 target_id(SR1-S05)를 읽지 않고 03_plenary_vote.md에 적용하며 5개 자료 중 2개만 쓴다. 검사원이 target_id를 지켜 5개 전부로 다시 돌린 결과는 같았다",
+        "직전 보고서 D9 그대로: STYLE_ONLY·FORBIDDEN_SCOPES를 지키는 시험 0건",
+        "직전 보고서 D7 그대로: 가짜 출력이 고정 schema가 금지한 subject·unit를 담음",
+        "직전 보고서 D8 그대로: 목록형 value는 parse를 통과한 뒤 _normalize_value에서 AttributeError"
+      ]
+    },
+    {
+      "check_id": "D3G-07",
+      "title": "안전 - 외부 호출·비밀·원문 유출·거짓 완료",
+      "status": "PASS",
+      "commands": [
+        {
+          "command": "grep -rE '^(import|from) (httpx|requests|openai|urllib|aiohttp|socket)' backend/app/",
+          "exit_code": 1,
+          "summary": "0건"
+        },
+        {
+          "command": "grep -rE 'dotenv|load_dotenv' backend/app/ frontend/src/",
+          "exit_code": 1,
+          "summary": "0건"
+        },
+        {
+          "command": "grep -rE '^(print\\(|import logging|logger\\.)' backend/app/",
+          "exit_code": 1,
+          "summary": "0건"
+        },
+        {
+          "command": "python scratchpad/probe_api.py (응답 본문 검사)",
+          "exit_code": 0,
+          "summary": "raw_text·raw_sha256·normalized_sha256·normalized_text·span_map 모두 미포함"
+        }
+      ],
+      "evidence": [
+        "이번 검증의 모든 Run에서 actual_model_calls=0, estimated_cost_usd=0.0",
+        "/api/health가 model_gateway=fake, external_api_calls=0 보고",
+        "제품 코드에 httpx·requests·openai·urllib·aiohttp import 0건 -> 외부 호출 경로 자체가 없음",
+        ".env를 읽는 코드 0건. main.py의 .env 언급 2곳은 주석과 경로 탈출 방어 설명뿐. 검사원도 .env를 열지 않았고 사본에서도 제외",
+        "backend/app에 print·logging·logger 0건",
+        "API 응답 키 24개에 raw_text·raw_sha256·normalized_sha256·normalized_text·span_map 없음. facts는 fact_id/kind/subject/value/unit/provenance/source_name/quote/raw_line/raw_column 10개만 노출",
+        "build_request가 STYLE_ONLY 자료를 payload_sources에서 제외하고 normalized_text만 보냄",
+        "거짓 완료 없음: 정상 자료도 state=FAILED / failure_code=DAY3_SCOPE_LIMIT / draft_version=0으로 멈추고 초안 작성은 4일차에 이어서 만든다고 안내"
+      ]
+    }
+  ],
+  "blockers": [],
+  "warnings": [
+    "[schema] 이 JSON은 verification/day-gate-result.schema.json을 통과하지 못한다. schema가 gate_id를 const DEMO-DAY1-GATE로, check_id를 enum D1G-01~07로 고정해 두었기 때문이다. 위반은 gate_id 1건과 check_id 7건, 합계 8건이며 다른 필드는 모두 맞는다. 지시대로 schema는 고치지 않았다.",
+    "[이름] 이번 의뢰는 개발 3일차라고 불렀으나 README 3.7에서 누적 영업일 3은 시연판 개발 2일차다. 검사는 README의 누적 3일차 종료 조건을 기준으로 했다.",
+    "[N-1 최우선 미룸] 새로 생긴 거짓 충돌 종류. 추출 규칙이 넓어져 소관위 심사 결과와 본회의 표결 결과처럼 서로 다른 사건의 값이 같은 항목으로 묶인다. 검사원 재현: 소관위(의결일 2025.9.18. / 재석 16 / 찬성 16 / 반대 0) + 본회의(의결일 2025.10.26. / 재석 255 / 찬성 250 / 반대 2) -> BLOCKING 4건(plenary_decided_on, vote_present_count, vote_yes_count, vote_no_count). 수정 이전 코드로 같은 입력을 돌리면 BLOCKING 0건이었다. 즉 전에는 지나가던 정상 자료가 이제 틀린 질문으로 막힌다. 다만 고정 시험자료 5종에서는 늘지 않았다(ACTUAL-BLOCK-002 4건·SYN-RISK-003 3건으로 수정 전후 동일). 뿌리는 직전 보고서 D4와 같은 _conflict_key(kind+subject만 봄)다. 누적 9일차(법률 단계와 조문) 안에 반드시 고치고 누적 4일차 초안 단계 전에 다시 확인할 것.",
+    "[N-2 미룸] HIGH_RISK_FACT_KINDS 누락 범위가 넓어졌다. 새로 추가된 PLENARY_DECIDED_ON·VOTE_PRESENT_COUNT·VOTE_YES_COUNT·VOTE_NO_COUNT가 모두 목록에 없어, 같은 줄이 두 의안에 대해 반복되는 표결 명세서에서 근거 반복 2회인데도 말없이 첫 번째를 고른다. 직전 보고서 D3의 확대. 누적 7일차(형식 통일).",
+    "[N-3 알림] a3895f8이 backend/pyproject.toml에 pytest-asyncio>=0.24와 asyncio_mode=auto를 추가했다. 이미 설치돼 있어 96개 시험이 통과한다. 검사원은 패키지를 설치하거나 lock을 바꾸지 않았다.",
+    "[D2 잔여] _keep_with_evidence가 항목 source_id와 근거 source_id 불일치, 반복 근거(AMBIGUOUS)를 보지 않는다. 없는 근거 구멍은 막혔지만 끊긴 연결은 남았다. 누적 11일차(사실과 근거 원장), 누적 4일차 초안 전 재확인.",
+    "[이월] 직전 보고서의 D1·D3·D4·D5·D6·D7·D8·D9·D10은 그대로 남아 있다. 각 기한은 직전 보고서와 같다."
+  ],
+  "external_api_calls": 0,
+  "estimated_cost_usd": 0
+}

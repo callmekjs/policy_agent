@@ -563,3 +563,33 @@ async def test_근거가_없는_입법_사건은_원장에_남지_않는다() ->
     ledger, evidence = build_fact_ledger(raw, normalized, names)
     assert ledger.legislative_events == []
     assert any(p.fact_id == "E-01" for p in evidence.problems)
+
+
+@pytest.mark.asyncio
+async def test_위원회_표결_수를_본회의_것과_섞지_않는다() -> None:
+    """서로 다른 회의의 표결 수를 같은 항목으로 보면 정상 자료가 막힌다."""
+    committee = (
+        "# 소관위 심사 결과\n\n"
+        "- 의결일: 2025. 9. 18.\n"
+        "- 재석: 24명\n"
+        "- 찬성: 24명\n"
+        "- 반대: 0명\n"
+    )
+    plenary = (
+        "# 본회의 표결 결과\n\n"
+        "- 의결일: 2025. 9. 25.\n"
+        "- 재석: 205명\n"
+        "- 찬성: 201명\n"
+        "- 반대: 3명\n"
+    )
+    run = await _run_flow(
+        [
+            ("소관위 심사 결과", committee, SourceRole.BILL_INFORMATION),
+            ("본회의 표결 결과", plenary, SourceRole.PLENARY_VOTE_RESULT),
+        ]
+    )
+    blocking = [i for i in run.issues if i.severity.value == "BLOCKING"]
+    assert blocking == [], (
+        "서로 다른 회의의 값을 충돌로 보고 정상 자료를 막았습니다: "
+        f"{[i.subject for i in blocking]}"
+    )

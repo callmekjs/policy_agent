@@ -15,6 +15,21 @@ from typing import Any
 
 from app.harness.fact_contracts import FACT_RESULT_SCHEMA_VERSION
 
+#: 본회의 사건에만 해당하는 사실 종류.
+#: 위원회 심사에도 표결 수와 처리일이 적히므로, 어느 회의 것인지 확인하지 않으면
+#: 서로 다른 사건의 값을 같은 항목으로 보고 거짓 충돌을 만든다.
+PLENARY_SCOPED_KINDS = frozenset(
+    {
+        "PLENARY_DECIDED_ON",
+        "VOTE_PRESENT_COUNT",
+        "VOTE_YES_COUNT",
+        "VOTE_NO_COUNT",
+    }
+)
+
+#: 다른 회의를 가리키는 표현. 이 말이 붙은 자리의 값은 본회의 사실로 쓰지 않는다.
+OTHER_BODY_PATTERN = re.compile(r"소관위|법사위|위원회|소위")
+
 #: 자료 원문에서 찾을 표현들. (사실 종류, 비교 항목, 정규식)
 FACT_PATTERNS: tuple[tuple[str, str, re.Pattern[str]], ...] = (
     ("BILL_IDENTITY", "bill_number", re.compile(r"의안\s*번호[:\s]*([0-9A-Z\-]+)")),
@@ -56,6 +71,29 @@ def _line_of(text: str, index: int) -> str:
     start = text.rfind("\n", 0, index) + 1
     end = text.find("\n", index)
     return text[start : end if end != -1 else len(text)].strip()
+
+
+def _heading_of(text: str, index: int) -> str:
+    """그 위치 바로 앞의 제목 줄. 어느 회의 이야기인지 판단하는 데 쓴다."""
+    for line in reversed(text[:index].splitlines()):
+        if line.lstrip().startswith("#"):
+            return line.strip()
+    return ""
+
+
+def _is_plenary_scope(text: str, index: int) -> bool:
+    """이 자리의 값이 본회의 사건의 것인가.
+
+    줄이나 바로 위 제목에 `본회의`가 있어야 한다. 위원회를 가리키는 말이
+    함께 있으면 본회의 사실로 쓰지 않는다.
+    """
+    line = _line_of(text, index)
+    heading = _heading_of(text, index)
+    if OTHER_BODY_PATTERN.search(line):
+        return False
+    if "본회의" in line:
+        return True
+    return "본회의" in heading and not OTHER_BODY_PATTERN.search(heading)
 
 
 def fake_fact_extraction(payload: dict[str, Any]) -> dict[str, Any]:
@@ -111,6 +149,10 @@ def fake_fact_extraction(payload: dict[str, Any]) -> dict[str, Any]:
             for match in list(pattern.finditer(text))[:2]:
                 quote = _line_of(text, match.start())
                 if not quote:
+                    continue
+                if kind in PLENARY_SCOPED_KINDS and not _is_plenary_scope(
+                    text, match.start()
+                ):
                     continue
                 evidence_id = add_evidence(source_id, quote)
                 facts.append(
