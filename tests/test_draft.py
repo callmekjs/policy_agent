@@ -1045,3 +1045,192 @@ def test_보이지_않는_문자가_있으면_그_자체로_막는다(good_draft
     assert run.draft_version == 0
     rules = {f.rule_id for f in run.validation_findings}
     assert "INVISIBLE_CHARACTER" in rules, rules
+
+
+# ---------------------------------------------------------------------------
+# 4차 검토가 뚫었던 공격
+# ---------------------------------------------------------------------------
+
+#: 글자를 갈라 놓는 문자들. 유니코드 분류가 제각각이라 목록으로는 못 따라간다.
+FORBIDDEN_CHARS = [
+    ("결합 문자", "͏"),
+    ("이체자 선택자", "︀"),
+    ("결합 악센트", "́"),
+    ("한글 채움", "ㅤ"),
+    ("초성 채움", "ᅟ"),
+    ("점자 빈칸", "⠀"),
+]
+
+
+@pytest.mark.parametrize(
+    ("name", "char"), FORBIDDEN_CHARS, ids=[n for n, _ in FORBIDDEN_CHARS]
+)
+def test_쓸_수_없는_글자로_검사를_끌_수_없다(good_draft, name, char) -> None:
+    """글자도 허용 목록으로 본다.
+
+    못 쓸 문자를 세는 방식은 네 번 연속 졌다. 세상의 문자는 15만 자가 넘어
+    끝이 없다. 그래서 **쓸 수 있는 글자만** 적고 나머지를 모두 막는다.
+    """
+    text = f"김{char}영{char}수 장관이 알린다."
+    run = asyncio.run(
+        _run(canned_draft=_spoil(good_draft, lambda d: _point(d, text)))
+    )
+    assert run.draft_version == 0, f"{name}: 지어낸 이름이 나갔습니다."
+    rules = {f.rule_id for f in run.validation_findings}
+    assert "CHARACTER_NOT_ALLOWED" in rules, rules
+
+
+ATTACKS_V5 = [
+    ("한자 기관명", lambda d: _point(d, "文化體育觀光部가 함께 알린다.")),
+    ("키릴 섞기", lambda d: _point(d, "МОCSТ가 함께 알린다.")),
+    (
+        "본문을 점자 빈칸으로",
+        lambda d: [p.__setitem__("text", "⠀") for p in d["paragraphs"]],
+    ),
+    ("문의처를 점자 빈칸으로", lambda d: d.__setitem__("contact_text", "⠀")),
+    (
+        "본문을 한글 채움으로",
+        lambda d: [p.__setitem__("text", "ㅤ") for p in d["paragraphs"]],
+    ),
+    ("공포됨", lambda d: _lead(d, "이 법률은 공포됨. 부칙은 다음과 같다.")),
+    ("개정이 완료되었다", lambda d: _lead(d, "제7조 개정이 완료되었다.")),
+    ("시행에 들어갔다", lambda d: _lead(d, "개정 내용은 시행에 들어갔다.")),
+    ("제 여섯 조", lambda d: _point(d, "바뀐 조문은 제 여섯 조이다.")),
+    ("第六條", lambda d: _point(d, "바뀐 조문은 第六條이다.")),
+    (
+        "〈〉 괄호 인용",
+        lambda d: _lead(d, "조계원 의원실은 현재 〈제7조는 원안가결〉이라는 내용을 알린다."),
+    ),
+    (
+        "말하는 이와 따옴표 사이 낱말",
+        lambda d: _lead(
+            d, "조계원 의원실은 현재 “기부금품 모집 및 접수가 가능하다”는 내용을 알린다."
+        ),
+    ),
+    (
+        "말하는 이를 따옴표 뒤에",
+        lambda d: _lead(d, "“기부금품 모집 및 접수가 가능하다” — 조계원 의원실"),
+    ),
+    ("확정 본 (점자 빈칸)", lambda d: _title(d, "확정⠀본 문화예술진흥법")),
+    (
+        "개정 방향 뒤집기",
+        lambda d: d["paragraphs"][1].__setitem__(
+            "text",
+            "바뀐 조문은 제7조이다. 제7조제6항 중 “모집ㆍ접수할”을 “모집할”로 한다.",
+        ),
+    ),
+    (
+        "부칙에 없는 다음 달 시행",
+        lambda d: d["paragraphs"][-1].__setitem__(
+            "text", "부칙에 따라 이 법은 다음 달 시행 예정이다."
+        ),
+    ),
+    ("조각 재조합 국가지원단체", lambda d: _point(d, "국가지원단체가 함께 알린다.")),
+    ("조계원 장관", lambda d: _point(d, "조계원 장관이 알린다.")),
+]
+
+
+@pytest.mark.parametrize(
+    ("name", "mutate"), ATTACKS_V5, ids=[a[0] for a in ATTACKS_V5]
+)
+def test_4차_검토가_뚫었던_공격은_이제_막힌다(good_draft, name, mutate) -> None:
+    run = asyncio.run(_run(canned_draft=_spoil(good_draft, mutate)))
+    assert run.draft_version == 0, f"{name}: 오염된 초안이 나갔습니다."
+    assert [f for f in run.validation_findings if f.severity.value == "BLOCKING"], (
+        f"{name}: 초안은 막혔지만 이유가 기록되지 않았습니다."
+    )
+
+
+def test_개정_문구는_통째로_자료에_있어야_한다(good_draft) -> None:
+    """`QUOTED_PASSAGE_NOT_IN_SOURCE`만 겨눈다.
+
+    따옴표 하나하나는 자료에 있어도 **순서를 바꾸면** 개정 방향이 뒤집힌다.
+    """
+    run = asyncio.run(
+        _run(
+            canned_draft=_spoil(
+                good_draft,
+                lambda d: d["paragraphs"][1].__setitem__(
+                    "text",
+                    "바뀐 조문은 제7조이다. "
+                    "제7조제6항 중 “모집ㆍ접수할”을 “모집할”로 한다.",
+                ),
+            )
+        )
+    )
+    assert run.draft_version == 0
+    rules = {f.rule_id for f in run.validation_findings}
+    assert "QUOTED_PASSAGE_NOT_IN_SOURCE" in rules, rules
+
+
+def test_부칙에_없는_시점_표현을_막는다(good_draft) -> None:
+    """`TIME_WORDS`만 겨눈다. 수가 없는 `다음 달`은 숫자 대조로 안 걸린다."""
+    run = asyncio.run(
+        _run(
+            canned_draft=_spoil(
+                good_draft,
+                lambda d: d["paragraphs"][-1].__setitem__(
+                    "text", "부칙에 따라 이 법은 다음 달 시행하도록 제안하고 있다."
+                ),
+            )
+        )
+    )
+    assert run.draft_version == 0
+    rules = {f.rule_id for f in run.validation_findings}
+    assert "EFFECTIVE_DATE_NOT_IN_RULE" in rules, rules
+
+
+def test_자료에_있는_글자는_쓸_수_있다() -> None:
+    """글자 허용 목록이 자료를 따라 늘어나는지 본다.
+
+    자료에 한자가 있으면 초안도 쓸 수 있어야 한다. 목록을 손으로 늘리는 것이
+    아니라 자료가 정한다.
+    """
+    from app.gates.draft_charset import allowed_characters, find_forbidden
+
+    allowed = allowed_characters("의안번호 2207285 모집ㆍ접수")
+    assert find_forbidden("모집ㆍ접수할 수 있다", allowed) == []
+    assert find_forbidden("김͏영수", allowed), "결합 문자를 놓쳤습니다."
+    assert find_forbidden("文化", allowed), "자료에 없는 한자를 놓쳤습니다."
+
+    한자_자료 = allowed_characters("法律 제정")
+    assert find_forbidden("法律", 한자_자료) == [], "자료에 있는 한자를 막았습니다."
+
+
+def test_한_글자로_깎인_줄기는_설명이_되지_않는다() -> None:
+    """`_is_grounded_word`의 한 글자 규칙만 겨눈다."""
+    from app.gates.draft_gate import _is_grounded_word
+
+    haystack = "의안번호 2207285 본회의 의결"
+    assert _is_grounded_word("의안번호를", haystack)
+    assert not _is_grounded_word("이지은", haystack), "한 글자로 깎아 통과시켰습니다."
+    assert not _is_grounded_word("박서은", haystack)
+
+
+def test_처리_결과_낱말은_허용_목록에_없다() -> None:
+    """결과값이 허용 낱말에 있으면 자료와 반대되는 문장이 통과한다."""
+    from app.gates.draft_vocabulary import SAFE_WORDS
+
+    for word in ("의결", "가결", "부결", "폐기", "철회", "통과"):
+        assert word not in SAFE_WORDS, (
+            f"`{word}`은(는) 처리 결과값입니다. 자료에 적혀 있을 때만 쓸 수 있어야 합니다."
+        )
+
+
+def test_따옴표_없이_발언을_옮겨도_막는다(good_draft) -> None:
+    """`ATTRIBUTION`만 겨눈다.
+
+    아래 문장은 근거 값(`원안가결`)을 담고 있어 값 대조를 지나가고, 따옴표가
+    없어 인용·발언 모양 검사도 지나간다. 남는 것은 발언 낱말 검사뿐이다.
+    """
+    run = asyncio.run(
+        _run(
+            canned_draft=_spoil(
+                good_draft,
+                lambda d: _point(d, "원안가결로 처리되었다고 밝혔다."),
+            )
+        )
+    )
+    assert run.draft_version == 0, "발언 옮기기를 놓쳤습니다."
+    rules = {f.rule_id for f in run.validation_findings}
+    assert "STATEMENT_WITHOUT_SOURCE" in rules, rules

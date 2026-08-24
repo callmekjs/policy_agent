@@ -23,6 +23,7 @@ from __future__ import annotations
 import re
 from typing import Any
 
+from app.gates.draft_charset import allowed_characters, describe, find_forbidden
 from app.gates.draft_normalizer import find_invisible, sanitize
 from app.gates.draft_vocabulary import SAFE_WORDS, SUFFIXES
 from app.gates.numeral_reader import read_numbers, read_numeral_word
@@ -55,8 +56,11 @@ EFFECT_STEMS = (
 
 #: 효력 표현을 **서술로** 쓴 모양. 이름으로 쓴 `개정 문구`와 구분한다.
 ASSERTIVE_EFFECT = re.compile(
-    "(" + "|".join(EFFECT_STEMS) + r")(되었|되어|되고|된|됐|하였|했|한다|합니다|"
-    r"중이|완료|시켰|시킨|이다|입니다)"
+    "(" + "|".join(EFFECT_STEMS) + ")"
+    # 어간과 서술 사이에 조사가 낄 수 있다. `개정이 완료되었다`가 그렇다.
+    r"(?:[가-힣]{0,3})?"
+    r"(되었|되어|되고|된|됐|됨|하였|했|한다|합니다|중이|완료|시켰|시킨|"
+    r"이다|입니다|들어갔|들어간)"
 )
 
 #: 효력 표현 뒤 몇 글자 안에서 헤지를 찾을지. 한 어절 남짓이다.
@@ -135,6 +139,12 @@ SPEAKER_NEARBY = re.compile(
 ARTICLE_MENTION = re.compile(
     r"제([0-9０-９]+|[一二三四五六七八九十百千]+|[일이삼사오육륙칠팔구십백천]+)"
     r"조(?:의([0-9０-９]+|[一二三四五六七八九十百千]+|[일이삼사오육륙칠팔구십백천]+))?"
+)
+
+#: 시점을 가리키는 말. 시행 이야기에 쓰려면 부칙에도 있어야 한다 (§2.16.4).
+TIME_WORDS = (
+    "다음달", "이달", "내달", "개월", "즉시", "곧바로", "당장", "이내", "이후",
+    "익일", "익월", "내년", "올해", "분기", "상반기", "하반기", "말일",
 )
 
 #: 양식 v1의 필수 문단 종류 (§2.7).
@@ -391,7 +401,32 @@ def check_draft(
     # 보이지 않는 문자는 그 자체로 막는다. 보도자료 초안에 쓸 이유가 없고,
     # 있으면 검사를 피하려는 시도다. 화면에는 보이지 않으므로 사람이 알아챌
     # 수도 없다.
+    # 글자부터 허용 목록으로 본다. **쓸 수 있는 글자만 쓸 수 있다.**
+    # 못 쓸 문자를 세는 방식은 세 번 연속 졌다. 결합 문자·이체자 선택자·
+    # 한글 채움 문자·점자 빈칸·키릴처럼 목록 밖의 문자가 끝없이 나왔다.
+    allowed_chars = allowed_characters(
+        build_allowed_text(
+            ledger,
+            final_text,
+            article_set,
+            announcement_subject=announcement_subject,
+            fixed_labels=(*fixed_labels, DRAFT_LABEL, candidate.draft_label),
+        )
+    )
     for part, text in raw_parts:
+        forbidden = find_forbidden(text, allowed_chars)
+        if forbidden:
+            shown = ", ".join(describe(c) for _, c in forbidden[:3])
+            add(
+                "CHARACTER_NOT_ALLOWED",
+                "4.2",
+                part,
+                f"초안에 쓸 수 없는 글자가 {len(forbidden)}개 있습니다 ({shown}). "
+                "자료에 없는 글자는 쓸 수 없습니다. 눈에 보이지 않는 문자를 "
+                "끼워 검사를 피하는 것을 막기 위해서입니다.",
+                text[:60],
+            )
+
         hidden = find_invisible(text)
         if hidden:
             names = ", ".join(sorted({name for _, _, name in hidden})[:3])
@@ -743,6 +778,34 @@ def check_draft(
                 continue
             break
 
+    # --- F1. 개정 문구는 통째로 자료에 있어야 한다 ---------------------------
+    # 따옴표 하나하나는 자료에 있어도 **순서를 바꾸면** 뜻이 뒤집힌다.
+    #     자료:  “모집할”을 “모집ㆍ접수할”로 한다
+    #     초안:  “모집ㆍ접수할”을 “모집할”로 한다   ← 개정 방향이 거꾸로다
+    # 그래서 따옴표가 둘 이상 있는 문장은 **처음 따옴표부터 마지막 따옴표까지**
+    # 통째로 자료에 있는지 본다.
+    for part, text in parts:
+        for sentence in SENTENCE_SPLIT.split(text):
+            spans = [
+                (m.start(), m.end())
+                for pattern in QUOTE_SPANS
+                for m in pattern.finditer(sentence)
+            ]
+            if len(spans) < 2:
+                continue
+            whole = sentence[min(s for s, _ in spans) : max(e for _, e in spans)]
+            packed = _squeeze(whole)
+            if any(packed in _squeeze(hay) for hay in haystacks):
+                continue
+            add(
+                "QUOTED_PASSAGE_NOT_IN_SOURCE",
+                "2.16.3",
+                part,
+                f"자료에 그대로 있지 않은 문구입니다: “{whole[:50]}”. "
+                "개정 문구는 자료에 적힌 그대로 옮겨야 합니다.",
+                whole[:60],
+            )
+
     # --- H1. 절차를 앞질러 말하지 않는가 ------------------------------------
     # 금지 낱말을 세지 않고, **함께 쓸 말을 요구한다.** 어미를 바꿔도 빠져나갈
     # 수 없고, 새 표현이 생겨도 규칙을 고칠 필요가 없다.
@@ -819,6 +882,20 @@ def check_draft(
         rule_text = " ".join(
             rule_by_id[r].applies_to for r in rule_ids if r in rule_by_id
         )
+        # 시점을 가리키는 말도 부칙에 있어야 한다. 수가 없는 `다음 달`,
+        # `즉시`는 숫자 대조만으로는 걸리지 않는다.
+        packed_rule = _squeeze(rule_text)
+        for word in TIME_WORDS:
+            if word in _squeeze(text) and word not in packed_rule:
+                add(
+                    "EFFECTIVE_DATE_NOT_IN_RULE",
+                    "2.16.4",
+                    part,
+                    f"부칙에 없는 시점 표현 `{word}`을(를) 시행 이야기에 "
+                    f"썼습니다. 부칙 원문: “{rule_text[:40]}”.",
+                    text[:60],
+                )
+
         rule_numbers = read_numbers(rule_text)
         for number in sorted(read_numbers(text) - rule_numbers - {0}):
             if number in allowed_numbers and str(number) in rule_text:
