@@ -23,6 +23,7 @@ from __future__ import annotations
 import re
 from typing import Any
 
+from app.gates.draft_normalizer import find_invisible, sanitize
 from app.gates.draft_vocabulary import SAFE_WORDS, SUFFIXES
 from app.gates.numeral_reader import read_numbers, read_numeral_word
 from app.harness.draft_contracts import (
@@ -51,6 +52,15 @@ LATIN_RUN = re.compile(r"[A-Za-z]{2,}")
 EFFECT_STEMS = (
     "공포", "시행", "개정", "확정", "효력", "통과", "제정", "발효", "적용",
 )
+
+#: 효력 표현을 **서술로** 쓴 모양. 이름으로 쓴 `개정 문구`와 구분한다.
+ASSERTIVE_EFFECT = re.compile(
+    "(" + "|".join(EFFECT_STEMS) + r")(되었|되어|되고|된|됐|하였|했|한다|합니다|"
+    r"중이|완료|시켰|시킨|이다|입니다)"
+)
+
+#: 효력 표현 뒤 몇 글자 안에서 헤지를 찾을지. 한 어절 남짓이다.
+HEDGE_WINDOW = 12
 
 #: 아직 확정되지 않았음을 드러내는 말.
 HEDGES = (
@@ -110,8 +120,21 @@ QUOTE_SPANS = [
 #: 말했다"는 새 사실이 만들어지기 때문이다.
 ATTRIBUTION = re.compile(
     r"(말했|말한|말하|밝혔|밝힌|전했|전한|강조|설명했|설명한|덧붙|지적했|"
-    r"주장했|언급|평가했|촉구|발표|답했|답변|호소|당부|약속했|시사|반박|해명|"
+    r"주장했|언급|평가했|촉구|발표|답했|답변|호소|당부|약속했|시사|반박|해명|설명이|"
     r"입장이|알려졌|알려진|한다고|이라고|라고는|고한다|고밝|고말|고전)"
+)
+
+#: 따옴표 곁에서 "누가 말했다"를 만드는 말. 사람·기관을 가리킨다.
+SPEAKER_NEARBY = re.compile(
+    r"(의원|의원실|위원장|위원회|장관|차관|청장|대표|대변인|관계자|당국|정부|"
+    r"부처|실장|국장|과장|측)\s*(은|는|이|가|의|께서)?\s*$"
+)
+
+#: 초안이 말하는 조문. 아라비아 숫자뿐 아니라 한자·한글 수사도 본다.
+#: `제九조`·`제구조`를 못 읽으면 코드가 세지 않은 조문이 그대로 나간다.
+ARTICLE_MENTION = re.compile(
+    r"제([0-9０-９]+|[一二三四五六七八九十百千]+|[일이삼사오육륙칠팔구십백천]+)"
+    r"조(?:의([0-9０-９]+|[一二三四五六七八九十百千]+|[일이삼사오육륙칠팔구십백천]+))?"
 )
 
 #: 양식 v1의 필수 문단 종류 (§2.7).
@@ -218,6 +241,14 @@ SECTION_KINDS = frozenset(
 
 #: 한 조각으로 볼 수 있는 최대 길이. 자료의 긴 낱말까지 담는다.
 MAX_PIECE = 24
+
+
+def _article_number(token: str) -> int | None:
+    """조문 번호를 표기법과 상관없이 읽는다. `九`도 `구`도 9다."""
+    flattened = sanitize(token)
+    if flattened.isdigit():
+        return int(flattened)
+    return read_numeral_word(flattened)
 
 
 def _is_content(piece: str, haystack: str) -> bool:
@@ -355,13 +386,35 @@ def check_draft(
         findings.append(_finding(index, rule_id, doc, part, message, severity, excerpt))
         index += 1
 
-    parts = draft_text_parts(candidate)
-    allowed_text = build_allowed_text(
-        ledger,
-        final_text,
-        article_set,
-        announcement_subject=announcement_subject,
-        fixed_labels=(*fixed_labels, DRAFT_LABEL, candidate.draft_label),
+    raw_parts = draft_text_parts(candidate)
+
+    # 보이지 않는 문자는 그 자체로 막는다. 보도자료 초안에 쓸 이유가 없고,
+    # 있으면 검사를 피하려는 시도다. 화면에는 보이지 않으므로 사람이 알아챌
+    # 수도 없다.
+    for part, text in raw_parts:
+        hidden = find_invisible(text)
+        if hidden:
+            names = ", ".join(sorted({name for _, _, name in hidden})[:3])
+            add(
+                "INVISIBLE_CHARACTER",
+                "4.2",
+                part,
+                f"눈에 보이지 않는 문자가 {len(hidden)}개 있습니다 ({names}). "
+                "화면에 보이는 글과 검사하는 글이 달라지므로 쓸 수 없습니다.",
+                text[:60],
+            )
+
+    # 검사는 정리한 사본으로 한다. 위 검사를 빠져나가는 새 문자가 생겨도
+    # 낱말 검사가 계속 동작하게 하기 위해서다.
+    parts = [(name, sanitize(text)) for name, text in raw_parts]
+    allowed_text = sanitize(
+        build_allowed_text(
+            ledger,
+            final_text,
+            article_set,
+            announcement_subject=announcement_subject,
+            fixed_labels=(*fixed_labels, DRAFT_LABEL, candidate.draft_label),
+        )
     )
     allowed_numbers = read_numbers(allowed_text)
 
@@ -533,6 +586,59 @@ def check_draft(
     for claim in candidate.claims:
         check_refs(f"주장 {claim.claim_id}", claim.fact_ids, [], [])
 
+    # --- F4. 문장은 자기가 가리키는 사실의 값을 담아야 한다 ------------------
+    # 낱말 목록만으로는 절대 못 잡는 거짓말이 있다.
+    #
+    #     의안번호 2207285이(가) 부결로 처리되었다.
+    #
+    # 낱말도 자료에 있고 수도 자료에 있다. 그런데 자료에는 `원안가결`이라고
+    # 적혀 있다. 낱말을 아무리 걸러도 이런 문장은 걸러지지 않는다.
+    #
+    # 그래서 **가리키는 사실 쪽에서** 본다. `F-02(원안가결)`를 근거로 대면
+    # 그 문장 안에 `원안가결`이 있어야 한다. 근거는 대면서 다른 말을 쓰면 막는다.
+    fact_by_id = {f.fact_id: f for f in ledger.facts}
+
+    def check_anchored(part: str, text: str, fact_ids: list[str]) -> None:
+        cited = [fact_by_id[i] for i in fact_ids if i in fact_by_id]
+        if not cited:
+            return
+        packed = _squeeze(text)
+        numbers = read_numbers(text)
+        for fact in cited:
+            value = sanitize(fact.value)
+            if _squeeze(value) in packed:
+                return
+            values = read_numbers(value)
+            if values and values <= numbers:
+                return
+        shown = ", ".join(f"`{sanitize(f.value)}`" for f in cited[:3])
+        add(
+            "CLAIM_VALUE_NOT_ANCHORED",
+            "2.10",
+            part,
+            f"근거로 댄 사실의 값이 문장에 없습니다. 댄 근거: {shown}.",
+            text[:60],
+        )
+
+    check_anchored("제목", candidate.title.text, candidate.title.fact_ids)
+    check_anchored("리드", candidate.lead.text, candidate.lead.fact_ids)
+    for i, point in enumerate(candidate.key_points, start=1):
+        check_anchored(f"핵심 요약 {i}", point.text, point.fact_ids)
+    for claim in candidate.claims:
+        check_anchored(f"주장 {claim.claim_id}", claim.text, claim.fact_ids)
+
+    # --- G3. 필수 항목이 비어 있지 않은가 ------------------------------------
+    # 3차 검토가 제목·리드·요약·본문을 전부 빈 글자로 바꿔도 초안이 나가는 것을
+    # 찾았다. 비어 있으면 사람이 검토할 것이 없다.
+    for part, text in (
+        ("제목", candidate.title.text),
+        ("리드", candidate.lead.text),
+        *((f"핵심 요약 {i}", p.text) for i, p in enumerate(candidate.key_points, 1)),
+        *((f"본문 {p.paragraph_id}", p.text) for p in candidate.paragraphs),
+    ):
+        if not text.strip():
+            add("REQUIRED_TEXT_EMPTY", "2.7", part, "내용이 비어 있습니다.")
+
     # --- F1. 자료에 없는 수를 쓰지 않는가 (표기법 무관) ----------------------
     for part, text in parts:
         for number in sorted(read_numbers(text) - allowed_numbers):
@@ -580,7 +686,7 @@ def check_draft(
     # --- F2. 인용과 발언 옮기기 ---------------------------------------------
     # 허용 낱말 검사는 자료에 있는 낱말로 조립한 **가짜 발언**을 막지 못한다.
     # 낱말은 다 자료에 있지만 "누가 그렇게 말했다"는 새 사실이기 때문이다.
-    haystacks = [n.normalized_text for n in normalized.values()]
+    haystacks = [sanitize(n.normalized_text) for n in normalized.values()]
     for part, text in parts:
         for pattern in QUOTE_SPANS:
             for match in pattern.finditer(text):
@@ -612,6 +718,30 @@ def check_draft(
                 "없습니다. 발언은 공식 발언문에서만 가져올 수 있습니다.",
                 text[:60],
             )
+            continue
+
+        # 낱말 목록만으로는 계속 진다. `라며`·`설명이다`처럼 새 표현이 끝없이
+        # 나오기 때문이다. 그래서 **모양**으로도 본다. 따옴표 앞이나 뒤에 사람·
+        # 기관을 가리키는 말이 붙어 있으면 그것은 발언을 옮기는 모양이다.
+        for pattern in QUOTE_SPANS:
+            for quote_match in pattern.finditer(text):
+                before = text[max(0, quote_match.start() - 30) : quote_match.start()]
+                # 따옴표 **앞**에 사람·기관이 있어야 발언이다. 뒤의 `라고`만
+                # 보면 `부칙은 “…”라고 제안하고 있다`처럼 문서를 옮기는 것까지
+                # 막힌다. 그것은 오히려 필요한 일이다.
+                if SPEAKER_NEARBY.search(before):
+                    add(
+                        "STATEMENT_WITHOUT_SOURCE",
+                        "2.16.2",
+                        part,
+                        "공식 발언문 자료가 없는데 누군가의 말을 옮기는 모양입니다: "
+                        f"“{quote_match.group(1)[:30]}”.",
+                        text[:60],
+                    )
+                    break
+            else:
+                continue
+            break
 
     # --- H1. 절차를 앞질러 말하지 않는가 ------------------------------------
     # 금지 낱말을 세지 않고, **함께 쓸 말을 요구한다.** 어미를 바꿔도 빠져나갈
@@ -620,10 +750,17 @@ def check_draft(
         for part, text in parts:
             for sentence in SENTENCE_SPLIT.split(text):
                 packed = _squeeze(sentence)
-                stem = next((s for s in EFFECT_STEMS if s in packed), None)
-                if stem is None:
+                # `개정 문구`, `공포일`처럼 이름으로 쓴 것은 주장이 아니다.
+                # `공포됐다`, `시행된다`처럼 **서술로 쓴 것**만 본다.
+                found = ASSERTIVE_EFFECT.search(packed)
+                if found is None:
                     continue
-                if any(h in sentence or h in packed for h in HEDGES):
+                stem = found.group(1)
+                # 헤지는 **효력 표현 바로 뒤에** 붙어 있어야 한다.
+                # 문장 어딘가에 있기만 하면 되게 두면 `제안한 법률은 공포됐다`가
+                # 통과한다. `제안`이 부정하는 것은 `법률`이지 `공포`가 아니다.
+                after = packed[found.end() :][:HEDGE_WINDOW]
+                if any(h in after for h in HEDGES):
                     continue
                 add(
                     "PREMATURE_EFFECT_CLAIM",
@@ -701,8 +838,15 @@ def check_draft(
 
         counted = set(article_set.article_ids)
         for part, text in parts:
-            for match in re.finditer(r"제\s*\d+\s*조(?:\s*의\s*\d+)?", text):
-                article = top_level_article(match.group(0).replace(" ", ""))
+            for match in ARTICLE_MENTION.finditer(_squeeze(text)):
+                # 한자·한글 수사를 아라비아 숫자로 되돌려 코드 집합과 견준다.
+                number = _article_number(match.group(1))
+                branch = _article_number(match.group(2)) if match.group(2) else None
+                if number is None:
+                    continue
+                article = (
+                    f"제{number}조의{branch}" if branch else f"제{number}조"
+                )
                 if article not in counted:
                     add(
                         "ARTICLE_NOT_IN_CHANGED_SET",

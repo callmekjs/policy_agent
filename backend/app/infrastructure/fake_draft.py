@@ -89,12 +89,37 @@ def fake_draft_writing(payload: dict[str, Any]) -> dict[str, Any]:
         f"현재 효력 상태는 {effect_label}이다."
     )
 
+    # 근거는 **그 문장이 실제로 말하는 값**을 가진 사실이어야 한다.
+    # 조문 이야기를 하면서 의안번호를 근거로 대면, 근거를 되짚어도 그 문장이
+    # 맞는지 확인할 수 없다.
+    def _fact_for(value: str) -> dict[str, Any] | None:
+        for fact in chosen:
+            if value and value in str(fact.get("value", "")):
+                return fact
+        return None
+
+    result_fact = result or _fact_for(result_label) or chosen[0]
+    article_fact = _fact_for(articles[0] if articles else "") or chosen[0]
+
+    def _cite(fact: dict[str, Any]) -> tuple[list[str], list[str]]:
+        for claim, candidate_fact in zip(claims, chosen):
+            if candidate_fact is fact:
+                return [claim["claim_id"]], [fact["fact_id"]]
+        return claim_ids[:1], fact_ids[:1]
+
+    result_claim_ids, result_fact_ids = _cite(result_fact)
+    article_claim_ids, article_fact_ids = _cite(article_fact)
+
     key_points = [
-        _claim_text(f"{bill_label}이(가) {result_label}로 처리되었다.", claim_ids[:1], fact_ids[:1]),
+        _claim_text(
+            f"{bill_label}이(가) {result_label}로 처리되었다.",
+            result_claim_ids,
+            result_fact_ids,
+        ),
         _claim_text(
             f"바뀐 조문은 {', '.join(articles) if articles else '확인 필요'}이다.",
-            claim_ids[:1],
-            fact_ids[:1],
+            article_claim_ids,
+            article_fact_ids,
         ),
     ]
 
@@ -159,7 +184,7 @@ def fake_draft_writing(payload: dict[str, Any]) -> dict[str, Any]:
             "release_date_status": "NEEDS_CONFIRMATION",
             "release_date_fact_id": "",
             "draft_label": payload.get("draft_label") or "",
-            "title": _claim_text(title_text, claim_ids[:1], fact_ids[:1]),
+            "title": _claim_text(title_text, *_cite(identity or chosen[0])),
             "key_points": key_points,
             "lead": _claim_text(lead_text, claim_ids, fact_ids),
             "paragraphs": paragraphs,

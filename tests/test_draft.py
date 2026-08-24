@@ -857,3 +857,191 @@ async def test_자료의_부칙을_초안이_빠뜨리면_막는다() -> None:
     assert run.draft_version == 0, "부칙이 빠졌는데 초안이 나갔습니다."
     rules = {f.rule_id for f in run.validation_findings}
     assert "SUPPLEMENTARY_RULE_DROPPED" in rules, rules
+
+
+# ---------------------------------------------------------------------------
+# 3차 검토가 뚫었던 공격
+# ---------------------------------------------------------------------------
+
+#: 눈에 보이지 않거나 글자를 갈라 놓는 문자들.
+HIDDEN_SEPARATORS = [
+    ("전각 공백", "　"),
+    ("줄바꿈", "\n"),
+    ("NBSP", " "),
+    ("폭 없는 공백", "​"),
+    ("폭 없는 비접합자", "‌"),
+    ("낱말 이음표", "⁠"),
+    ("가운뎃점", "ㆍ"),
+]
+
+
+@pytest.mark.parametrize(
+    ("name", "separator"), HIDDEN_SEPARATORS, ids=[n for n, _ in HIDDEN_SEPARATORS]
+)
+def test_보이지_않는_문자로_낱말_검사를_끌_수_없다(good_draft, name, separator) -> None:
+    """화면에는 `김영수`로 보이는데 검사에서만 흩어지는 것을 막는다."""
+    text = f"해당 내용은 김{separator}영{separator}수 의원실이 확인한 사항이다."
+    run = asyncio.run(
+        _run(canned_draft=_spoil(good_draft, lambda d: _point(d, text)))
+    )
+    assert run.draft_version == 0, f"{name}: 지어낸 이름이 나갔습니다."
+
+
+def test_자모가_분해된_글자도_붙여_본다(good_draft) -> None:
+    import unicodedata
+
+    text = unicodedata.normalize("NFD", "해당 내용은 김영수 의원실이 확인한 사항이다.")
+    run = asyncio.run(
+        _run(canned_draft=_spoil(good_draft, lambda d: _point(d, text)))
+    )
+    assert run.draft_version == 0
+
+
+ATTACKS_V4 = [
+    ("조각 재조합 국가지원단체", lambda d: _point(d, "국가지원단체가 확인한 내용이다.")),
+    ("조각 재조합 전문예술위원회", lambda d: _point(d, "전문예술위원회가 확인한 내용이다.")),
+    ("조각 재조합 국가문화진흥원", lambda d: _point(d, "국가문화진흥원이 확인한 내용이다.")),
+    ("한자 흩어 쓴 표결 수", lambda d: _point(d, "본회의 표결 결과는 二 百 五 十이다.")),
+    ("거짓 날짜", lambda d: _point(d, "본회의 의결일은 2025년 10월 18일이다.")),
+    (
+        "라고 했다",
+        lambda d: _lead(d, "조계원 의원실은 “기부금품을 모집할 수 있다”라고 했다."),
+    ),
+    (
+        "라며",
+        lambda d: _lead(d, "조계원 의원실은 “기부금품을 모집할 수 있다”라며 개선을 제안했다."),
+    ),
+    (
+        "설명이다",
+        lambda d: _lead(d, "조계원 의원실의 설명이다. “기부금품을 모집할 수 있다”"),
+    ),
+    ("제목 비움", lambda d: _title(d, "")),
+    ("리드 비움", lambda d: _lead(d, "")),
+    ("본문 전부 비움", lambda d: [p.__setitem__("text", "") for p in d["paragraphs"]]),
+    ("공백만 채운 제목", lambda d: _title(d, "   ")),
+    ("제안한…확정됐다", lambda d: _title(d, "제안한 문화예술진흥법 개정이 확정됐다")),
+    ("제안한 법률은 공포됐다", lambda d: _lead(d, "제안한 법률은 공포됐다.")),
+    ("아직 이 법률은 시행된다", lambda d: _lead(d, "아직 이 법률은 시행된다.")),
+    ("제안 내용은 현재 적용된다", lambda d: _point(d, "제안 내용은 현재 적용된다.")),
+    ("한자 조문 제九조", lambda d: _point(d, "바뀐 조문은 제九조이다.")),
+    ("원장 값 뒤집기 부결", lambda d: _point(d, "의안번호 2207285이(가) 부결로 처리되었다.")),
+    ("원장 값 뒤집기 폐기", lambda d: _point(d, "의안번호 2207285이(가) 폐기되었다.")),
+    ("원장 값 뒤집기 철회", lambda d: _point(d, "의안번호 2207285이(가) 철회되었다.")),
+]
+
+
+@pytest.mark.parametrize(
+    ("name", "mutate"), ATTACKS_V4, ids=[a[0] for a in ATTACKS_V4]
+)
+def test_3차_검토가_뚫었던_공격은_이제_막힌다(good_draft, name, mutate) -> None:
+    run = asyncio.run(_run(canned_draft=_spoil(good_draft, mutate)))
+    assert run.draft_version == 0, f"{name}: 오염된 초안이 나갔습니다."
+    assert [f for f in run.validation_findings if f.severity.value == "BLOCKING"], (
+        f"{name}: 초안은 막혔지만 이유가 기록되지 않았습니다."
+    )
+
+
+def test_근거로_댄_사실의_값이_문장에_있어야_한다(good_draft) -> None:
+    """`CLAIM_VALUE_NOT_ANCHORED`만 겨눈다.
+
+    낱말 목록으로는 절대 못 잡는 거짓말을 여기서 잡는다. 낱말도 수도 모두
+    자료에 있지만 **자료가 말하는 값과 다른** 문장이다.
+    """
+    run = asyncio.run(
+        _run(
+            canned_draft=_spoil(
+                good_draft,
+                lambda d: _point(d, "의안번호 2207285이(가) 부결로 처리되었다."),
+            )
+        )
+    )
+    assert run.draft_version == 0
+    rules = {f.rule_id for f in run.validation_findings}
+    assert "CLAIM_VALUE_NOT_ANCHORED" in rules, rules
+
+
+def test_보이지_않는_문자를_찾아_이름을_말한다() -> None:
+    """`draft_normalizer`만 겨눈다."""
+    from app.gates.draft_normalizer import find_invisible, sanitize
+
+    found = find_invisible("김​영​수")
+    assert len(found) == 2
+    assert "폭 없는 공백" in {name for _, _, name in found}
+    assert sanitize("김​영​수") == "김영수"
+    assert sanitize("재석 ２５０인") == "재석 250인"
+    assert find_invisible("보통 글자입니다.") == []
+
+
+def test_이름으로_쓴_개정은_주장이_아니다() -> None:
+    """`ASSERTIVE_EFFECT`만 겨눈다. 이름까지 막으면 개정문을 옮길 수 없다."""
+    from app.gates.draft_gate import ASSERTIVE_EFFECT
+
+    assert ASSERTIVE_EFFECT.search("공포됐다")
+    assert ASSERTIVE_EFFECT.search("시행된다")
+    assert ASSERTIVE_EFFECT.search("확정됐다")
+    assert not ASSERTIVE_EFFECT.search("개정 문구는"), "이름으로 쓴 것까지 막습니다."
+    assert not ASSERTIVE_EFFECT.search("공포일")
+
+
+def test_헤지는_효력_표현에_붙어_있어야_한다(good_draft) -> None:
+    """헤지 규칙만 겨눈다.
+
+    문장 아무 데나 `제안`이 있으면 되게 두면 `제안한 법률은 공포됐다`가
+    통과한다. 아래 문장은 근거 값(`2207285`)을 담고 있어 값 대조는 지나가고,
+    시행·공포를 말하지 않아 부칙 규칙도 지나간다. 헤지 규칙만 남는다.
+    """
+    run = asyncio.run(
+        _run(
+            canned_draft=_spoil(
+                good_draft,
+                lambda d: _point(d, "제안한 의안번호 2207285 개정이 확정됐다."),
+            )
+        )
+    )
+    assert run.draft_version == 0, "먼 곳의 헤지로 통과시켰습니다."
+    rules = {f.rule_id for f in run.validation_findings}
+    assert "PREMATURE_EFFECT_CLAIM" in rules, rules
+
+
+def test_따옴표_앞에_말하는_주체가_있으면_막는다(good_draft) -> None:
+    """발언 모양 규칙만 겨눈다.
+
+    따옴표 안 문구는 자료에 그대로 있고, 근거 값도 담겨 있고, 발언 동사도
+    없다. 남는 것은 "사람·기관 뒤에 따옴표가 온다"는 모양뿐이다.
+    """
+    run = asyncio.run(
+        _run(
+            canned_draft=_spoil(
+                good_draft,
+                lambda d: _point(
+                    d,
+                    "의안번호 2207285 관련 조계원 의원실은 "
+                    "“기부금품을 모집할 수 있다”",
+                ),
+            )
+        )
+    )
+    assert run.draft_version == 0, "발언 모양을 놓쳤습니다."
+    rules = {f.rule_id for f in run.validation_findings}
+    assert "STATEMENT_WITHOUT_SOURCE" in rules, rules
+
+
+def test_보이지_않는_문자가_있으면_그_자체로_막는다(good_draft) -> None:
+    """`INVISIBLE_CHARACTER`만 겨눈다.
+
+    정리한 사본으로 검사하면 다른 규칙이 대신 잡아 주지만, 그 문자가 든 초안은
+    **그 사실만으로도** 막아야 한다. 화면에 보이는 글과 검사하는 글이 달라지는
+    것 자체가 위험하기 때문이다.
+    """
+    run = asyncio.run(
+        _run(
+            canned_draft=_spoil(
+                good_draft,
+                # 근거 값을 그대로 두고 보이지 않는 문자만 끼운다.
+                lambda d: _point(d, "바뀐 조문은 제7​조이다."),
+            )
+        )
+    )
+    assert run.draft_version == 0
+    rules = {f.rule_id for f in run.validation_findings}
+    assert "INVISIBLE_CHARACTER" in rules, rules
