@@ -1605,3 +1605,163 @@ def test_6차_검토가_뚫었던_공격은_이제_막힌다(good_draft, name, m
     assert [f for f in run.validation_findings if f.severity.value == "BLOCKING"], (
         f"{name}: 초안은 막혔지만 이유가 기록되지 않았습니다."
     )
+
+
+# ---------------------------------------------------------------------------
+# 7차 검토가 뚫었던 공격
+# ---------------------------------------------------------------------------
+
+ATTACKS_V8 = [
+    (
+        "끝맺음만 바꿔 개정 완료 선언",
+        lambda d: _title(d, "의안번호 2207285 개정이 완료되어 다음 절차는 예정이다"),
+    ),
+    (
+        "끝맺음만 바꿔 공포 선언",
+        lambda d: _ai_paragraphs(d)[2].__setitem__(
+            "text",
+            "부칙은 “이 법은 공포한 날부터 시행한다.”라고 제안하고 있다. "
+            "개정이 완료되어 이 법은 공포된 뒤 다음 절차는 예정이다.",
+        ),
+    ),
+    (
+        "시행되었다고 제안한다",
+        lambda d: _ai_paragraphs(d)[2].__setitem__(
+            "text", "이 법은 공포된 뒤 시행되었다고 제안한다."
+        ),
+    ),
+    (
+        "빈칸 표시에 효력 주장",
+        lambda d: d.__setitem__(
+            "placeholders", ["의안번호 2207285 개정이 완료되어 다음 절차는 예정이다"]
+        ),
+    ),
+    (
+        "허용된 수를 모아 만든 날짜",
+        lambda d: d["key_points"][0].__setitem__(
+            "text", "의안번호 2207285은 2025년 6월 7일 처리되었다."
+        ),
+    ),
+    (
+        "허용된 수를 모아 만든 표결 수",
+        lambda d: d["key_points"][0].__setitem__(
+            "text", "의안번호 2207285은 26명 중 7명이 원안가결로 처리했다."
+        ),
+    ),
+    ("문의처에 거짓 날짜", lambda d: d.__setitem__("contact_text", "[문의처 확인 필요] 2025년 6월 7일")),
+    (
+        "문장을 쪼개 발언 만들기",
+        lambda d: _ai_paragraphs(d)[0].__setitem__(
+            "text", "조계원 의원실. “기부금품을 모집할 수 있다”. 원안가결."
+        ),
+    ),
+    (
+        "근거는 대되 삭제되었다고 쓰기",
+        lambda d: d["key_points"][1].update(
+            {"text": "제7조는 삭제되었다.", "fact_ids": ["F-03"]}
+        ),
+    ),
+    (
+        "따옴표 한 쌍으로 개정 방향 뒤집기",
+        lambda d: _ai_paragraphs(d)[1].__setitem__(
+            "text", "제7조제6항의 “모집ㆍ접수할”이 모집할로 바뀐다."
+        ),
+    ),
+]
+
+
+@pytest.mark.parametrize(
+    ("name", "mutate"), ATTACKS_V8, ids=[a[0] for a in ATTACKS_V8]
+)
+def test_7차_검토가_뚫었던_공격은_이제_막힌다(good_draft, name, mutate) -> None:
+    run = asyncio.run(_run(canned_draft=_spoil(good_draft, mutate)))
+    assert run.draft_version == 0, f"{name}: 오염된 초안이 나갔습니다."
+    assert [f for f in run.validation_findings if f.severity.value == "BLOCKING"], (
+        f"{name}: 초안은 막혔지만 이유가 기록되지 않았습니다."
+    )
+
+
+def test_헤지는_주장_바로_뒤에_붙어야_한다(good_draft) -> None:
+    """문장 끝맺음만 보면 뜻은 그대로 두고 마지막 네 글자만 바꿔 뚫린다."""
+    run = asyncio.run(
+        _run(
+            canned_draft=_spoil(
+                good_draft,
+                # 제목은 부칙을 가리키지 않으므로 부칙 대조가 걸리지 않는다.
+                # 근거 값(`2207285`)을 담아 값 대조도 지나간다. 남는 것은
+                # 헤지 규칙뿐이다.
+                lambda d: _title(
+                    d, "의안번호 2207285 개정이 완료되어 다음 절차는 예정이다"
+                ),
+            )
+        )
+    )
+    assert run.draft_version == 0
+    rules = {f.rule_id for f in run.validation_findings}
+    assert "PREMATURE_EFFECT_CLAIM" in rules, rules
+
+
+def test_날짜는_통째로_자료에_있어야_한다(good_draft) -> None:
+    """`DATE_NOT_IN_LEDGER`만 겨눈다.
+
+    수를 집합으로만 보면 자료의 `2025`·`6`·`7`을 모아 자료에 없는 날짜를
+    만들 수 있다.
+    """
+    run = asyncio.run(
+        _run(
+            canned_draft=_spoil(
+                good_draft, lambda d: d.__setitem__("placeholders", ["2025년 6월 7일"])
+            )
+        )
+    )
+    assert run.draft_version == 0
+    rules = {f.rule_id for f in run.validation_findings}
+    assert "DATE_NOT_IN_LEDGER" in rules, rules
+
+
+def test_세는_수는_단위까지_자료에_있어야_한다(good_draft) -> None:
+    """`COUNT_NOT_IN_LEDGER`만 겨눈다. `26`이 있다고 `26명`을 쓸 수는 없다."""
+    run = asyncio.run(
+        _run(
+            canned_draft=_spoil(
+                good_draft, lambda d: d.__setitem__("placeholders", ["26명"])
+            )
+        )
+    )
+    assert run.draft_version == 0
+    rules = {f.rule_id for f in run.validation_findings}
+    assert "COUNT_NOT_IN_LEDGER" in rules, rules
+
+
+def test_인용은_어느_문서에서_왔는지_밝혀야_한다(good_draft) -> None:
+    """`QUOTE_WITHOUT_DOCUMENT`만 겨눈다. 문장을 쪼개 화자를 옮기는 우회를 막는다."""
+    run = asyncio.run(
+        _run(
+            canned_draft=_spoil(
+                good_draft,
+                lambda d: _ai_paragraphs(d)[0].__setitem__(
+                    "text", "의안번호 2207285. “기부금품을 모집할 수 있다”."
+                ),
+            )
+        )
+    )
+    assert run.draft_version == 0
+    rules = {f.rule_id for f in run.validation_findings}
+    assert "QUOTE_WITHOUT_DOCUMENT" in rules, rules
+
+
+def test_조문에_무엇을_했다는_주장은_개정문과_대조한다(good_draft) -> None:
+    """근거 값만 넣고 딴말을 쓰는 것을 막는다."""
+    run = asyncio.run(
+        _run(
+            canned_draft=_spoil(
+                good_draft,
+                lambda d: d["key_points"][1].update(
+                    {"text": "제7조는 신설되었다.", "fact_ids": ["F-03"]}
+                ),
+            )
+        )
+    )
+    assert run.draft_version == 0
+    rules = {f.rule_id for f in run.validation_findings}
+    assert "QUOTED_PASSAGE_NOT_IN_SOURCE" in rules, rules

@@ -68,23 +68,11 @@ ASSERTIVE_EFFECT = re.compile(
     r"이다|입니다|들어갔|들어간|단계|이르렀|마쳤|끝났|마무리)"
 )
 
-#: 효력을 말하는 문장이 끝날 수 있는 모양. **이 목록에 있는 끝맺음만** 쓸 수 있다.
-#: 금지 목록이 아니라 허용 목록이라, 새 표현을 지어내도 빠져나갈 수 없다.
-APPROVED_EFFECT_TAILS = (
-    "제안하고있다", "제안하고있습니다", "제안한다", "제안합니다",
-    "예정이다", "예정입니다", "전이다", "전입니다",
-    "아니다", "아닙니다", "않는다", "않습니다", "않았다",
-    "앞두고있다", "미확정이다", "확인이필요하다",
-)
-
 #: 이 프로그램이 늘 넣는 표시 문구. 시행일 이야기로 세지 않는다.
 FIXED_EFFECT_PHRASES = ("효력상태", "절차단계")
 
-#: 끝맺음을 찾을 때 볼 뒷부분 길이.
-APPROVED_TAIL_WINDOW = 20
-
 #: 효력 표현 뒤 몇 글자 안에서 헤지를 찾을지. 한 어절 남짓이다.
-HEDGE_WINDOW = 12
+HEDGE_WINDOW = 6
 
 #: 아직 확정되지 않았음을 드러내는 말.
 HEDGES = (
@@ -97,6 +85,9 @@ SENTENCE_SPLIT = re.compile(r"(?<=[.!?])\s+|\n+")
 
 #: 공백을 모두 지운다.
 WHITESPACE = re.compile(r"\s+")
+
+#: 글자와 숫자만 남긴다. 창을 셀 때 문장부호가 자리를 먹지 않게 한다.
+LETTERS_ONLY = re.compile(r"[^가-힣0-9A-Za-z]")
 
 
 def _squeeze(text: str) -> str:
@@ -172,6 +163,36 @@ ARTICLE_MENTION = re.compile(
 
 #: 개정 지시문을 옮기는 모양. 조문 번호와 함께 나오면 자료와 대조한다.
 AMENDMENT_VERB = re.compile(r"중.{0,40}로한다|로한다|신설한다|삭제한다|본다")
+
+#: 날짜 표기. 해·달·날이 함께 나오면 **통째로** 견준다.
+DATE_PATTERN = re.compile(r"(\d{4})\s*[년.\-/]\s*(\d{1,2})\s*[월.\-/]\s*(\d{1,2})")
+
+#: 세는 수. 단위가 붙으면 단위까지 자료에 있어야 한다.
+# 단위 뒤에 한글이 더 붙으면 세는 말이 아니다. `2207285 개정`의 `개`가 그렇다.
+COUNTED_NUMBER = re.compile(r"\d+\s*(명|인|표|건|개|차|회)(?![가-힣])")
+
+#: 인용을 문서에 돌리는 말. 이 말이 곁에 없으면 남의 발언으로 읽힌다.
+DOCUMENT_WORD = re.compile(r"(부칙|개정문|개정|자료|원문|조문|본문|법률|규정|항)")
+
+
+def _dates_in(text: str) -> dict[str, str]:
+    """글에 쓰인 날짜를 (원래 표기 -> 여덟 자리)로 모은다.
+
+    수를 집합으로만 보면 자료의 `2025`·`6`·`7`을 모아 자료에 없는
+    `2025년 6월 7일`을 만들 수 있다. 날짜는 통째로 견줘야 한다.
+    """
+    found: dict[str, str] = {}
+    for match in DATE_PATTERN.finditer(text):
+        year, month, day = match.groups()
+        found[match.group(0)] = f"{int(year):04d}{int(month):02d}{int(day):02d}"
+    return found
+
+
+#: 조문에 무엇을 했다는 주장. 조문 번호 **뒤에** 오면 개정문과 대조한다.
+#: `제7조는 삭제되었다`처럼 근거 값만 넣고 딴말을 쓰는 것을 막는다.
+AMENDMENT_ACTION = re.compile(
+    r"(로한다|신설|삭제|변경|바뀐|바뀌|고친|개정한다|본다|하였다|했다|되었다)"
+)
 
 #: 시점을 가리키는 말. 시행 이야기에 쓰려면 부칙에도 있어야 한다 (§2.16.4).
 TIME_WORDS = (
@@ -847,6 +868,32 @@ def check_draft(
             add("REQUIRED_TEXT_EMPTY", "2.7", part, "내용이 비어 있습니다.")
 
     # --- F1. 자료에 없는 수를 쓰지 않는가 (표기법 무관) ----------------------
+    # 날짜와 세는 수는 조각이 아니라 **통째로** 자료에 있어야 한다.
+    allowed_dates = set(_dates_in(allowed_text).values())
+    packed_allowed = _squeeze(allowed_text)
+    for part, text in agent_parts:
+        for shown, value in _dates_in(text).items():
+            if value in allowed_dates:
+                continue
+            add(
+                "DATE_NOT_IN_LEDGER",
+                "4.2",
+                part,
+                f"자료에 없는 날짜 `{shown}`이(가) 초안에 있습니다.",
+                text[:60],
+            )
+        for match in COUNTED_NUMBER.finditer(text):
+            if _squeeze(match.group(0)) in packed_allowed:
+                continue
+            add(
+                "COUNT_NOT_IN_LEDGER",
+                "4.2",
+                part,
+                f"자료에 없는 셈 `{match.group(0)}`이(가) 초안에 있습니다. "
+                "수가 자료에 있다고 그 단위까지 쓸 수 있는 것은 아닙니다.",
+                text[:60],
+            )
+
     for part, text in agent_parts:
         # 흩어 쓴 글자도 붙여서 본다. `이 백 오 십`을 그대로 두면 한 글자씩
         # 흩어져 수를 하나도 못 읽는다. 그때 낱말 검사는 "수는 수 검사가
@@ -922,11 +969,27 @@ def check_draft(
         # (`다고`·`라고`)가 있으면 그것은 발언을 옮기는 모양이다. 따옴표 바로
         # 앞만 보면 쉼표·콜론 하나로 꺼지고, 낱말 목록만 보면 새 표현이 끝없이
         # 나온다. `다고`·`라고`는 문법이 정한 닫힌 부류라 늘어나지 않는다.
+        # 인용은 **어느 문서에서 옮겼는지** 밝혀야 한다. 같은 문단에
+        # `부칙`·`개정문`·`자료` 같은 말이 없으면 남의 발언으로 읽힌다.
+        # 문장 단위로만 보면 문장을 쪼개 화자를 딴 문단에 두어 빠져나갈 수 있다.
+        packed_part = _squeeze(text)
+        if any(p.search(text) for p in QUOTE_SPANS) and not DOCUMENT_WORD.search(
+            packed_part
+        ):
+            add(
+                "QUOTE_WITHOUT_DOCUMENT",
+                "2.16.2",
+                part,
+                "인용을 어느 문서에서 옮겼는지 밝히지 않았습니다. 공식 발언문 "
+                "자료가 없으므로 사람의 말로 읽힙니다.",
+                text[:60],
+            )
+
         for sentence in SENTENCE_SPLIT.split(text):
             packed_sentence = _squeeze(sentence)
-            if not SPEAKER_WORD.search(packed_sentence):
+            if not SPEAKER_WORD.search(packed_part):
                 continue
-            has_quote = any(p.search(sentence) for p in QUOTE_SPANS)
+            has_quote = any(p.search(text) for p in QUOTE_SPANS)
             has_quotative = QUOTATIVE.search(packed_sentence)
             if not (has_quote or has_quotative):
                 continue
@@ -993,10 +1056,13 @@ def check_draft(
                 # 따옴표를 빼면 이 검사를 피할 수 있었다. 그래서 따옴표가
                 # 없어도 **개정 지시문을 옮기는 모양**이면 문장 전체를 본다.
                 packed_sentence = _squeeze(sentence)
-                if not (
-                    ARTICLE_MENTION.search(packed_sentence)
-                    and AMENDMENT_VERB.search(packed_sentence)
-                ):
+                article = ARTICLE_MENTION.search(packed_sentence)
+                if article is None:
+                    continue
+                # 조문 **뒤에** 개정 지시 표현이 오면 그 조문에 무엇을 했다는
+                # 주장이다. 앞에 오면(`바뀐 조문은 제7조이다`) 요약일 뿐이다.
+                after_article = packed_sentence[article.end() :]
+                if not AMENDMENT_ACTION.search(after_article):
                     continue
                 whole = sentence.strip()
             else:
@@ -1034,16 +1100,17 @@ def check_draft(
                     # 문장 어딘가에 있기만 하면 되게 두면 `제안한 법률은
                     # 공포됐다`가 통과한다. `제안`이 부정하는 것은 `법률`이지
                     # `공포`가 아니다.
-                    # 헤지가 창 안에 있기만 하면 되게 두면
-                    # `개정이 완료되어 예정된 절차가 종료되었다`가 통과한다.
-                    # `예정`이 부정하는 것은 `절차`이지 `개정 완료`가 아니다.
-                    # 그래서 **문장이 어떻게 끝나는지**를 본다. 아직 법이
-                    # 아니라는 것을 드러내는 끝맺음으로만 쓸 수 있다.
-                    tail = packed.rstrip(".。!?\"'”’」』)】]…·")[-APPROVED_TAIL_WINDOW:]
-                    if any(tail.endswith(e) for e in APPROVED_EFFECT_TAILS):
-                        continue
-                    after = packed[found.end() :][:HEDGE_WINDOW]
-                    if any(after.startswith(h) for h in HEDGES):
+                    # 헤지는 **주장 바로 뒤**에 붙어 있어야 한다.
+                    #
+                    # 전에는 문장이 어떻게 끝나는지를 봤다. 그랬더니
+                    # `개정이 완료되어 다음 절차는 예정이다`처럼 뜻은 그대로
+                    # 두고 **마지막 네 글자만 바꿔** 검사를 통째로 끌 수
+                    # 있었다. `예정`이 부정하는 것은 `절차`이지 `개정 완료`가
+                    # 아니다. 붙어 있어야 그 주장을 부정하는 것이다.
+                    # 문장부호를 빼고 글자만 센다. `시행한다.”라고 제안`처럼
+                    # 따옴표가 끼면 창이 밀려 헤지를 못 본다.
+                    rest = LETTERS_ONLY.sub("", packed[found.end() :])
+                    if any(h in rest[:HEDGE_WINDOW] for h in HEDGES):
                         continue
                     add(
                         "PREMATURE_EFFECT_CLAIM",
