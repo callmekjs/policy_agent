@@ -82,7 +82,9 @@ def fake_draft_writing(payload: dict[str, Any]) -> dict[str, Any]:
     result_label = result["value"] if result else stage_label
     when = f"{decided_on['value']} " if decided_on else ""
 
-    title_text = f"{bill_label} {stage_label}"
+    # 결과를 말하는 제목이면 **결과를 적는다.** `의결 결과`라고만 하고
+    # 무엇으로 의결됐는지 안 쓰면 읽는 사람이 알 수 없다.
+    title_text = f"{bill_label} {stage_label}: {result_label}"
     lead_text = (
         f"{subject or '발표 주체 확인 필요'}은(는) {when}{bill_label}이(가) "
         f"{result_label}로 처리된 사실을 알린다. 자료 기준일은 {basis_date}이며, "

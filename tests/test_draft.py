@@ -1765,3 +1765,149 @@ def test_조문에_무엇을_했다는_주장은_개정문과_대조한다(good_
     assert run.draft_version == 0
     rules = {f.rule_id for f in run.validation_findings}
     assert "QUOTED_PASSAGE_NOT_IN_SOURCE" in rules, rules
+
+
+# ---------------------------------------------------------------------------
+# 8차 검토가 뚫었던 공격
+# ---------------------------------------------------------------------------
+
+
+def _with_body(good: dict, text: str, fact_id: str = "F-06") -> dict:
+    """AI 문단을 하나 더해 오염시킨다."""
+    payload = copy.deepcopy(good)
+    payload["result"]["paragraphs"].append(
+        {
+            "paragraph_id": "P-09",
+            "section_kind": "BODY",
+            "priority_rank": 9,
+            "text": text,
+            "claim_ids": [],
+            "fact_ids": [fact_id],
+            "supplementary_rule_ids": [],
+        }
+    )
+    return payload
+
+
+ATTACKS_V9 = [
+    ("셈에 조사 붙이기", "의안번호 2207285에 따라 의원 26명이 지원한다.", "F-06"),
+    ("자리값 26만 명", "의안번호 2207285에 따라 26만 명을 지원한다.", "F-06"),
+    ("자리값 26억 원", "의안번호 2207285에 따라 26억 원이다.", "F-06"),
+    ("퍼센트", "의안번호 2207285에 따라 26퍼센트가 가능하다.", "F-06"),
+    ("부분 날짜 6월 7일", "의안번호 2207285 의결일은 6월 7일이다.", "F-06"),
+    ("부분 날짜 2025년 10월", "의안번호 2207285 의결일은 2025년 10월이다.", "F-06"),
+    ("이름 조각 계원", "의안번호 2207285은 계원이 확인한다.", "F-06"),
+    (
+        "자료 문구를 단체 발언으로",
+        "의안번호 2207285 개정 자료에서 전문예술단체는 “재정여건 개선에 기여하려는 것임”을 확인.",
+        "F-06",
+    ),
+    (
+        "자료 문구를 국가 발언으로",
+        "의안번호 2207285 자료 원문에서 국가는 “기부금품을 모집할 수 있다”를 확인한다.",
+        "F-06",
+    ),
+    ("따옴표 없는 전언", "의안번호 2207285에 대하여 국가는 개선에 기여한다는 것을 확인.", "F-06"),
+    ("처리 결과가 없다", "의안번호 2207285은 처리 결과가 없다.", "F-06"),
+    ("위원회가 종료한다", "의안번호 2207285은 문화체육관광위원회가 종료한다.", "F-06"),
+    ("제7조는 제외된다", "제7조는 제외된다.", "F-03"),
+    ("삭제된 조문은 제7조", "삭제된 조문은 제7조이다.", "F-03"),
+    ("완료 뒤에 예정 절차", "의안번호 2207285 개정이 완료되었다, 예정 절차가 있다.", "F-06"),
+    ("완료 뒤에 아직 확인", "의안번호 2207285 개정이 완료되었다 아직 확인 필요.", "F-06"),
+    ("확정 뒤에 예정 절차", "의안번호 2207285은 확정되었다, 예정 절차가 있다.", "F-06"),
+]
+
+
+@pytest.mark.parametrize(
+    ("name", "text", "fact_id"), ATTACKS_V9, ids=[a[0] for a in ATTACKS_V9]
+)
+def test_8차_검토가_뚫었던_공격은_이제_막힌다(good_draft, name, text, fact_id) -> None:
+    run = asyncio.run(_run(canned_draft=_with_body(good_draft, text, fact_id)))
+    assert run.draft_version == 0, f"{name}: 오염된 초안이 나갔습니다."
+    assert [f for f in run.validation_findings if f.severity.value == "BLOCKING"], (
+        f"{name}: 초안은 막혔지만 이유가 기록되지 않았습니다."
+    )
+
+
+def test_글이_말하는_항목의_값이_자료와_같아야_한다(good_draft) -> None:
+    """`TOPIC_VALUE_MISMATCH`만 겨눈다.
+
+    근거 값 하나만 넣고 나머지를 아무 말로나 채우는 것을 막는다. 방향을
+    뒤집어 **글이 말하는 항목** 쪽에서도 본다.
+    """
+    run = asyncio.run(
+        _run(canned_draft=_with_body(good_draft, "의안번호 2207285은 처리 결과가 없다."))
+    )
+    assert run.draft_version == 0
+    rules = {f.rule_id for f in run.validation_findings}
+    assert "TOPIC_VALUE_MISMATCH" in rules, rules
+
+
+def test_주장이_끝났으면_뒤의_헤지는_소용없다(good_draft) -> None:
+    """`개정이 완료되었다, 예정 절차가 있다`의 `예정`은 `절차`를 부정한다."""
+    run = asyncio.run(
+        _with_body(good_draft, "의안번호 2207285 개정이 완료되었다, 예정 절차가 있다.")
+        and _run(
+            canned_draft=_with_body(
+                good_draft, "의안번호 2207285 개정이 완료되었다, 예정 절차가 있다."
+            )
+        )
+    )
+    assert run.draft_version == 0
+    rules = {f.rule_id for f in run.validation_findings}
+    assert "PREMATURE_EFFECT_CLAIM" in rules, rules
+
+
+def test_자리값이_붙은_수를_제대로_읽는다() -> None:
+    """`26만`은 26이 아니라 260000이다. 원장의 `26` 하나로 만들 수 없다."""
+    from app.gates.draft_gate import SCALED_NUMBER, SCALE_VALUES
+
+    found = {
+        int(m.group(1)) * SCALE_VALUES[m.group(2)]
+        for m in SCALED_NUMBER.finditer("26만 명과 26억 원")
+    }
+    assert found == {260_000, 2_600_000_000}
+    # 조문 번호의 `조`는 1조(兆)가 아니다.
+    assert not SCALED_NUMBER.search("제7조제6항")
+
+
+def test_이름_조각을_잘라_쓸_수_없다() -> None:
+    """`조계원`에서 `계원`을 잘라내지 못한다."""
+    from app.gates.draft_gate import _is_grounded_word
+
+    haystack = "조계원 의원 등 16인"
+    assert _is_grounded_word("조계원이", haystack)
+    assert not _is_grounded_word("계원이", haystack), "이름 조각을 통과시켰습니다."
+
+
+def test_따옴표_앞의_말하는_이를_본다(good_draft) -> None:
+    """`SPEAKER_BEFORE_QUOTE`만 겨눈다.
+
+    `모집`은 직함 목록에도, 발표 주체에도, 문서 표시에도 없다. 따옴표 앞에서
+    `~은` 자리를 차지한 것만으로 말하는 이가 된다.
+    """
+    run = asyncio.run(
+        _run(
+            canned_draft=_with_body(
+                good_draft,
+                "의안번호 2207285 자료에서 모집은 “기부금품을 모집할 수 있다”를 본다.",
+            )
+        )
+    )
+    assert run.draft_version == 0, "따옴표 앞의 말하는 이를 놓쳤습니다."
+    rules = {f.rule_id for f in run.validation_findings}
+    assert "STATEMENT_WITHOUT_SOURCE" in rules, rules
+
+
+def test_조각_날짜도_자료와_대조한다(good_draft) -> None:
+    """`PARTIAL_DATE`만 겨눈다. 빈칸 표시는 항목 대조를 받지 않는 칸이다."""
+    run = asyncio.run(
+        _run(
+            canned_draft=_spoil(
+                good_draft, lambda d: d.__setitem__("placeholders", ["6월 7일"])
+            )
+        )
+    )
+    assert run.draft_version == 0, "조각 날짜를 놓쳤습니다."
+    rules = {f.rule_id for f in run.validation_findings}
+    assert "DATE_NOT_IN_LEDGER" in rules, rules

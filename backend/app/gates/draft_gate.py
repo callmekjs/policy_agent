@@ -74,6 +74,9 @@ FIXED_EFFECT_PHRASES = ("효력상태", "절차단계")
 #: 효력 표현 뒤 몇 글자 안에서 헤지를 찾을지. 한 어절 남짓이다.
 HEDGE_WINDOW = 6
 
+#: 문장을 끝맺는 글자. 이 글자가 바로 뒤에 오면 주장이 완성된 것이다.
+TERMINAL_ENDINGS = frozenset({"다", "음", "함", "임", "죠", "네"})
+
 #: 아직 확정되지 않았음을 드러내는 말.
 HEDGES = (
     "제안", "아직", "예정", "전이", "전입니다", "않", "아니", "확정 전", "미확정",
@@ -142,11 +145,16 @@ ATTRIBUTION = re.compile(
 #: 사람·기관을 가리키는 말. 문장 어디에 있든 본다.
 SPEAKER_WORD = re.compile(
     r"(의원|의원실|위원장|위원회|장관|차관|청장|처장|총장|이사장|대표|대변인|"
-    r"관계자|당국|정부|부처|실장|국장|과장|본부장|단장)"
+    r"관계자|당국|정부|부처|실장|국장|과장|본부장|단장|"
+    r"단체|법인|기관|국가|재단|공사|협회|연맹|조합|본부|사무처)"
 )
 
+#: 따옴표 바로 앞의 `X는`·`X가`. 이 자리는 말하는 이를 가리킨다.
+#: 앞말이 문서를 가리키면(`부칙은 “…”`) 문서를 옮기는 것이라 괜찮다.
+SPEAKER_BEFORE_QUOTE = re.compile(r"([가-힣]{2,})\s*(은|는|이|가)\s*[“\"「『‘]")
+
 #: 남의 말을 옮길 때 쓰는 문법 어미. 닫힌 부류라 늘어나지 않는다.
-QUOTATIVE = re.compile(r"(다고|라고|냐고|자고|이라고)")
+QUOTATIVE = re.compile(r"(다고|라고|냐고|자고|이라고|다는|라는|다며|라며)")
 
 #: 따옴표 곁에서 "누가 말했다"를 만드는 말. 사람·기관을 가리킨다.
 SPEAKER_NEARBY = re.compile(
@@ -167,9 +175,22 @@ AMENDMENT_VERB = re.compile(r"중.{0,40}로한다|로한다|신설한다|삭제�
 #: 날짜 표기. 해·달·날이 함께 나오면 **통째로** 견준다.
 DATE_PATTERN = re.compile(r"(\d{4})\s*[년.\-/]\s*(\d{1,2})\s*[월.\-/]\s*(\d{1,2})")
 
+#: 조각 날짜. `6월 7일`·`2025년 10월`처럼 일부만 적어도 자료와 견뎌야 한다.
+#: 세 조각을 다 요구했더니 `의결일은 6월 7일이다`가 통과했다.
+PARTIAL_DATE = re.compile(r"(\d{1,4})\s*(년|월)\s*(\d{1,2})\s*(월|일)")
+
 #: 세는 수. 단위가 붙으면 단위까지 자료에 있어야 한다.
-# 단위 뒤에 한글이 더 붙으면 세는 말이 아니다. `2207285 개정`의 `개`가 그렇다.
-COUNTED_NUMBER = re.compile(r"\d+\s*(명|인|표|건|개|차|회)(?![가-힣])")
+# 숫자에 **바로 붙은** 단위만 센다. 사이를 띄우면 `2207285 개정`의 `개`처럼
+# 엉뚱한 글자를 단위로 읽는다. 단위 뒤 조사는 그대로 둔다 — `26명이`를
+# 놓치면 조사 하나로 검사가 꺼진다.
+COUNTED_NUMBER = re.compile(
+    r"\d+(?:만|억|조|천)?(명|인|표|건|개|차|회|석|점|번|쪽|장|원|퍼센트|%)"
+)
+
+#: 자리값이 붙은 수. `26만`은 26이 아니라 260000이다.
+# `제7조`의 `조`는 조문이지 1조(兆)가 아니다. 조문 번호는 빼고 본다.
+SCALED_NUMBER = re.compile(r"(?<!제)(\d+)\s*(만|억|조|천)")
+SCALE_VALUES = {"천": 1000, "만": 10_000, "억": 100_000_000, "조": 1_000_000_000_000}
 
 #: 인용을 문서에 돌리는 말. 이 말이 곁에 없으면 남의 발언으로 읽힌다.
 DOCUMENT_WORD = re.compile(r"(부칙|개정문|개정|자료|원문|조문|본문|법률|규정|항)")
@@ -188,10 +209,29 @@ def _dates_in(text: str) -> dict[str, str]:
     return found
 
 
-#: 조문에 무엇을 했다는 주장. 조문 번호 **뒤에** 오면 개정문과 대조한다.
-#: `제7조는 삭제되었다`처럼 근거 값만 넣고 딴말을 쓰는 것을 막는다.
-AMENDMENT_ACTION = re.compile(
-    r"(로한다|신설|삭제|변경|바뀐|바뀌|고친|개정한다|본다|하였다|했다|되었다)"
+#: 조문에 무엇을 했다는 말. 개정문에 그 말이 없으면 지어낸 주장이다.
+#: `제7조는 삭제되었다`·`삭제된 조문은 제7조이다` 둘 다 막는다. 순서를
+#: 바꿔 빠져나가지 못하게 문장 어디에 있든 본다.
+#: `바뀐 조문은 제7조이다`(요약)와 `모집할로 바뀐다`(주장)를 가르기 위해
+#: 서술형만 넣는다. 매김꼴(`바뀐`)은 무엇이 바뀌었는지 말할 뿐이다.
+ARTICLE_ACTION = re.compile(
+    r"(삭제|신설|제외|포함|종료|추가|이동|폐지|변경|개정한다|로한다|본다|"
+    r"바뀐다|바뀌었|바뀝니다|바꾼다|바꿨|고쳤|고친다)"
+)
+
+#: 사실 종류마다 "그 항목을 말한다"는 신호가 되는 말.
+#: 초안이 이 말을 쓰면 **그 항목의 원장 값을 담아야 한다.**
+#:
+#: 지금까지는 "댄 근거가 문장에 있나"만 봤다. 그래서 짧은 값 하나를 넣고
+#: 나머지를 아무 말로나 채울 수 있었다 — `의안번호 2207285은 처리 결과가
+#: 없다`처럼. 방향을 뒤집어 **글이 말하는 항목** 쪽에서도 본다.
+FACT_TOPICS: tuple[tuple[str, tuple[str, ...]], ...] = (
+    ("PLENARY_RESULT", ("처리결과", "의결결과", "회의결과", "심의결과", "처리됐", "처리되")),
+    ("PLENARY_DECIDED_ON", ("의결일", "처리일", "의결한날", "가결일")),
+    ("BILL_IDENTITY", ("의안번호",)),
+    ("VOTE_PRESENT_COUNT", ("재석",)),
+    ("VOTE_YES_COUNT", ("찬성",)),
+    ("VOTE_NO_COUNT", ("반대",)),
 )
 
 #: 시점을 가리키는 말. 시행 이야기에 쓰려면 부칙에도 있어야 한다 (§2.16.4).
@@ -393,7 +433,9 @@ def _is_grounded_word(word: str, haystack: str) -> bool:
     for stem in _strip_suffix(word):
         if len(stem) < 2:
             continue
-        if stem in haystack:
+        # 그냥 부분 문자열로 보면 `조계원`에서 `계원`을 잘라내 없는 이름을
+        # 만들 수 있다. 낱말 시작 자리여야 자료가 말한 낱말이다.
+        if _starts_a_word(stem, haystack):
             return True
         if stem in SAFE_WORDS:
             return True
@@ -822,6 +864,30 @@ def check_draft(
             text[:60],
         )
 
+    # 글이 어떤 항목을 말하면 그 항목의 원장 값을 담아야 한다.
+    values_by_kind: dict[str, list[str]] = {}
+    for fact in ledger.facts:
+        values_by_kind.setdefault(fact.kind, []).append(sanitize(fact.value))
+
+    def check_topics(part: str, text: str) -> None:
+        packed = _squeeze(text)
+        for kind, words in FACT_TOPICS:
+            values = values_by_kind.get(kind)
+            if not values:
+                continue  # 원장에 그 항목이 없으면 견줄 것이 없다
+            if not any(word in packed for word in words):
+                continue
+            if any(_squeeze(v) in packed for v in values):
+                continue
+            shown = ", ".join(f"`{v}`" for v in sorted(set(values))[:2])
+            add(
+                "TOPIC_VALUE_MISMATCH",
+                "2.10",
+                part,
+                f"자료가 말하는 값과 다릅니다. 자료의 값: {shown}.",
+                text[:60],
+            )
+
     check_anchored("제목", candidate.title.text, candidate.title.fact_ids)
     check_anchored("리드", candidate.lead.text, candidate.lead.fact_ids)
     for i, point in enumerate(candidate.key_points, start=1):
@@ -868,10 +934,23 @@ def check_draft(
             add("REQUIRED_TEXT_EMPTY", "2.7", part, "내용이 비어 있습니다.")
 
     # --- F1. 자료에 없는 수를 쓰지 않는가 (표기법 무관) ----------------------
+    for part, text in agent_parts:
+        check_topics(part, text)
+
     # 날짜와 세는 수는 조각이 아니라 **통째로** 자료에 있어야 한다.
     allowed_dates = set(_dates_in(allowed_text).values())
     packed_allowed = _squeeze(allowed_text)
     for part, text in agent_parts:
+        for match in PARTIAL_DATE.finditer(text):
+            if _squeeze(match.group(0)) in packed_allowed:
+                continue
+            add(
+                "DATE_NOT_IN_LEDGER",
+                "4.2",
+                part,
+                f"자료에 없는 날짜 `{match.group(0)}`이(가) 초안에 있습니다.",
+                text[:60],
+            )
         for shown, value in _dates_in(text).items():
             if value in allowed_dates:
                 continue
@@ -899,6 +978,10 @@ def check_draft(
         # 흩어져 수를 하나도 못 읽는다. 그때 낱말 검사는 "수는 수 검사가
         # 따로 본다"며 넘긴다. 두 검사가 서로 상대를 믿고 둘 다 안 보게 된다.
         probe_numbers = read_numbers(text) | read_numbers(_join_scattered(text))
+        # `26만`은 26이 아니라 260000이다. 자리값을 안 읽으면 원장의 `26`
+        # 하나로 26만·26억을 만들 수 있다.
+        for match in SCALED_NUMBER.finditer(text):
+            probe_numbers.add(int(match.group(1)) * SCALE_VALUES[match.group(2)])
         for number in sorted(probe_numbers - allowed_numbers):
             add(
                 "NUMBER_NOT_IN_LEDGER",
@@ -945,6 +1028,15 @@ def check_draft(
     # 허용 낱말 검사는 자료에 있는 낱말로 조립한 **가짜 발언**을 막지 못한다.
     # 낱말은 다 자료에 있지만 "누가 그렇게 말했다"는 새 사실이기 때문이다.
     haystacks = [sanitize(n.normalized_text) for n in normalized.values()]
+    # 화자로 볼 수 있는 이름. 발표 주체와 자료에 적힌 사람·기관 이름이다.
+    speaker_names = [sanitize(announcement_subject)] + [
+        sanitize(f.value)
+        for f in ledger.facts
+        if f.kind in ("ANNOUNCEMENT_SUBJECT", "PROPOSER", "SPEAKER")
+    ]
+    # 발표 주체가 `조계원 의원실`이면 `조계원`만 써도 같은 사람이다.
+    speaker_names += [n.split()[0] for n in speaker_names if n and " " in n]
+    speaker_names = [n for n in speaker_names if len(n) >= 2]
     for part, text in agent_parts:
         for pattern in QUOTE_SPANS:
             for match in pattern.finditer(text):
@@ -973,6 +1065,25 @@ def check_draft(
         # `부칙`·`개정문`·`자료` 같은 말이 없으면 남의 발언으로 읽힌다.
         # 문장 단위로만 보면 문장을 쪼개 화자를 딴 문단에 두어 빠져나갈 수 있다.
         packed_part = _squeeze(text)
+        # 화자는 직함 목록만으로 알 수 없다. `조계원`처럼 자료에 있는 이름을
+        # 그대로 쓰면 목록이 꺼진다. 발표 주체와 기관 이름도 함께 본다.
+        speaker_here = bool(SPEAKER_WORD.search(packed_part)) or any(
+            name and _squeeze(name) in packed_part for name in speaker_names
+        )
+        # 따옴표 바로 앞의 `X는`도 말하는 이다. 앞말이 문서를 가리키면
+        # (`부칙은 “…”`) 문서를 옮기는 것이라 괜찮다.
+        for match in SPEAKER_BEFORE_QUOTE.finditer(text):
+            if DOCUMENT_WORD.search(match.group(1)):
+                continue
+            add(
+                "STATEMENT_WITHOUT_SOURCE",
+                "2.16.2",
+                part,
+                f"공식 발언문 자료가 없는데 ‘{match.group(1)}’의 말로 인용을 "
+                "돌렸습니다. 발언은 공식 발언문에서만 가져올 수 있습니다.",
+                text[:60],
+            )
+            break
         if any(p.search(text) for p in QUOTE_SPANS) and not DOCUMENT_WORD.search(
             packed_part
         ):
@@ -987,7 +1098,7 @@ def check_draft(
 
         for sentence in SENTENCE_SPLIT.split(text):
             packed_sentence = _squeeze(sentence)
-            if not SPEAKER_WORD.search(packed_part):
+            if not speaker_here:
                 continue
             has_quote = any(p.search(text) for p in QUOTE_SPANS)
             has_quotative = QUOTATIVE.search(packed_sentence)
@@ -1059,10 +1170,18 @@ def check_draft(
                 article = ARTICLE_MENTION.search(packed_sentence)
                 if article is None:
                     continue
-                # 조문 **뒤에** 개정 지시 표현이 오면 그 조문에 무엇을 했다는
-                # 주장이다. 앞에 오면(`바뀐 조문은 제7조이다`) 요약일 뿐이다.
-                after_article = packed_sentence[article.end() :]
-                if not AMENDMENT_ACTION.search(after_article):
+                # 조문에 **무엇을 했다**는 말이 문장 어디에 있든 본다.
+                # 앞뒤 자리로 가르면 `삭제된 조문은 제7조이다`처럼 순서를
+                # 바꿔 빠져나간다. 대신 그 말이 개정문에 실제로 있으면 넘어간다.
+                actions = {
+                    m.group(0) for m in ARTICLE_ACTION.finditer(packed_sentence)
+                }
+                body = _squeeze(sanitize(final_text.body_text)) if final_text else ""
+                # 개정문에 없는 말로 조문에 무엇을 했다고 하면 지어낸 주장이다.
+                unknown_action = [a for a in actions if a not in body]
+                # 개정 지시문을 옮기는 모양이면 문장을 통째로 대조한다.
+                looks_like_directive = bool(AMENDMENT_VERB.search(packed_sentence))
+                if not unknown_action and not looks_like_directive:
                     continue
                 whole = sentence.strip()
             else:
@@ -1110,6 +1229,20 @@ def check_draft(
                     # 문장부호를 빼고 글자만 센다. `시행한다.”라고 제안`처럼
                     # 따옴표가 끼면 창이 밀려 헤지를 못 본다.
                     rest = LETTERS_ONLY.sub("", packed[found.end() :])
+                    # 주장이 이미 끝났으면 뒤에 오는 헤지는 그 주장을
+                    # 부정하지 않는다. `개정이 완료되었다, 예정 절차가 있다`의
+                    # `예정`이 부정하는 것은 `절차`다.
+                    if rest[:1] in TERMINAL_ENDINGS:
+                        if not any(h in found.group(0) for h in HEDGES):
+                            add(
+                                "PREMATURE_EFFECT_CLAIM",
+                                "2.16.1",
+                                part,
+                                f"아직 법률이 아닌데 ‘{stem}’을(를) 확정된 일처럼 "
+                                "썼습니다. 제안 내용임을 함께 밝혀야 합니다.",
+                                sentence.strip()[:60],
+                            )
+                        continue
                     if any(h in rest[:HEDGE_WINDOW] for h in HEDGES):
                         continue
                     add(
