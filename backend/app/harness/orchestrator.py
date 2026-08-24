@@ -21,6 +21,12 @@ from app.agents.draft_writing import parse_result as parse_draft_result
 from app.agents.fact_extraction import AgentResultError, build_request, parse_result
 from app.gates.conflict_gate import check_conflicts
 from app.gates.draft_gate import blocking, check_draft
+from app.gates.draft_sections import build_fixed_sections
+from app.gates.draft_template import (
+    HARNESS_ID_PREFIX,
+    HARNESS_OWNED,
+    load_template,
+)
 from app.gates.evidence_gate import build_fact_ledger
 from app.gates.final_text_gate import resolve_final_text
 from app.gates.input_gate import check_input
@@ -31,6 +37,7 @@ from app.harness.article_parser import (
     parse_changed_articles,
     top_level_article,
 )
+from app.harness.contract_loader import load_writing_contract
 from app.harness.contracts import (
     ACTIVE_CONTRACT_ID,
     SUPPORTED_PROCEDURE_STAGE,
@@ -64,6 +71,9 @@ EFFECT_STATUS_LABEL = "아직 법률 아님"
 #: 문의처는 사람이 확인해야 채워진다. 만들어 내지 않는다.
 CONTACT_PLACEHOLDER = "[문의처 확인 필요]"
 RELEASE_DATE_PLACEHOLDER = "[보도일 확인 필요]"
+
+#: 계약이 요구하는 안내 문구 (§2.16.2).
+INTERNET_NOTICE = "※ 시스템이 인터넷에서 최신 상태를 별도로 확인한 것은 아닙니다."
 
 
 def _now() -> datetime:
@@ -536,8 +546,40 @@ class Orchestrator:
                 run.actual_model_calls += 1
                 run.estimated_cost_usd += call.estimated_cost_usd
 
+        template = load_template(load_writing_contract().template)
+
         try:
             candidate = parse_draft_result(call)
+            # 값이 정해진 자리는 Harness가 직접 채운다. AI가 쓴 것은 버린다.
+            candidate = candidate.model_copy(
+                update={
+                    "paragraphs": [
+                        *build_fixed_sections(
+                            template,
+                            basis_date=basis_date,
+                            procedure_stage_label=SUPPORTED_PROCEDURE_STAGE_LABEL,
+                            effect_status_label=EFFECT_STATUS_LABEL,
+                            announcement_subject=announcement_subject,
+                            contact_text=template.placeholders.get(
+                                "contact", CONTACT_PLACEHOLDER
+                            ),
+                            release_date_text=template.placeholders.get(
+                                "release_date", RELEASE_DATE_PLACEHOLDER
+                            ),
+                            internet_notice=INTERNET_NOTICE,
+                        ),
+                        *[
+                            p
+                            for p in candidate.paragraphs
+                            # 값이 정해진 자리는 버린다. Harness 이름표(`HS-`)를
+                            # 흉내 낸 것도 버린다. 그러지 않으면 AI가 그 이름을
+                            # 달고 검사를 건너뛸 수 있다.
+                            if p.section_kind not in HARNESS_OWNED
+                            and not p.paragraph_id.startswith(HARNESS_ID_PREFIX)
+                        ],
+                    ]
+                }
+            )
         except DraftResultError as exc:
             async with self.store.lock:
                 run = self.store.get(run_id)
@@ -567,6 +609,7 @@ class Orchestrator:
             normalized,
             announcement_subject=announcement_subject,
             # 공식 발언문 자료가 있을 때만 남의 말을 옮길 수 있다 (§2.16.2).
+            template=template,
             has_statement_source=any(
                 s.use_scope is SourceUseScope.ATTRIBUTED_STATEMENT_ONLY for s in sources
             ),
@@ -576,6 +619,14 @@ class Orchestrator:
                 EFFECT_STATUS_LABEL,
                 CONTACT_PLACEHOLDER,
                 RELEASE_DATE_PLACEHOLDER,
+                INTERNET_NOTICE,
+                basis_date,
+                # Harness가 스스로 만든 문단. 지어낸 값이 아니다.
+                *[
+                    p.text
+                    for p in candidate.paragraphs
+                    if p.paragraph_id.startswith("HS-")
+                ],
             ),
         )
         blocked = blocking(findings)

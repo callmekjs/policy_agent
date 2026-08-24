@@ -334,6 +334,16 @@ def good_draft() -> dict:
     }
 
 
+def _ai_paragraphs(d: dict) -> list[dict]:
+    """AI가 쓴 문단만 고른다.
+
+    양식이 정한 `DRAFT_MARK`·`BASIS_AND_STATUS`·`ANNOUNCER_AND_RELEASE`·
+    `CONTACT` 네 자리는 Harness가 직접 만든다(`HS-`). 그 문단을 오염시켜도
+    Harness가 받은 초안에서 걷어내므로 공격이 되지 않는다. 공격은 **AI가 쓰는
+    자리**에 넣어야 뜻이 있다.
+    """
+    return [p for p in d["paragraphs"] if not p["paragraph_id"].startswith("HS-")]
+
 def _spoil(good: dict, mutate) -> dict:
     payload = copy.deepcopy(good)
     mutate(payload["result"])
@@ -343,7 +353,7 @@ def _spoil(good: dict, mutate) -> dict:
 ATTACKS = [
     (
         "없는 표결 수를 지어낸다",
-        lambda d: d["paragraphs"][0].__setitem__(
+        lambda d: _ai_paragraphs(d)[0].__setitem__(
             "text", d["paragraphs"][0]["text"] + " 재석 250인 중 찬성 249인이었다."
         ),
         "NUMBER_NOT_IN_LEDGER",
@@ -383,7 +393,7 @@ ATTACKS = [
     ),
     (
         "부칙 근거 없이 시행일을 말한다",
-        lambda d: d["paragraphs"][-1].__setitem__("supplementary_rule_ids", []),
+        lambda d: _ai_paragraphs(d)[-1].__setitem__("supplementary_rule_ids", []),
         "EFFECTIVE_DATE_NEEDS_RULE",
     ),
     (
@@ -554,7 +564,7 @@ async def test_자료_기준일이_비면_초안을_만들지_않는다() -> Non
 @pytest.mark.asyncio
 async def test_필수_문단이_없으면_초안을_만들지_않는다() -> None:
     payload = _draft_dict(await _run())
-    for paragraph in payload["result"]["paragraphs"]:
+    for paragraph in _ai_paragraphs(payload["result"]):
         paragraph["section_kind"] = "EXTRA"
     run = await _run(canned_draft=payload)
     assert run.draft_version == 0
@@ -575,7 +585,7 @@ async def test_없는_주장을_가리키면_초안을_만들지_않는다() -> 
 @pytest.mark.asyncio
 async def test_없는_부칙을_가리키면_초안을_만들지_않는다() -> None:
     payload = _draft_dict(await _run())
-    payload["result"]["paragraphs"][-1]["supplementary_rule_ids"] = ["SR-없음"]
+    _ai_paragraphs(payload["result"])[-1]["supplementary_rule_ids"] = ["SR-없음"]
     run = await _run(canned_draft=payload)
     assert run.draft_version == 0
     rules = {f.rule_id for f in run.validation_findings}
@@ -643,7 +653,7 @@ ATTACKS_V2 = [
     ("띄어쓴 공 포되었다", lambda d: _lead(d, "이 법은 공 포되었다.")),
     ("요약에 다른 시행일", lambda d: _point(d, "공포 후 6개월이 지난 날부터 시행된다.")),
     ("제목에 공포 즉시 시행", lambda d: _title(d, "공포 즉시 시행")),
-    ("부칙 ID는 두고 내용만 바꿈", lambda d: d["paragraphs"][-1].__setitem__("text", "공포 후 6개월이 지난 날부터 시행된다.")),
+    ("부칙 ID는 두고 내용만 바꿈", lambda d: _ai_paragraphs(d)[-1].__setitem__("text", "공포 후 6개월이 지난 날부터 시행된다.")),
     ("빈칸 표시에 지어낸 수", lambda d: d.__setitem__("placeholders", ["재석 250인 중 찬성 249인"])),
     ("주장에 지어낸 인명", lambda d: d["claims"][0].__setitem__("text", "김영수 장관이 발표했다")),
     ("기준일 조작", lambda d: d.__setitem__("basis_date", "2099-12-31")),
@@ -670,7 +680,7 @@ def _point(d: dict, text: str) -> None:
 
 
 def _append(d: dict, text: str) -> None:
-    d["paragraphs"][0]["text"] += " " + text
+    _ai_paragraphs(d)[0]["text"] += " " + text
 
 
 @pytest.mark.parametrize(
@@ -711,14 +721,14 @@ ATTACKS_V3 = [
     ("적용된다", lambda d: _lead(d, "이 법은 곧 적용된다.")),
     (
         "문단 번호에 거짓",
-        lambda d: d["paragraphs"][0].__setitem__(
+        lambda d: _ai_paragraphs(d)[0].__setitem__(
             "paragraph_id", "재석 250인 중 찬성 249인, 김영수 장관 발표"
         ),
     ),
     ("초안 번호에 거짓", lambda d: d.__setitem__("candidate_id", "재석 250인")),
     (
         "문단 종류에 거짓",
-        lambda d: d["paragraphs"][0].__setitem__("section_kind", "김영수 장관 발표"),
+        lambda d: _ai_paragraphs(d)[0].__setitem__("section_kind", "김영수 장관 발표"),
     ),
     (
         "발표 주체 근거 위조",
@@ -769,7 +779,7 @@ def test_인용_부호_안이_자료에_없으면_막는다(good_draft) -> None:
         _run(
             canned_draft=_spoil(
                 good_draft,
-                lambda d: d["paragraphs"][1].__setitem__(
+                lambda d: _ai_paragraphs(d)[1].__setitem__(
                     "text", "개정 문구는 “있지도 않은 문장이다”라고 제안하고 있다."
                 ),
             )
@@ -786,7 +796,7 @@ def test_부칙에_없는_시점을_시행_이야기에_쓰면_막는다(good_dr
         _run(
             canned_draft=_spoil(
                 good_draft,
-                lambda d: d["paragraphs"][-1].__setitem__(
+                lambda d: _ai_paragraphs(d)[-1].__setitem__(
                     "text", "부칙은 공포 후 6개월이 지난 날부터 시행하도록 제안하고 있다."
                 ),
             )
@@ -851,7 +861,9 @@ async def test_자료의_부칙을_초안이_빠뜨리면_막는다() -> None:
     payload = _draft_dict(await _run())
     # 부칙을 말하는 문단을 통째로 뺀다.
     payload["result"]["paragraphs"] = [
-        p for p in payload["result"]["paragraphs"] if not p["supplementary_rule_ids"]
+        p
+        for p in payload["result"]["paragraphs"]
+        if not p["supplementary_rule_ids"]
     ]
     run = await _run(canned_draft=payload)
     assert run.draft_version == 0, "부칙이 빠졌는데 초안이 나갔습니다."
@@ -917,7 +929,7 @@ ATTACKS_V4 = [
     ),
     ("제목 비움", lambda d: _title(d, "")),
     ("리드 비움", lambda d: _lead(d, "")),
-    ("본문 전부 비움", lambda d: [p.__setitem__("text", "") for p in d["paragraphs"]]),
+    ("본문 전부 비움", lambda d: [p.__setitem__("text", "") for p in _ai_paragraphs(d)]),
     ("공백만 채운 제목", lambda d: _title(d, "   ")),
     ("제안한…확정됐다", lambda d: _title(d, "제안한 문화예술진흥법 개정이 확정됐다")),
     ("제안한 법률은 공포됐다", lambda d: _lead(d, "제안한 법률은 공포됐다.")),
@@ -1085,12 +1097,12 @@ ATTACKS_V5 = [
     ("키릴 섞기", lambda d: _point(d, "МОCSТ가 함께 알린다.")),
     (
         "본문을 점자 빈칸으로",
-        lambda d: [p.__setitem__("text", "⠀") for p in d["paragraphs"]],
+        lambda d: [p.__setitem__("text", "⠀") for p in _ai_paragraphs(d)],
     ),
     ("문의처를 점자 빈칸으로", lambda d: d.__setitem__("contact_text", "⠀")),
     (
         "본문을 한글 채움으로",
-        lambda d: [p.__setitem__("text", "ㅤ") for p in d["paragraphs"]],
+        lambda d: [p.__setitem__("text", "ㅤ") for p in _ai_paragraphs(d)],
     ),
     ("공포됨", lambda d: _lead(d, "이 법률은 공포됨. 부칙은 다음과 같다.")),
     ("개정이 완료되었다", lambda d: _lead(d, "제7조 개정이 완료되었다.")),
@@ -1114,14 +1126,14 @@ ATTACKS_V5 = [
     ("확정 본 (점자 빈칸)", lambda d: _title(d, "확정⠀본 문화예술진흥법")),
     (
         "개정 방향 뒤집기",
-        lambda d: d["paragraphs"][1].__setitem__(
+        lambda d: _ai_paragraphs(d)[1].__setitem__(
             "text",
             "바뀐 조문은 제7조이다. 제7조제6항 중 “모집ㆍ접수할”을 “모집할”로 한다.",
         ),
     ),
     (
         "부칙에 없는 다음 달 시행",
-        lambda d: d["paragraphs"][-1].__setitem__(
+        lambda d: _ai_paragraphs(d)[-1].__setitem__(
             "text", "부칙에 따라 이 법은 다음 달 시행 예정이다."
         ),
     ),
@@ -1150,7 +1162,7 @@ def test_개정_문구는_통째로_자료에_있어야_한다(good_draft) -> No
         _run(
             canned_draft=_spoil(
                 good_draft,
-                lambda d: d["paragraphs"][1].__setitem__(
+                lambda d: _ai_paragraphs(d)[1].__setitem__(
                     "text",
                     "바뀐 조문은 제7조이다. "
                     "제7조제6항 중 “모집ㆍ접수할”을 “모집할”로 한다.",
@@ -1169,7 +1181,7 @@ def test_부칙에_없는_시점_표현을_막는다(good_draft) -> None:
         _run(
             canned_draft=_spoil(
                 good_draft,
-                lambda d: d["paragraphs"][-1].__setitem__(
+                lambda d: _ai_paragraphs(d)[-1].__setitem__(
                     "text", "부칙에 따라 이 법은 다음 달 시행하도록 제안하고 있다."
                 ),
             )
@@ -1260,61 +1272,61 @@ ATTACKS_V6 = [
     ),
     (
         "하이픈 날짜 본문",
-        lambda d: d["paragraphs"][0].__setitem__(
+        lambda d: _ai_paragraphs(d)[0].__setitem__(
             "text", "의안번호 2207285의 의결일은 2025-09-26이다."
         ),
     ),
     ("하이픈 날짜 기준일", lambda d: d.__setitem__("basis_date", "2025-06-01")),
     (
         "조각 조립 문화예술법인",
-        lambda d: d["paragraphs"][0].__setitem__(
+        lambda d: _ai_paragraphs(d)[0].__setitem__(
             "text", "문화예술법인은 의안번호 2207285을(를) 알린다."
         ),
     ),
     (
         "조각 조립 전문예술위원회",
-        lambda d: d["paragraphs"][0].__setitem__(
+        lambda d: _ai_paragraphs(d)[0].__setitem__(
             "text", "전문예술위원회는 의안번호 2207285을(를) 알린다."
         ),
     ),
     (
         "조각 조립 조계원장",
-        lambda d: d["paragraphs"][0].__setitem__(
+        lambda d: _ai_paragraphs(d)[0].__setitem__(
             "text", "조계원장은 의안번호 2207285을(를) 알린다."
         ),
     ),
     (
         "따옴표 없이 개정 방향 뒤집기",
-        lambda d: d["paragraphs"][1].__setitem__(
+        lambda d: _ai_paragraphs(d)[1].__setitem__(
             "text", "제7조제6항 중 모집ㆍ접수할을 모집할로 한다."
         ),
     ),
     (
         "따옴표 하나로 뒤집기",
-        lambda d: d["paragraphs"][1].__setitem__(
+        lambda d: _ai_paragraphs(d)[1].__setitem__(
             "text", "제7조제6항 중 “모집ㆍ접수할”을 모집할로 한다."
         ),
     ),
     (
         "원안ㆍ가결",
-        lambda d: d["paragraphs"][0].__setitem__(
+        lambda d: _ai_paragraphs(d)[0].__setitem__(
             "text", "의안번호 2207285은(는) 원안ㆍ가결로 처리되었다."
         ),
     ),
     (
         "헤지로 문장 건너뛰기",
-        lambda d: d["paragraphs"][2].__setitem__("text", "적용 완료 예정이며 공포되었다."),
+        lambda d: _ai_paragraphs(d)[2].__setitem__("text", "적용 완료 예정이며 공포되었다."),
     ),
     (
         "헤지 앞세우고 시행되었다",
-        lambda d: d["paragraphs"][2].__setitem__(
+        lambda d: _ai_paragraphs(d)[2].__setitem__(
             "text", "적용 완료 예정이며 이 법은 시행되었다."
         ),
     ),
-    ("시행 단계다", lambda d: d["paragraphs"][2].__setitem__("text", "이 법은 시행 단계다.")),
+    ("시행 단계다", lambda d: _ai_paragraphs(d)[2].__setitem__("text", "이 법은 시행 단계다.")),
     (
         "공포에 이르렀다",
-        lambda d: d["paragraphs"][2].__setitem__("text", "이 법은 공포에 이르렀다."),
+        lambda d: _ai_paragraphs(d)[2].__setitem__("text", "이 법은 공포에 이르렀다."),
     ),
 ]
 
@@ -1355,7 +1367,7 @@ def test_부칙을_근거로_대면_그_원문을_담아야_한다(good_draft) -
         _run(
             canned_draft=_spoil(
                 good_draft,
-                lambda d: d["paragraphs"][2].__setitem__(
+                lambda d: _ai_paragraphs(d)[2].__setitem__(
                     "text", "부칙에 따라 곧 적용될 전망이다."
                 ),
             )
@@ -1422,3 +1434,174 @@ def test_한_문장의_효력_표현을_모두_본다(good_draft) -> None:
     assert run.draft_version == 0, "뒤쪽 주장을 검사에서 빼냈습니다."
     rules = {f.rule_id for f in run.validation_findings}
     assert "PREMATURE_EFFECT_CLAIM" in rules, rules
+
+
+# ---------------------------------------------------------------------------
+# 양식(Writing Contract `template.yaml`)을 따르는가
+# ---------------------------------------------------------------------------
+
+
+def _all_text(run) -> str:
+    return "\n".join(p.text for p in run.draft.paragraphs)
+
+
+@pytest.mark.asyncio
+async def test_계약이_요구하는_표시가_초안에_모두_있다() -> None:
+    """§2.16.2. 화면과 초안에 함께 표시해야 하는 문구들."""
+    run = await _run()
+    assert run.draft is not None
+    whole = _all_text(run)
+    for mark in (
+        "DRAFT / 내부 검토용",
+        "제공된 공식 자료 기준: 2025-10-26",
+        "절차 단계",
+        "효력 상태: 아직 법률 아님",
+        "※ 시스템이 인터넷에서 최신 상태를 별도로 확인한 것은 아닙니다.",
+    ):
+        assert mark in whole, f"필수 표시가 없습니다: {mark}"
+
+
+@pytest.mark.asyncio
+async def test_문단_종류가_계약과_같은_이름을_쓴다() -> None:
+    """코드에 옮겨 적으면 계약과 갈라진다. 실제로 네 번 연속 갈라져 있었다."""
+    from app.gates.draft_template import load_template
+    from app.harness.contract_loader import load_writing_contract
+
+    template = load_template(load_writing_contract().template)
+    run = await _run()
+    assert run.draft is not None
+    for paragraph in run.draft.paragraphs:
+        assert paragraph.section_kind in template.section_kinds, (
+            f"계약에 없는 문단 종류입니다: {paragraph.section_kind}"
+        )
+    kinds = {p.section_kind for p in run.draft.paragraphs}
+    assert "KEY_POINT" not in kinds, "계약은 `KEY_POINTS`를 씁니다."
+    assert "NEXT_STEP" not in kinds, "계약은 `NEXT_PROCEDURE`를 씁니다."
+
+
+@pytest.mark.asyncio
+async def test_값이_정해진_자리는_AI가_쓸_수_없다() -> None:
+    """`CONTACT`처럼 값이 이미 정해진 자리에 AI가 쓴 글은 받지 않는다."""
+    payload = _draft_dict(await _run())
+    payload["result"]["paragraphs"].append(
+        {
+            "paragraph_id": "P-09",
+            "section_kind": "CONTACT",
+            "priority_rank": 9,
+            "text": "문의처: 02-1234-5678",
+            "claim_ids": [],
+            "fact_ids": [],
+            "supplementary_rule_ids": [],
+        }
+    )
+    run = await _run(canned_draft=payload)
+    assert run.draft is not None, "정상 초안까지 막았습니다."
+    assert "02-1234-5678" not in _all_text(run), "AI가 쓴 문의처가 초안에 남았습니다."
+
+
+@pytest.mark.asyncio
+async def test_Harness_이름표를_흉내_낼_수_없다() -> None:
+    """`HS-` 이름표를 달아 검사를 건너뛰려는 시도를 막는다."""
+    payload = _draft_dict(await _run())
+    payload["result"]["paragraphs"].append(
+        {
+            "paragraph_id": "HS-09",
+            "section_kind": "BODY",
+            "priority_rank": 9,
+            "text": "재석 250인 중 찬성 249인이었다.",
+            "claim_ids": [],
+            "fact_ids": [],
+            "supplementary_rule_ids": [],
+        }
+    )
+    run = await _run(canned_draft=payload)
+    assert run.draft is not None
+    assert "250인" not in _all_text(run), "흉내 낸 문단이 초안에 남았습니다."
+
+
+@pytest.mark.asyncio
+async def test_양식이_만들지_않기로_한_문단은_막는다() -> None:
+    payload = _draft_dict(await _run())
+    payload["result"]["paragraphs"].append(
+        {
+            "paragraph_id": "P-08",
+            "section_kind": "SUBTITLE",
+            "priority_rank": 8,
+            "text": "의안번호 2207285 부제입니다",
+            "claim_ids": [],
+            "fact_ids": ["F-06"],
+            "supplementary_rule_ids": [],
+        }
+    )
+    run = await _run(canned_draft=payload)
+    assert run.draft_version == 0
+    rules = {f.rule_id for f in run.validation_findings}
+    assert "FORBIDDEN_SECTION" in rules, rules
+
+
+ATTACKS_V7 = [
+    (
+        "근거 0개 문단에 거짓",
+        lambda d: _ai_paragraphs(d)[0].update(
+            {"text": "의안번호 2207285은 원안가결이 아니다.", "fact_ids": [], "claim_ids": []}
+        ),
+    ),
+    (
+        "근거 0개 + 거짓 날짜",
+        lambda d: _ai_paragraphs(d)[0].update(
+            {"text": "본회의 의결일은 2025. 9. 18이다.", "fact_ids": [], "claim_ids": []}
+        ),
+    ),
+    (
+        "근거 0개 + 개정 뒤집기",
+        lambda d: _ai_paragraphs(d)[0].update(
+            {
+                "text": "제7조제6항 중 모집ㆍ접수할이 모집할로 바뀐다.",
+                "fact_ids": [],
+                "claim_ids": [],
+            }
+        ),
+    ),
+    (
+        "근거 문구에서 뽑은 표결 수",
+        lambda d: _ai_paragraphs(d)[0].__setitem__("text", "본회의 표결 결과는 18표이다."),
+    ),
+    (
+        "낱말 경계 자르기",
+        lambda d: _ai_paragraphs(d)[0].__setitem__(
+            "text", "계원의원실은 이번 법률안을 검토한다."
+        ),
+    ),
+    (
+        "콜론 뒤 인용",
+        lambda d: _lead(d, "조계원 의원실: “기부금품을 모집할 수 있다”"),
+    ),
+    (
+        "따옴표 없는 전언",
+        lambda d: _lead(d, "조계원 의원실은 기부금품을 모집할 수 있다고 알린다."),
+    ),
+    (
+        "헤지로 개정 완료 선언",
+        lambda d: _ai_paragraphs(d)[2].__setitem__(
+            "text", "제7조 개정이 완료되어 예정된 절차가 종료되었다."
+        ),
+    ),
+    (
+        "효력으로 시행일 말하기",
+        lambda d: _ai_paragraphs(d)[0].__setitem__(
+            "text", "이 법은 2025. 10. 26부터 효력이 있다."
+        ),
+    ),
+    ("기준일 조작", lambda d: d.__setitem__("basis_date", "2025. 9. 18")),
+]
+
+
+@pytest.mark.parametrize(
+    ("name", "mutate"), ATTACKS_V7, ids=[a[0] for a in ATTACKS_V7]
+)
+def test_6차_검토가_뚫었던_공격은_이제_막힌다(good_draft, name, mutate) -> None:
+    run = asyncio.run(_run(canned_draft=_spoil(good_draft, mutate)))
+    assert run.draft_version == 0, f"{name}: 오염된 초안이 나갔습니다."
+    assert [f for f in run.validation_findings if f.severity.value == "BLOCKING"], (
+        f"{name}: 초안은 막혔지만 이유가 기록되지 않았습니다."
+    )

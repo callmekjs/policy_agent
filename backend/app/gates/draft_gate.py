@@ -25,6 +25,11 @@ from typing import Any
 
 from app.gates.draft_charset import allowed_characters, describe, find_forbidden
 from app.gates.draft_normalizer import find_invisible, sanitize
+from app.gates.draft_template import (
+    HARNESS_ID_PREFIX,
+    HARNESS_OWNED,
+    DraftTemplate,
+)
 from app.gates.draft_vocabulary import SAFE_WORDS, SUFFIXES
 from app.gates.numeral_reader import read_numbers, read_numeral_word
 from app.harness.draft_contracts import (
@@ -174,9 +179,6 @@ TIME_WORDS = (
     "익일", "익월", "내년", "올해", "분기", "상반기", "하반기", "말일",
 )
 
-#: 양식 v1의 필수 문단 종류 (§2.7).
-REQUIRED_SECTIONS = ("BODY",)
-
 RULE_DOC = "README §"
 
 
@@ -270,11 +272,6 @@ def _strip_suffix(word: str) -> list[str]:
 
 #: 이름표 모양. `P-01`, `CL-03`, `DC-01`처럼 영문 대문자와 번호만 쓴다.
 IDENTIFIER = re.compile(r"^[A-Z]{1,4}-\d{1,4}$")
-
-#: 문단 종류로 쓸 수 있는 값 (§2.7 양식 v1).
-SECTION_KINDS = frozenset(
-    {"BODY", "LEAD", "KEY_POINT", "CONTACT", "SUPPLEMENTARY", "NEXT_STEP"}
-)
 
 #: 한 조각으로 볼 수 있는 최대 길이. 자료의 긴 낱말까지 담는다.
 MAX_PIECE = 24
@@ -436,6 +433,7 @@ def check_draft(
     announcement_subject: str = "",
     fixed_labels: tuple[str, ...] = (),
     has_statement_source: bool = False,
+    template: DraftTemplate | None = None,
 ) -> list[ValidationFinding]:
     """초안 후보를 검사한다. 차단 항목이 하나라도 있으면 초안을 내주지 않는다."""
     findings: list[ValidationFinding] = []
@@ -454,6 +452,14 @@ def check_draft(
         index += 1
 
     raw_parts = draft_text_parts(candidate)
+    # Harness가 정해진 값으로 만든 문단은 AI가 쓴 글이 아니다. 지어낸 값을
+    # 찾을 대상이 아니므로 낱말·수·발언·효력 검사에서 뺀다. 대신 AI는 이
+    # 이름표를 쓸 수 없다 — `orchestrator`가 받은 초안에서 걷어낸다.
+    harness_parts = {
+        f"본문 {p.paragraph_id}"
+        for p in candidate.paragraphs
+        if p.paragraph_id.startswith(HARNESS_ID_PREFIX)
+    }
 
     # 보이지 않는 문자는 그 자체로 막는다. 보도자료 초안에 쓸 이유가 없고,
     # 있으면 검사를 피하려는 시도다. 화면에는 보이지 않으므로 사람이 알아챌
@@ -499,6 +505,7 @@ def check_draft(
     # 검사는 정리한 사본으로 한다. 위 검사를 빠져나가는 새 문자가 생겨도
     # 낱말 검사가 계속 동작하게 하기 위해서다.
     parts = [(name, sanitize(text)) for name, text in raw_parts]
+    agent_parts = [(n, x) for n, x in parts if n not in harness_parts]
     allowed_text = sanitize(
         build_allowed_text(
             ledger,
@@ -548,23 +555,68 @@ def check_draft(
             )
 
     # --- G3·G4. 필수 양식 ---------------------------------------------------
-    if not MIN_KEY_POINTS <= len(candidate.key_points) <= MAX_KEY_POINTS:
+    minimum = template.min_key_points if template else MIN_KEY_POINTS
+    maximum = template.max_key_points if template else MAX_KEY_POINTS
+    if not minimum <= len(candidate.key_points) <= maximum:
         add(
             "KEY_POINT_COUNT",
             "2.7",
             "핵심 요약",
-            f"핵심 요약은 {MIN_KEY_POINTS}~{MAX_KEY_POINTS}개여야 하는데 "
+            f"핵심 요약은 {minimum}~{maximum}개여야 하는데 "
             f"{len(candidate.key_points)}개입니다.",
         )
+
     sections = {p.section_kind for p in candidate.paragraphs}
-    for required in REQUIRED_SECTIONS:
-        if required not in sections:
+    # 제목·핵심 요약·리드는 고정 형식에서 별도 칸이다. 그 칸이 차 있으면
+    # 계약의 같은 이름 문단을 채운 것으로 본다.
+    if candidate.title.text.strip():
+        sections.add("TITLE")
+    if candidate.key_points:
+        sections.add("KEY_POINTS")
+    if candidate.lead.text.strip():
+        sections.add("LEAD")
+    if template is not None:
+        # 필수 문단·금지 문단·필수 표시를 **계약에서 읽어** 확인한다.
+        # 코드에 옮겨 적으면 계약과 갈라지고, 실제로 네 번 연속 갈라져 있었다.
+        for required in sorted(template.required_sections):
+            if required not in sections:
+                add(
+                    "REQUIRED_SECTION_MISSING",
+                    "2.7",
+                    "본문",
+                    f"양식이 요구하는 문단 `{required}`이(가) 없습니다.",
+                )
+        for forbidden in sorted(template.forbidden_sections & sections):
             add(
-                "REQUIRED_SECTION_MISSING",
+                "FORBIDDEN_SECTION",
                 "2.7",
                 "본문",
-                f"필수 문단 `{required}`이(가) 없습니다.",
+                f"양식이 만들지 않기로 한 문단 `{forbidden}`이(가) 있습니다.",
             )
+        # 값이 정해진 자리는 Harness가 채운다. AI가 쓴 것은 받지 않는다.
+        for paragraph in candidate.paragraphs:
+            if paragraph.section_kind in HARNESS_OWNED and not (
+                paragraph.paragraph_id.startswith("HS-")
+            ):
+                add(
+                    "HARNESS_OWNED_SECTION",
+                    "2.7",
+                    f"본문 {paragraph.paragraph_id}",
+                    f"`{paragraph.section_kind}` 자리는 값이 이미 정해져 있어 "
+                    "AI가 쓸 수 없습니다.",
+                    paragraph.text[:60],
+                )
+        # 계약이 요구하는 표시가 초안 어딘가에 그대로 있어야 한다.
+        whole = _squeeze(sanitize("\n".join(text for _, text in parts)))
+        for mark in template.marks_for(candidate.basis_date):
+            if _squeeze(sanitize(mark)) not in whole:
+                add(
+                    "REQUIRED_MARK_MISSING",
+                    "2.16.2",
+                    "필수 표시",
+                    f"양식이 요구하는 표시가 없습니다: “{mark}”.",
+                    mark,
+                )
     if not candidate.contact_text.strip():
         add("CONTACT_REQUIRED", "2.7", "문의처", "문의처가 비어 있습니다.")
     if not candidate.basis_date.strip():
@@ -597,8 +649,11 @@ def check_draft(
                 f"이름표는 `P-01`처럼 영문과 번호로만 적어야 하는데 `{value[:40]}`입니다.",
                 value[:60],
             )
+    known_kinds = (
+        frozenset(template.section_kinds) if template else frozenset({"BODY"})
+    )
     for paragraph in candidate.paragraphs:
-        if paragraph.section_kind not in SECTION_KINDS:
+        if paragraph.section_kind not in known_kinds:
             add(
                 "SECTION_KIND_UNKNOWN",
                 "2.7",
@@ -754,6 +809,10 @@ def check_draft(
         check_anchored(f"주장 {claim.claim_id}", claim.text, claim.fact_ids)
     rule_values = {r.rule_id: r.applies_to for r in ledger.supplementary_rules}
     for paragraph in candidate.paragraphs:
+        if paragraph.paragraph_id.startswith("HS-"):
+            # Harness가 정해진 값으로 만든 문단이다. AI가 쓴 글이 아니므로
+            # 근거를 되짚을 대상이 아니다.
+            continue
         if paragraph.supplementary_rule_ids and not paragraph.fact_ids:
             pass  # 부칙만 가리키는 문단은 아래 부칙 대조가 본다
         else:
@@ -788,7 +847,7 @@ def check_draft(
             add("REQUIRED_TEXT_EMPTY", "2.7", part, "내용이 비어 있습니다.")
 
     # --- F1. 자료에 없는 수를 쓰지 않는가 (표기법 무관) ----------------------
-    for part, text in parts:
+    for part, text in agent_parts:
         # 흩어 쓴 글자도 붙여서 본다. `이 백 오 십`을 그대로 두면 한 글자씩
         # 흩어져 수를 하나도 못 읽는다. 그때 낱말 검사는 "수는 수 검사가
         # 따로 본다"며 넘긴다. 두 검사가 서로 상대를 믿고 둘 다 안 보게 된다.
@@ -808,7 +867,7 @@ def check_draft(
     # **공백을 지운 사본도 함께 본다.** 이것이 없으면 `김 영 수 장 관`처럼
     # 글자마다 띄어 써서 한 글자 조각으로 쪼개는 것만으로 낱말 검사가 통째로
     # 꺼진다. 붙여 놓고 보면 `김영수장관`이 되어 자료에 없는 것이 드러난다.
-    for part, text in parts:
+    for part, text in agent_parts:
         unknown: list[str] = []
         for probe in (text, _join_scattered(text)):
             for match in HANGUL_RUN.finditer(probe):
@@ -839,7 +898,7 @@ def check_draft(
     # 허용 낱말 검사는 자료에 있는 낱말로 조립한 **가짜 발언**을 막지 못한다.
     # 낱말은 다 자료에 있지만 "누가 그렇게 말했다"는 새 사실이기 때문이다.
     haystacks = [sanitize(n.normalized_text) for n in normalized.values()]
-    for part, text in parts:
+    for part, text in agent_parts:
         for pattern in QUOTE_SPANS:
             for match in pattern.finditer(text):
                 quoted = match.group(1).strip()
@@ -923,7 +982,7 @@ def check_draft(
     #     초안:  “모집ㆍ접수할”을 “모집할”로 한다   ← 개정 방향이 거꾸로다
     # 그래서 따옴표가 둘 이상 있는 문장은 **처음 따옴표부터 마지막 따옴표까지**
     # 통째로 자료에 있는지 본다.
-    for part, text in parts:
+    for part, text in agent_parts:
         for sentence in SENTENCE_SPLIT.split(text):
             spans = [
                 (m.start(), m.end())
@@ -960,7 +1019,7 @@ def check_draft(
     # 금지 낱말을 세지 않고, **함께 쓸 말을 요구한다.** 어미를 바꿔도 빠져나갈
     # 수 없고, 새 표현이 생겨도 규칙을 고칠 필요가 없다.
     if candidate.effect_status == "NOT_A_LAW":
-        for part, text in parts:
+        for part, text in agent_parts:
             for sentence in SENTENCE_SPLIT.split(text):
                 packed = _squeeze(sentence)
                 # `개정 문구`, `공포일`처럼 이름으로 쓴 것은 주장이 아니다.
@@ -1030,7 +1089,7 @@ def check_draft(
         # `시행`·`공포`만 보면 `적용`·`효력`으로 바꿔 부칙 근거 요구를 끌 수 있다.
         return any(w in packed for w in ("시행", "공포", "적용", "효력", "발효"))
 
-    for part, text in parts:
+    for part, text in agent_parts:
         if not _mentions_effect_date(text):
             continue
         paragraph_id = part.removeprefix("본문 ")
@@ -1080,7 +1139,7 @@ def check_draft(
         from app.harness.article_parser import top_level_article
 
         counted = set(article_set.article_ids)
-        for part, text in parts:
+        for part, text in agent_parts:
             for match in ARTICLE_MENTION.finditer(_squeeze(text)):
                 # 한자·한글 수사를 아라비아 숫자로 되돌려 코드 집합과 견준다.
                 number = _article_number(match.group(1))
