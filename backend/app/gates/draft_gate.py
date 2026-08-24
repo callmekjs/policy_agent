@@ -63,6 +63,21 @@ ASSERTIVE_EFFECT = re.compile(
     r"이다|입니다|들어갔|들어간|단계|이르렀|마쳤|끝났|마무리)"
 )
 
+#: 효력을 말하는 문장이 끝날 수 있는 모양. **이 목록에 있는 끝맺음만** 쓸 수 있다.
+#: 금지 목록이 아니라 허용 목록이라, 새 표현을 지어내도 빠져나갈 수 없다.
+APPROVED_EFFECT_TAILS = (
+    "제안하고있다", "제안하고있습니다", "제안한다", "제안합니다",
+    "예정이다", "예정입니다", "전이다", "전입니다",
+    "아니다", "아닙니다", "않는다", "않습니다", "않았다",
+    "앞두고있다", "미확정이다", "확인이필요하다",
+)
+
+#: 이 프로그램이 늘 넣는 표시 문구. 시행일 이야기로 세지 않는다.
+FIXED_EFFECT_PHRASES = ("효력상태", "절차단계")
+
+#: 끝맺음을 찾을 때 볼 뒷부분 길이.
+APPROVED_TAIL_WINDOW = 20
+
 #: 효력 표현 뒤 몇 글자 안에서 헤지를 찾을지. 한 어절 남짓이다.
 HEDGE_WINDOW = 12
 
@@ -127,6 +142,15 @@ ATTRIBUTION = re.compile(
     r"주장했|언급|평가했|촉구|발표|답했|답변|호소|당부|약속했|시사|반박|해명|설명이|"
     r"입장이|알려졌|알려진|한다고|이라고|라고는|고한다|고밝|고말|고전)"
 )
+
+#: 사람·기관을 가리키는 말. 문장 어디에 있든 본다.
+SPEAKER_WORD = re.compile(
+    r"(의원|의원실|위원장|위원회|장관|차관|청장|처장|총장|이사장|대표|대변인|"
+    r"관계자|당국|정부|부처|실장|국장|과장|본부장|단장)"
+)
+
+#: 남의 말을 옮길 때 쓰는 문법 어미. 닫힌 부류라 늘어나지 않는다.
+QUOTATIVE = re.compile(r"(다고|라고|냐고|자고|이라고)")
 
 #: 따옴표 곁에서 "누가 말했다"를 만드는 말. 사람·기관을 가리킨다.
 SPEAKER_NEARBY = re.compile(
@@ -264,6 +288,27 @@ def _article_number(token: str) -> int | None:
     return read_numeral_word(flattened)
 
 
+def _starts_a_word(piece: str, haystack: str) -> bool:
+    """이 조각이 자료의 **낱말 시작 자리**에 있는가.
+
+    그냥 부분 문자열로 보면 `조계원 의원실`에서 `계원의원실`을 잘라내 없는
+    이름을 만들 수 있다. 낱말 한가운데서 시작하는 조각은 자료가 말한 낱말이
+    아니다.
+    """
+    packed = _squeeze(haystack)
+    for probe in (haystack, packed):
+        start = 0
+        while True:
+            index = probe.find(piece, start)
+            if index < 0:
+                break
+            before = probe[index - 1] if index else ""
+            if not ("가" <= before <= "힣"):
+                return True
+            start = index + 1
+    return False
+
+
 def _is_content(piece: str, haystack: str) -> bool:
     """뜻을 담은 조각인가. 조사·어미가 아니라 낱말이어야 한다.
 
@@ -277,7 +322,7 @@ def _is_content(piece: str, haystack: str) -> bool:
         # 다만 **조사와 겹치는 글자는 안 된다.** `이`를 뜻 조각으로 인정하면
         # `이지은`이 `이`+`지`+`은`으로 쪼개져 지어낸 이름이 통과한다.
         return piece in SAFE_WORDS and piece not in SUFFIXES
-    if piece in haystack or piece in _squeeze(haystack):
+    if _starts_a_word(piece, haystack):
         return True
     if piece in SAFE_WORDS:
         return True
@@ -348,6 +393,7 @@ def build_allowed_text(
     *,
     announcement_subject: str = "",
     fixed_labels: tuple[str, ...] = (),
+    include_quotes: bool = True,
 ) -> str:
     """초안이 기댈 수 있는 글 전체.
 
@@ -360,8 +406,9 @@ def build_allowed_text(
         pieces.append(fact.value)
         pieces.extend(fact.value_items)
         pieces.append(fact.unit)
-        pieces.append(fact.evidence.quote)
-        pieces.append(fact.evidence.source_name)
+        if include_quotes:
+            pieces.append(fact.evidence.quote)
+            pieces.append(fact.evidence.source_name)
     for rule in ledger.supplementary_rules:
         pieces.append(rule.applies_to)
     for event in ledger.legislative_events:
@@ -461,7 +508,22 @@ def check_draft(
             fixed_labels=(*fixed_labels, DRAFT_LABEL, candidate.draft_label),
         )
     )
-    allowed_numbers = read_numbers(allowed_text)
+    # 쓸 수 있는 **수**는 사실 값에서만 온다. 근거 문구를 통째로 넣으면
+    # 그 안의 날짜·숫자가 전부 자유롭게 쓸 수 있는 재료가 된다. 원장에 표결 수
+    # 사실이 하나도 없는데 근거 문구의 `처리일 2025. 9. 18.`에서 `18`을 빼내
+    # `표결 결과는 18표이다`가 통과했다.
+    allowed_numbers = read_numbers(
+        sanitize(
+            build_allowed_text(
+                ledger,
+                final_text,
+                article_set,
+                announcement_subject=announcement_subject,
+                fixed_labels=(*fixed_labels, DRAFT_LABEL, candidate.draft_label),
+                include_quotes=False,
+            )
+        )
+    )
 
     # --- G1. DRAFT 표시 -----------------------------------------------------
     if candidate.draft_label.strip() != DRAFT_LABEL:
@@ -646,6 +708,16 @@ def check_draft(
     def check_anchored(part: str, text: str, fact_ids: list[str]) -> None:
         cited = [fact_by_id[i] for i in fact_ids if i in fact_by_id]
         if not cited:
+            # 근거가 없으면 검사를 **끄는** 것이 아니라 **막는다.** 예전에는
+            # 그냥 넘어가서, 근거를 비우는 것만으로 값 대조를 통째로 끌 수 있었다.
+            add(
+                "CLAIM_WITHOUT_FACT",
+                "2.10",
+                part,
+                "어느 사실에서 나온 문장인지 근거가 없습니다. 근거 없는 문장은 "
+                "초안에 쓸 수 없습니다.",
+                text[:60],
+            )
             return
         packed = _squeeze(text)
         numbers = read_numbers(text) | read_numbers(_join_scattered(text))
@@ -682,9 +754,12 @@ def check_draft(
         check_anchored(f"주장 {claim.claim_id}", claim.text, claim.fact_ids)
     rule_values = {r.rule_id: r.applies_to for r in ledger.supplementary_rules}
     for paragraph in candidate.paragraphs:
-        check_anchored(
-            f"본문 {paragraph.paragraph_id}", paragraph.text, paragraph.fact_ids
-        )
+        if paragraph.supplementary_rule_ids and not paragraph.fact_ids:
+            pass  # 부칙만 가리키는 문단은 아래 부칙 대조가 본다
+        else:
+            check_anchored(
+                f"본문 {paragraph.paragraph_id}", paragraph.text, paragraph.fact_ids
+            )
         # 부칙을 근거로 댄 문단은 **그 부칙 원문을 담아야 한다.** 담지 않으면
         # 부칙 번호만 붙여 놓고 전혀 다른 시행 이야기를 쓸 수 있다.
         packed_text = _squeeze(paragraph.text)
@@ -782,9 +857,31 @@ def check_draft(
             continue
 
         # 개정문·부칙을 그대로 옮기는 것은 오히려 필요하다(§2.16.3). 그래서
-        # 인용 부호 자체는 막지 않고, **남의 말로 돌리는 표현**만 막는다.
-        # 자료에 있는 문장이라도 따옴표로 감싸 사람 이름 옆에 놓으면 "그 사람이
-        # 그렇게 말했다"는 새 사실이 만들어지고, 그것은 자료 어디에도 없다.
+        # 인용 부호 자체는 막지 않고, **남의 말로 돌리는 모양**만 막는다.
+        #
+        # 사람·기관을 가리키는 말이 있고, 같은 문장에 인용 부호나 전언 어미
+        # (`다고`·`라고`)가 있으면 그것은 발언을 옮기는 모양이다. 따옴표 바로
+        # 앞만 보면 쉼표·콜론 하나로 꺼지고, 낱말 목록만 보면 새 표현이 끝없이
+        # 나온다. `다고`·`라고`는 문법이 정한 닫힌 부류라 늘어나지 않는다.
+        for sentence in SENTENCE_SPLIT.split(text):
+            packed_sentence = _squeeze(sentence)
+            if not SPEAKER_WORD.search(packed_sentence):
+                continue
+            has_quote = any(p.search(sentence) for p in QUOTE_SPANS)
+            has_quotative = QUOTATIVE.search(packed_sentence)
+            if not (has_quote or has_quotative):
+                continue
+            add(
+                "STATEMENT_WITHOUT_SOURCE",
+                "2.16.2",
+                part,
+                "공식 발언문 자료가 없는데 사람·기관의 말을 옮기는 모양입니다: "
+                f"“{sentence.strip()[:40]}”. 발언은 공식 발언문에서만 "
+                "가져올 수 있습니다.",
+                sentence.strip()[:60],
+            )
+            break
+
         match = ATTRIBUTION.search(_squeeze(text))
         if match:
             add(
@@ -878,8 +975,16 @@ def check_draft(
                     # 문장 어딘가에 있기만 하면 되게 두면 `제안한 법률은
                     # 공포됐다`가 통과한다. `제안`이 부정하는 것은 `법률`이지
                     # `공포`가 아니다.
+                    # 헤지가 창 안에 있기만 하면 되게 두면
+                    # `개정이 완료되어 예정된 절차가 종료되었다`가 통과한다.
+                    # `예정`이 부정하는 것은 `절차`이지 `개정 완료`가 아니다.
+                    # 그래서 **문장이 어떻게 끝나는지**를 본다. 아직 법이
+                    # 아니라는 것을 드러내는 끝맺음으로만 쓸 수 있다.
+                    tail = packed.rstrip(".。!?\"'”’」』)】]…·")[-APPROVED_TAIL_WINDOW:]
+                    if any(tail.endswith(e) for e in APPROVED_EFFECT_TAILS):
+                        continue
                     after = packed[found.end() :][:HEDGE_WINDOW]
-                    if any(h in after for h in HEDGES):
+                    if any(after.startswith(h) for h in HEDGES):
                         continue
                     add(
                         "PREMATURE_EFFECT_CLAIM",
@@ -918,7 +1023,12 @@ def check_draft(
 
     def _mentions_effect_date(text: str) -> bool:
         packed = _squeeze(text)
-        return "시행" in packed or "공포" in packed
+        # `효력 상태`는 이 프로그램이 늘 넣는 화면 표시 문구다. 시행일
+        # 이야기가 아니므로 세지 않는다.
+        for label in FIXED_EFFECT_PHRASES:
+            packed = packed.replace(label, "")
+        # `시행`·`공포`만 보면 `적용`·`효력`으로 바꿔 부칙 근거 요구를 끌 수 있다.
+        return any(w in packed for w in ("시행", "공포", "적용", "효력", "발효"))
 
     for part, text in parts:
         if not _mentions_effect_date(text):

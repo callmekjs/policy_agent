@@ -53,7 +53,8 @@ _NUMERAL_CHARS = set("".join(DIGIT_WORDS) + "".join(UNIT_WORDS) + "".join(NATIVE
 #: 아라비아 숫자 덩어리. 쉼표·마침표·하이픈·슬래시·사이 공백을 함께 먹는다.
 #: 하이픈을 빼먹었더니 `2025-06-18`이 {2025, 6, 18} 조각으로만 읽혀,
 #: 조각이 모두 자료에 있다는 이유로 거짓 날짜가 통과했다.
-ARABIC_RUN = re.compile(r"\d[\d,\.\-/\s]*\d|\d")
+# 줄바꿈은 자릿수 구분이 아니다. `\s`를 쓰면 줄이 다른 두 수가 하나로 붙는다.
+ARABIC_RUN = re.compile(r"\d[\d,\.\-/ 	]*\d|\d")
 
 #: 한글·한자 수사 덩어리.
 WORD_RUN = re.compile("[" + re.escape("".join(sorted(_NUMERAL_CHARS))) + "]{1,12}")
