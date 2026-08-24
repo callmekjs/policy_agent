@@ -683,3 +683,177 @@ def test_검토가_뚫었던_공격은_이제_막힌다(good_draft, name, mutate
     assert [f for f in run.validation_findings if f.severity.value == "BLOCKING"], (
         f"{name}: 초안은 막혔지만 이유가 기록되지 않았습니다."
     )
+
+
+# ---------------------------------------------------------------------------
+# 2차 검토가 뚫었던 공격과, "지키는 시험이 없다"고 지적한 자리들
+# ---------------------------------------------------------------------------
+
+ATTACKS_V3 = [
+    (
+        "글자마다 띄어 쓴 통짜 거짓말",
+        lambda d: _append(
+            d,
+            "국 회 는 본 회 의 에 서 재 석 2 6 인 중 찬 성 2 6 인 으 로 "
+            "이 안 을 의 결 했 다.",
+        ),
+    ),
+    ("흩어 쓴 인명", lambda d: _lead(d, "김 영 수 장 관 이 이 번 결 과 를 알 렸 다.")),
+    ("흩어 쓴 기관명", lambda d: _lead(d, "문 화 체 육 관 광 부 가 후 속 조 치 를 맡 는 다.")),
+    ("흩어 쓴 한글 수사 조문", lambda d: _point(d, "바 뀐 조 문 은 제 십 이 조 이 다.")),
+    ("한 글자로 깎이는 이름", lambda d: _lead(d, "이지은 의원이 이번 결과를 발표했다.")),
+    ("한 글자로 깎이는 이름 2", lambda d: _lead(d, "박서은 의원이 이번 결과를 알린다.")),
+    (
+        "실존 인물에 없는 발언",
+        lambda d: _lead(d, "조계원 의원은 “실무 현장의 혼선을 방지”한다고 발표했다."),
+    ),
+    ("~고 한다", lambda d: _lead(d, "의원실은 이번 결과를 알린다고 한다.")),
+    ("적용된다", lambda d: _lead(d, "이 법은 곧 적용된다.")),
+    (
+        "문단 번호에 거짓",
+        lambda d: d["paragraphs"][0].__setitem__(
+            "paragraph_id", "재석 250인 중 찬성 249인, 김영수 장관 발표"
+        ),
+    ),
+    ("초안 번호에 거짓", lambda d: d.__setitem__("candidate_id", "재석 250인")),
+    (
+        "문단 종류에 거짓",
+        lambda d: d["paragraphs"][0].__setitem__("section_kind", "김영수 장관 발표"),
+    ),
+    (
+        "발표 주체 근거 위조",
+        lambda d: d.__setitem__("announcement_subject_fact_id", "F-없음"),
+    ),
+    ("보도일 근거 위조", lambda d: d.__setitem__("release_date_fact_id", "F-없음")),
+    ("주장 번호에 거짓", lambda d: d["claims"][0].__setitem__("claim_id", "재석 250인")),
+]
+
+
+@pytest.mark.parametrize(
+    ("name", "mutate"), ATTACKS_V3, ids=[a[0] for a in ATTACKS_V3]
+)
+def test_2차_검토가_뚫었던_공격은_이제_막힌다(good_draft, name, mutate) -> None:
+    run = asyncio.run(_run(canned_draft=_spoil(good_draft, mutate)))
+    assert run.draft_version == 0, f"{name}: 오염된 초안이 나갔습니다."
+    assert run.draft is None
+    assert [f for f in run.validation_findings if f.severity.value == "BLOCKING"], (
+        f"{name}: 초안은 막혔지만 이유가 기록되지 않았습니다."
+    )
+
+
+# --- 방어 하나하나를 겨눈 시험 ------------------------------------------------
+
+
+def test_수를_표기법과_상관없이_읽는다() -> None:
+    """`numeral_reader`만 겨눈다. 낱말 검사가 대신 막아 주지 않는지 확인한다."""
+    from app.gates.numeral_reader import read_numbers, read_numeral_word
+
+    assert read_numeral_word("이백오십") == 250
+    assert read_numeral_word("二百五十") == 250
+    assert read_numeral_word("스물다섯") == 25
+    # 글에서 읽어 내는 길도 함께 확인한다. 낱말 하나만 읽을 줄 알아도
+    # `read_numbers`가 그 길을 안 지나면 표기법 우회가 그대로 통한다.
+    assert 250 in read_numbers("재석 이백오십인"), "한글 수사를 글에서 못 읽습니다."
+    assert 250 in read_numbers("재석 二百五十인"), "한자 수사를 글에서 못 읽습니다."
+    assert 25 in read_numbers("재석 스물다섯명")
+    assert 250 in read_numbers("재석 ２５０인")
+    assert 250 in read_numbers("재석 250인")
+    # 한 글자짜리는 보통 낱말과 구분되지 않아 수로 읽지 않는다.
+    assert read_numbers("사실 확인") == set()
+    assert read_numbers("공식 자료") == set()
+
+
+def test_인용_부호_안이_자료에_없으면_막는다(good_draft) -> None:
+    """`QUOTE_NOT_IN_SOURCE`만 겨눈다."""
+    run = asyncio.run(
+        _run(
+            canned_draft=_spoil(
+                good_draft,
+                lambda d: d["paragraphs"][1].__setitem__(
+                    "text", "개정 문구는 “있지도 않은 문장이다”라고 제안하고 있다."
+                ),
+            )
+        )
+    )
+    assert run.draft_version == 0
+    rules = {f.rule_id for f in run.validation_findings}
+    assert "QUOTE_NOT_IN_SOURCE" in rules, rules
+
+
+def test_부칙에_없는_시점을_시행_이야기에_쓰면_막는다(good_draft) -> None:
+    """`EFFECTIVE_DATE_NOT_IN_RULE`만 겨눈다. 부칙 근거는 붙어 있게 둔다."""
+    run = asyncio.run(
+        _run(
+            canned_draft=_spoil(
+                good_draft,
+                lambda d: d["paragraphs"][-1].__setitem__(
+                    "text", "부칙은 공포 후 6개월이 지난 날부터 시행하도록 제안하고 있다."
+                ),
+            )
+        )
+    )
+    assert run.draft_version == 0
+    rules = {f.rule_id for f in run.validation_findings}
+    assert "EFFECTIVE_DATE_NOT_IN_RULE" in rules, rules
+
+
+def test_육하원칙_열쇠말이_정해진_것이_아니면_막는다(good_draft) -> None:
+    run = asyncio.run(
+        _run(
+            canned_draft=_spoil(
+                good_draft, lambda d: d.__setitem__("six_w_status", {"누구": "OK"})
+            )
+        )
+    )
+    assert run.draft_version == 0
+    rules = {f.rule_id for f in run.validation_findings}
+    assert "SIX_W_KEY_UNKNOWN" in rules, rules
+
+
+def test_로마자_낱말도_자료에_있어야_한다(good_draft) -> None:
+    run = asyncio.run(
+        _run(
+            canned_draft=_spoil(
+                good_draft,
+                lambda d: d["lead"].__setitem__(
+                    "text", "Ministry of Culture announced the result."
+                ),
+            )
+        )
+    )
+    assert run.draft_version == 0
+    rules = {f.rule_id for f in run.validation_findings}
+    assert "WORD_NOT_IN_LEDGER" in rules, rules
+
+
+def test_흩어_쓴_글자만_붙여_보고_멀쩡한_말은_그대로_둔다() -> None:
+    """`_join_scattered`만 겨눈다. 멀쩡한 띄어쓰기를 붙이면 거짓 차단이 늘어난다."""
+    from app.gates.draft_gate import _join_scattered
+
+    assert _join_scattered("김 영 수 장 관") == "김영수장관"
+    assert _join_scattered("기부금품의 모집 및 사용에") == "기부금품의 모집 및 사용에"
+    assert _join_scattered("자료 기준일은 2025-10-26") == "자료 기준일은 2025-10-26"
+
+
+def test_덩어리를_조각으로_나눌_수_있는지_본다() -> None:
+    """`_is_covered`만 겨눈다. 조사만으로 쪼개지면 지어낸 이름이 통과한다."""
+    from app.gates.draft_gate import _is_covered
+
+    haystack = "자료 기준일 본회의 의결"
+    assert _is_covered("자료기준일은", haystack)
+    assert not _is_covered("이지은", haystack), "조사만으로 쪼개 통과시켰습니다."
+    assert not _is_covered("김영수장관", haystack)
+
+
+@pytest.mark.asyncio
+async def test_자료의_부칙을_초안이_빠뜨리면_막는다() -> None:
+    """§2.16.4·§4.2. 적용례·경과조치·특례가 조용히 사라지면 안 된다."""
+    payload = _draft_dict(await _run())
+    # 부칙을 말하는 문단을 통째로 뺀다.
+    payload["result"]["paragraphs"] = [
+        p for p in payload["result"]["paragraphs"] if not p["supplementary_rule_ids"]
+    ]
+    run = await _run(canned_draft=payload)
+    assert run.draft_version == 0, "부칙이 빠졌는데 초안이 나갔습니다."
+    rules = {f.rule_id for f in run.validation_findings}
+    assert "SUPPLEMENTARY_RULE_DROPPED" in rules, rules

@@ -48,7 +48,9 @@ LATIN_RUN = re.compile(r"[A-Za-z]{2,}")
 #: 아직 법이 아닐 때 반드시 조심해서 써야 하는 말 (§2.16.1, §2.16.4).
 #: 이 말이 나오면 같은 문장에 아래 `HEDGES` 중 하나가 **반드시** 있어야 한다.
 #: 금지 낱말 목록이 아니라 **함께 쓸 말을 요구하는** 규칙이라 어미를 바꿔도 빠져나갈 수 없다.
-EFFECT_STEMS = ("공포", "시행", "개정", "확정", "효력", "통과", "제정", "발효")
+EFFECT_STEMS = (
+    "공포", "시행", "개정", "확정", "효력", "통과", "제정", "발효", "적용",
+)
 
 #: 아직 확정되지 않았음을 드러내는 말.
 HEDGES = (
@@ -71,6 +73,22 @@ def _squeeze(text: str) -> str:
     """
     return WHITESPACE.sub("", text)
 
+
+#: 글자마다 띄어 쓴 구간. 세 글자 이상 이어질 때만 본다.
+SCATTERED = re.compile(
+    r"(?:(?<![가-힣])[가-힣][ 	]+){2,}(?<![가-힣])[가-힣](?![가-힣])"
+)
+
+
+def _join_scattered(text: str) -> str:
+    """`김 영 수 장 관`처럼 **글자마다 띄어 쓴 구간만** 붙인다.
+
+    글 전체의 공백을 지우면 `자료 기준일은`까지 한 덩어리가 되어 멀쩡한 말이
+    막힌다. 그래서 한 글자씩 흩어 놓은 자리만 골라 붙인다. 그 모양은 사람이
+    보통 쓰지 않는 모양이고, 낱말 검사를 끄려는 시도이기 때문이다.
+    """
+    return SCATTERED.sub(lambda m: WHITESPACE.sub("", m.group(0)), text)
+
 #: 초안을 최종·승인·배포본으로 표시하는 표현 (§4.2).
 #: 허용 목록이 이미 대부분을 막지만, 자료에 그 낱말이 있는 경우를 대비해 남긴다.
 FORBIDDEN_STATUS = re.compile(
@@ -91,8 +109,9 @@ QUOTE_SPANS = [
 #: 허용 낱말 검사만으로는 못 막는다. 자료에 있는 낱말만 골라 붙여도 "누가 그렇게
 #: 말했다"는 새 사실이 만들어지기 때문이다.
 ATTRIBUTION = re.compile(
-    r"(말했|밝혔|전했|강조했|설명했|덧붙였|지적했|주장했|언급했|평가했|촉구했)"
-    r"|라고\s*(했|말|밝|전)"
+    r"(말했|말한|말하|밝혔|밝힌|전했|전한|강조|설명했|설명한|덧붙|지적했|"
+    r"주장했|언급|평가했|촉구|발표|답했|답변|호소|당부|약속했|시사|반박|해명|"
+    r"입장이|알려졌|알려진|한다고|이라고|라고는|고한다|고밝|고말|고전)"
 )
 
 #: 양식 v1의 필수 문단 종류 (§2.7).
@@ -165,6 +184,10 @@ def draft_text_parts(candidate: DraftCandidate) -> list[tuple[str, str]]:
         parts.append((f"인용문 {i}", text))
     for i, text in enumerate(_strings_in(candidate.attachments), start=1):
         parts.append((f"붙임 {i}", text))
+
+    # 이름표 칸은 글이 아니라 정해진 모양이어야 한다. `check_draft`가
+    # `_check_identifiers`로 따로 본다. 사람이 읽는 문장이 아니지만 화면에
+    # 그대로 나가므로, 안 보면 문단 번호 자리에 지어낸 표결 수를 적어 내보낼 수 있다.
     # 상태·육하원칙 칸은 사람이 읽는 글이 아니라 정해진 코드다.
     # `check_draft`가 코드 목록으로 따로 검사한다.
     return [(name, text) for name, text in parts if text and text.strip()]
@@ -185,12 +208,77 @@ def _strip_suffix(word: str) -> list[str]:
     return stems
 
 
+#: 이름표 모양. `P-01`, `CL-03`, `DC-01`처럼 영문 대문자와 번호만 쓴다.
+IDENTIFIER = re.compile(r"^[A-Z]{1,4}-\d{1,4}$")
+
+#: 문단 종류로 쓸 수 있는 값 (§2.7 양식 v1).
+SECTION_KINDS = frozenset(
+    {"BODY", "LEAD", "KEY_POINT", "CONTACT", "SUPPLEMENTARY", "NEXT_STEP"}
+)
+
+#: 한 조각으로 볼 수 있는 최대 길이. 자료의 긴 낱말까지 담는다.
+MAX_PIECE = 24
+
+
+def _is_content(piece: str, haystack: str) -> bool:
+    """뜻을 담은 조각인가. 조사·어미가 아니라 낱말이어야 한다."""
+    if len(piece) == 1:
+        # 한 글자라도 허용 낱말이면 뜻 조각으로 본다. `제7조이다`의 `조`가 그렇다.
+        # 다만 **조사와 겹치는 글자는 안 된다.** `이`를 뜻 조각으로 인정하면
+        # `이지은`이 `이`+`지`+`은`으로 쪼개져 지어낸 이름이 통과한다.
+        return piece in SAFE_WORDS and piece not in SUFFIXES
+    if piece in haystack:
+        return True
+    if piece in SAFE_WORDS:
+        return True
+    return read_numeral_word(piece) is not None
+
+
+def _is_covered(run: str, haystack: str) -> bool:
+    """붙어 있는 글자 덩어리를 **설명되는 조각들로 나눌 수 있는가.**
+
+    공백을 지우면 `자료기준일은`처럼 멀쩡한 말도 한 덩어리가 된다. 덩어리째
+    대조하면 자료에 없다며 막히므로, `자료` + `기준일` + `은`으로 나눌 수 있는지
+    본다.
+
+    규칙은 둘이다. **첫 조각은 뜻을 담은 낱말이어야 하고**, 그다음부터만 조사·
+    어미가 올 수 있다. 이 규칙이 없으면 `이지은`이 `이`+`지`+`은`처럼 조사만으로
+    쪼개져 지어낸 이름이 통과한다.
+    """
+    length = len(run)
+    if length < 2:
+        return True  # 한 글자는 조사와 구분되지 않는다
+
+    # reachable[i] = i까지 왔고 뜻을 담은 조각을 하나 이상 지났다
+    reachable = [False] * (length + 1)
+    fresh = [False] * (length + 1)  # 아직 뜻 조각을 못 지난 상태
+    fresh[0] = True
+
+    for i in range(length):
+        if not (reachable[i] or fresh[i]):
+            continue
+        for j in range(i + 1, min(i + MAX_PIECE, length) + 1):
+            piece = run[i:j]
+            if _is_content(piece, haystack):
+                reachable[j] = True
+            elif reachable[i] and piece in SUFFIXES:
+                reachable[j] = True
+    return reachable[length]
+
+
 def _is_grounded_word(word: str, haystack: str) -> bool:
-    """이 낱말을 자료나 허용 목록으로 설명할 수 있는가."""
+    """이 낱말을 자료나 허용 목록으로 설명할 수 있는가.
+
+    한 글자만 남는 조각은 **설명이 되지 않는다.** 예전에는 통과시켰는데,
+    `이지은`이 `이지` → `이`로 깎여 지어낸 이름이 그대로 나갔다. 조사를 떼다
+    한 글자가 되면 그 후보는 버리고 다음 후보를 본다.
+    """
+    if word in SUFFIXES:
+        # `이며`처럼 조사·어미만 떨어져 있는 경우. 뜻을 담지 않는다.
+        return True
     for stem in _strip_suffix(word):
         if len(stem) < 2:
-            # 한 글자만 남으면 조사와 구분되지 않는다. 통과시킨다.
-            return True
+            continue
         if stem in haystack:
             return True
         if stem in SAFE_WORDS:
@@ -198,7 +286,8 @@ def _is_grounded_word(word: str, haystack: str) -> bool:
         # 수를 적은 말이면 수 검사가 따로 본다. 여기서 두 번 세지 않는다.
         if read_numeral_word(stem) is not None:
             return True
-    return False
+    # 낱말 자체가 한 글자면 조사와 구분할 수 없어 통과시킨다.
+    return len(word) < 2
 
 
 def build_allowed_text(
@@ -333,6 +422,43 @@ def check_draft(
                 f"쓸 수 있는 값: {', '.join(sorted(STATUS_CODES))}.",
                 code,
             )
+    # 이름표는 정해진 모양이어야 한다. 화면에 그대로 나가는 자리이므로,
+    # 여기를 비워 두면 문단 번호 자리에 지어낸 표결 수를 적어 내보낼 수 있다.
+    for name, value in (
+        ("초안 번호", candidate.candidate_id),
+        *((f"문단 번호 {p.paragraph_id}", p.paragraph_id) for p in candidate.paragraphs),
+        *((f"주장 번호 {c.claim_id}", c.claim_id) for c in candidate.claims),
+    ):
+        if not IDENTIFIER.match(value):
+            add(
+                "IDENTIFIER_SHAPE_INVALID",
+                "2.10",
+                name,
+                f"이름표는 `P-01`처럼 영문과 번호로만 적어야 하는데 `{value[:40]}`입니다.",
+                value[:60],
+            )
+    for paragraph in candidate.paragraphs:
+        if paragraph.section_kind not in SECTION_KINDS:
+            add(
+                "SECTION_KIND_UNKNOWN",
+                "2.7",
+                f"문단 종류 {paragraph.paragraph_id}",
+                f"정해지지 않은 문단 종류 `{paragraph.section_kind}`입니다.",
+                paragraph.section_kind,
+            )
+    for name, fact_id in (
+        ("발표 주체 근거", candidate.announcement_subject_fact_id),
+        ("보도일 근거", candidate.release_date_fact_id),
+    ):
+        if fact_id and fact_id not in {f.fact_id for f in ledger.facts}:
+            add(
+                "FACT_REFERENCE_UNKNOWN",
+                "2.10",
+                name,
+                f"원장에 없는 사실 `{fact_id}`을(를) 가리킵니다.",
+                fact_id[:60],
+            )
+
     for key, value in candidate.six_w_status.items():
         if key not in SIX_W_KEYS:
             add(
@@ -421,16 +547,24 @@ def check_draft(
     # --- F1·F2. 자료에 없는 말을 쓰지 않는가 (허용 목록) ---------------------
     # 지어낸 사람 이름·기관 이름·발언이 여기서 함께 걸린다. 따옴표를 쓰든 안
     # 쓰든 상관없다. 낱말 자체가 자료에도 허용 목록에도 없기 때문이다.
+    # **공백을 지운 사본도 함께 본다.** 이것이 없으면 `김 영 수 장 관`처럼
+    # 글자마다 띄어 써서 한 글자 조각으로 쪼개는 것만으로 낱말 검사가 통째로
+    # 꺼진다. 붙여 놓고 보면 `김영수장관`이 되어 자료에 없는 것이 드러난다.
     for part, text in parts:
         unknown: list[str] = []
-        for match in HANGUL_RUN.finditer(text):
-            word = match.group(0)
-            if not _is_grounded_word(word, allowed_text) and word not in unknown:
-                unknown.append(word)
-        for match in LATIN_RUN.finditer(text):
-            word = match.group(0)
-            if word not in allowed_text and word not in unknown:
-                unknown.append(word)
+        for probe in (text, _join_scattered(text)):
+            for match in HANGUL_RUN.finditer(probe):
+                word = match.group(0)
+                if _is_grounded_word(word, allowed_text):
+                    continue
+                if _is_covered(word, allowed_text):
+                    continue
+                if word not in unknown:
+                    unknown.append(word)
+            for match in LATIN_RUN.finditer(probe):
+                word = match.group(0)
+                if word not in allowed_text and word not in unknown:
+                    unknown.append(word)
         if unknown:
             add(
                 "WORD_NOT_IN_LEDGER",
@@ -461,17 +595,23 @@ def check_draft(
                         f"자료에 그대로 있지 않은 인용입니다: “{quoted[:40]}”.",
                         quoted[:60],
                     )
-        if not has_statement_source:
-            match = ATTRIBUTION.search(text)
-            if match:
-                add(
-                    "STATEMENT_WITHOUT_SOURCE",
-                    "2.16.2",
-                    part,
-                    f"‘{match.group(0)}’처럼 남의 말을 옮겼는데 공식 발언문 자료가 "
-                    "없습니다. 발언은 공식 발언문에서만 가져올 수 있습니다.",
-                    text[:60],
-                )
+        if has_statement_source:
+            continue
+
+        # 개정문·부칙을 그대로 옮기는 것은 오히려 필요하다(§2.16.3). 그래서
+        # 인용 부호 자체는 막지 않고, **남의 말로 돌리는 표현**만 막는다.
+        # 자료에 있는 문장이라도 따옴표로 감싸 사람 이름 옆에 놓으면 "그 사람이
+        # 그렇게 말했다"는 새 사실이 만들어지고, 그것은 자료 어디에도 없다.
+        match = ATTRIBUTION.search(_squeeze(text))
+        if match:
+            add(
+                "STATEMENT_WITHOUT_SOURCE",
+                "2.16.2",
+                part,
+                f"‘{match.group(0)}’처럼 남의 말을 옮겼는데 공식 발언문 자료가 "
+                "없습니다. 발언은 공식 발언문에서만 가져올 수 있습니다.",
+                text[:60],
+            )
 
     # --- H1. 절차를 앞질러 말하지 않는가 ------------------------------------
     # 금지 낱말을 세지 않고, **함께 쓸 말을 요구한다.** 어미를 바꿔도 빠져나갈
@@ -500,6 +640,25 @@ def check_draft(
     cited_rules = {
         p.paragraph_id: list(p.supplementary_rule_ids) for p in candidate.paragraphs
     }
+
+    # 적용례·경과조치·특례는 초안에서 빠지면 안 된다 (§2.16.4, §4.2).
+    # 원장에 있는데 초안이 한마디도 안 하면, 중요한 제한이 조용히 사라진 것이다.
+    cited_everywhere = {
+        rule_id
+        for paragraph in candidate.paragraphs
+        for rule_id in paragraph.supplementary_rule_ids
+    }
+    for rule in ledger.supplementary_rules:
+        if rule.rule_id in cited_everywhere:
+            continue
+        add(
+            "SUPPLEMENTARY_RULE_DROPPED",
+            "2.16.4",
+            "부칙",
+            f"자료의 부칙 `{rule.kind.value}`을(를) 초안이 한마디도 하지 "
+            f"않았습니다: “{rule.applies_to[:40]}”.",
+            rule.applies_to[:60],
+        )
 
     def _mentions_effect_date(text: str) -> bool:
         packed = _squeeze(text)

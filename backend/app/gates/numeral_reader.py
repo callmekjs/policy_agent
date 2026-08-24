@@ -123,7 +123,13 @@ def read_numbers(text: str) -> set[int]:
     flattened = unicodedata.normalize("NFKC", text)
     found = _arabic_values(flattened)
     for match in WORD_RUN.finditer(flattened):
-        value = read_numeral_word(match.group(0))
+        word = match.group(0)
+        if len(word) < 2:
+            # 한 글자짜리는 보통 낱말과 구분되지 않는다. `사실`의 `사`를 4로,
+            # `공식`의 `공`을 0으로 읽으면 허용 수 집합이 부풀어, 자료에 없는
+            # 표결 수를 그 집합만으로 조립할 여지가 생긴다.
+            continue
+        value = read_numeral_word(word)
         if value is not None:
             found.add(value)
     return found
