@@ -1234,3 +1234,191 @@ def test_따옴표_없이_발언을_옮겨도_막는다(good_draft) -> None:
     assert run.draft_version == 0, "발언 옮기기를 놓쳤습니다."
     rules = {f.rule_id for f in run.validation_findings}
     assert "STATEMENT_WITHOUT_SOURCE" in rules, rules
+
+
+# ---------------------------------------------------------------------------
+# 5차 검토가 뚫었던 공격
+# ---------------------------------------------------------------------------
+
+ATTACKS_V6 = [
+    (
+        "흩어 쓴 한글 수사",
+        lambda d: _point(d, "의안번호 2207285 표결 결과는 이 백 오 십 표이다."),
+    ),
+    (
+        "흩어 쓴 한자 수사",
+        lambda d: _point(d, "의안번호 2207285 표결 결과는 二 百 五 十 표이다."),
+    ),
+    ("흩어 쓴 삼 백", lambda d: _point(d, "의안번호 2207285 표결 결과는 삼 백 표이다.")),
+    (
+        "하이픈 날짜 리드",
+        lambda d: _lead(
+            d,
+            "조계원 의원실은 2025-06-18 의안번호 2207285이(가) 원안가결로 "
+            "처리된 사실을 알린다.",
+        ),
+    ),
+    (
+        "하이픈 날짜 본문",
+        lambda d: d["paragraphs"][0].__setitem__(
+            "text", "의안번호 2207285의 의결일은 2025-09-26이다."
+        ),
+    ),
+    ("하이픈 날짜 기준일", lambda d: d.__setitem__("basis_date", "2025-06-01")),
+    (
+        "조각 조립 문화예술법인",
+        lambda d: d["paragraphs"][0].__setitem__(
+            "text", "문화예술법인은 의안번호 2207285을(를) 알린다."
+        ),
+    ),
+    (
+        "조각 조립 전문예술위원회",
+        lambda d: d["paragraphs"][0].__setitem__(
+            "text", "전문예술위원회는 의안번호 2207285을(를) 알린다."
+        ),
+    ),
+    (
+        "조각 조립 조계원장",
+        lambda d: d["paragraphs"][0].__setitem__(
+            "text", "조계원장은 의안번호 2207285을(를) 알린다."
+        ),
+    ),
+    (
+        "따옴표 없이 개정 방향 뒤집기",
+        lambda d: d["paragraphs"][1].__setitem__(
+            "text", "제7조제6항 중 모집ㆍ접수할을 모집할로 한다."
+        ),
+    ),
+    (
+        "따옴표 하나로 뒤집기",
+        lambda d: d["paragraphs"][1].__setitem__(
+            "text", "제7조제6항 중 “모집ㆍ접수할”을 모집할로 한다."
+        ),
+    ),
+    (
+        "원안ㆍ가결",
+        lambda d: d["paragraphs"][0].__setitem__(
+            "text", "의안번호 2207285은(는) 원안ㆍ가결로 처리되었다."
+        ),
+    ),
+    (
+        "헤지로 문장 건너뛰기",
+        lambda d: d["paragraphs"][2].__setitem__("text", "적용 완료 예정이며 공포되었다."),
+    ),
+    (
+        "헤지 앞세우고 시행되었다",
+        lambda d: d["paragraphs"][2].__setitem__(
+            "text", "적용 완료 예정이며 이 법은 시행되었다."
+        ),
+    ),
+    ("시행 단계다", lambda d: d["paragraphs"][2].__setitem__("text", "이 법은 시행 단계다.")),
+    (
+        "공포에 이르렀다",
+        lambda d: d["paragraphs"][2].__setitem__("text", "이 법은 공포에 이르렀다."),
+    ),
+]
+
+
+@pytest.mark.parametrize(
+    ("name", "mutate"), ATTACKS_V6, ids=[a[0] for a in ATTACKS_V6]
+)
+def test_5차_검토가_뚫었던_공격은_이제_막힌다(good_draft, name, mutate) -> None:
+    run = asyncio.run(_run(canned_draft=_spoil(good_draft, mutate)))
+    assert run.draft_version == 0, f"{name}: 오염된 초안이 나갔습니다."
+    assert [f for f in run.validation_findings if f.severity.value == "BLOCKING"], (
+        f"{name}: 초안은 막혔지만 이유가 기록되지 않았습니다."
+    )
+
+
+def test_근거로_댄_사실은_전부_문장에_있어야_한다(good_draft) -> None:
+    """`CLAIM_VALUE_NOT_ANCHORED`가 **하나만 맞으면 통과**시키지 않는지 본다.
+
+    짧은 값 하나를 대 놓고 나머지를 거짓으로 채우는 우회를 막는다.
+    """
+
+    def mutate(d: dict) -> None:
+        d["key_points"][1]["text"] = "의안번호 2207285의 처리결과는 제7조이다."
+        d["key_points"][1]["fact_ids"] = ["F-06", "F-02"]
+
+    run = asyncio.run(_run(canned_draft=_spoil(good_draft, mutate)))
+    assert run.draft_version == 0, "근거 하나만 맞추고 통과했습니다."
+    rules = {f.rule_id for f in run.validation_findings}
+    assert "CLAIM_VALUE_NOT_ANCHORED" in rules, rules
+
+
+def test_부칙을_근거로_대면_그_원문을_담아야_한다(good_draft) -> None:
+    """`RULE_VALUE_NOT_ANCHORED`만 겨눈다.
+
+    부칙 번호만 붙여 놓고 전혀 다른 시행 이야기를 쓰는 것을 막는다.
+    """
+    run = asyncio.run(
+        _run(
+            canned_draft=_spoil(
+                good_draft,
+                lambda d: d["paragraphs"][2].__setitem__(
+                    "text", "부칙에 따라 곧 적용될 전망이다."
+                ),
+            )
+        )
+    )
+    assert run.draft_version == 0
+    rules = {f.rule_id for f in run.validation_findings}
+    assert "RULE_VALUE_NOT_ANCHORED" in rules, rules
+
+
+def test_흩어_쓴_수사도_수로_읽는다() -> None:
+    """수 검사와 낱말 검사가 서로 상대를 믿고 둘 다 안 보던 자리."""
+    from app.gates.draft_gate import _join_scattered
+    from app.gates.numeral_reader import read_numbers
+
+    assert read_numbers("이 백 오 십") == set(), "붙이지 않으면 못 읽는 것이 맞다"
+    assert 250 in read_numbers(_join_scattered("이 백 오 십")), "붙여도 못 읽습니다."
+
+
+def test_하이픈_날짜를_조각으로_흩지_않는다() -> None:
+    from app.gates.numeral_reader import read_numbers
+
+    assert 20250618 in read_numbers("2025-06-18"), "하이픈에서 끊어 읽었습니다."
+
+
+def test_자료_조각을_이어_붙여_없는_낱말을_만들_수_없다() -> None:
+    """`_is_covered`가 뜻 조각을 하나만 허용하는지 본다."""
+    from app.gates.draft_gate import _is_covered
+
+    haystack = "문화예술 진흥 전문예술법인 위원회 국가 지원"
+    assert _is_covered("문화예술을", haystack)
+    assert not _is_covered("문화예술법인", haystack), "조각을 이어 붙였습니다."
+    assert not _is_covered("국가지원단체", haystack)
+
+
+def test_빈칸_표시에_흩어_쓴_수를_넣어도_막는다(good_draft) -> None:
+    """수 검사만 겨눈다. 빈칸 표시는 근거 대조를 받지 않는 칸이다."""
+    run = asyncio.run(
+        _run(
+            canned_draft=_spoil(
+                good_draft, lambda d: d.__setitem__("placeholders", ["이 백 오 십 표"])
+            )
+        )
+    )
+    assert run.draft_version == 0, "흩어 쓴 수를 놓쳤습니다."
+    rules = {f.rule_id for f in run.validation_findings}
+    assert "NUMBER_NOT_IN_LEDGER" in rules, rules
+
+
+def test_한_문장의_효력_표현을_모두_본다(good_draft) -> None:
+    """앞의 표현을 헤지로 덮어 뒤쪽 주장을 빼내는 것을 막는다.
+
+    아래 문장은 근거 값(`2207285`)을 담아 값 대조를 지나가고, `시행`·`공포`가
+    없어 부칙 규칙도 지나간다. 남는 것은 효력 표현 전수 검사뿐이다.
+    """
+    run = asyncio.run(
+        _run(
+            canned_draft=_spoil(
+                good_draft,
+                lambda d: _point(d, "의안번호 2207285 적용 완료 예정이며 확정되었다."),
+            )
+        )
+    )
+    assert run.draft_version == 0, "뒤쪽 주장을 검사에서 빼냈습니다."
+    rules = {f.rule_id for f in run.validation_findings}
+    assert "PREMATURE_EFFECT_CLAIM" in rules, rules

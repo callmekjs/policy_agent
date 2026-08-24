@@ -60,7 +60,7 @@ ASSERTIVE_EFFECT = re.compile(
     # 어간과 서술 사이에 조사가 낄 수 있다. `개정이 완료되었다`가 그렇다.
     r"(?:[가-힣]{0,3})?"
     r"(되었|되어|되고|된|됐|됨|하였|했|한다|합니다|중이|완료|시켰|시킨|"
-    r"이다|입니다|들어갔|들어간)"
+    r"이다|입니다|들어갔|들어간|단계|이르렀|마쳤|끝났|마무리)"
 )
 
 #: 효력 표현 뒤 몇 글자 안에서 헤지를 찾을지. 한 어절 남짓이다.
@@ -140,6 +140,9 @@ ARTICLE_MENTION = re.compile(
     r"제([0-9０-９]+|[一二三四五六七八九十百千]+|[일이삼사오육륙칠팔구십백천]+)"
     r"조(?:의([0-9０-９]+|[一二三四五六七八九十百千]+|[일이삼사오육륙칠팔구십백천]+))?"
 )
+
+#: 개정 지시문을 옮기는 모양. 조문 번호와 함께 나오면 자료와 대조한다.
+AMENDMENT_VERB = re.compile(r"중.{0,40}로한다|로한다|신설한다|삭제한다|본다")
 
 #: 시점을 가리키는 말. 시행 이야기에 쓰려면 부칙에도 있어야 한다 (§2.16.4).
 TIME_WORDS = (
@@ -262,13 +265,19 @@ def _article_number(token: str) -> int | None:
 
 
 def _is_content(piece: str, haystack: str) -> bool:
-    """뜻을 담은 조각인가. 조사·어미가 아니라 낱말이어야 한다."""
+    """뜻을 담은 조각인가. 조사·어미가 아니라 낱말이어야 한다.
+
+    자료와 견줄 때는 **공백을 지운 사본과도** 견준다. 자료가 `자료 기준일`로
+    띄어 썼는데 초안이 `자료기준일`로 붙여 쓰는 것은 같은 말이다. 다만 자료에
+    **붙어 있는 자리**여야 한다. `문화예술` + `법인`처럼 따로 떨어진 조각을
+    이어 붙이는 것은 여전히 막힌다.
+    """
     if len(piece) == 1:
         # 한 글자라도 허용 낱말이면 뜻 조각으로 본다. `제7조이다`의 `조`가 그렇다.
         # 다만 **조사와 겹치는 글자는 안 된다.** `이`를 뜻 조각으로 인정하면
         # `이지은`이 `이`+`지`+`은`으로 쪼개져 지어낸 이름이 통과한다.
         return piece in SAFE_WORDS and piece not in SUFFIXES
-    if piece in haystack:
+    if piece in haystack or piece in _squeeze(haystack):
         return True
     if piece in SAFE_WORDS:
         return True
@@ -296,11 +305,12 @@ def _is_covered(run: str, haystack: str) -> bool:
     fresh[0] = True
 
     for i in range(length):
-        if not (reachable[i] or fresh[i]):
-            continue
         for j in range(i + 1, min(i + MAX_PIECE, length) + 1):
             piece = run[i:j]
-            if _is_content(piece, haystack):
+            # **뜻 조각은 맨 앞에 딱 하나만** 올 수 있다. 여러 개를 이어 붙이게
+            # 두면 자료의 `문화예술` + `법인`으로 있지도 않은 `문화예술법인`이
+            # 만들어진다. 조각이 다 자료에 있어도 그 낱말은 자료에 없다.
+            if fresh[i] and _is_content(piece, haystack):
                 reachable[j] = True
             elif reachable[i] and piece in SUFFIXES:
                 reachable[j] = True
@@ -638,20 +648,29 @@ def check_draft(
         if not cited:
             return
         packed = _squeeze(text)
-        numbers = read_numbers(text)
+        numbers = read_numbers(text) | read_numbers(_join_scattered(text))
+        missing = []
         for fact in cited:
             value = sanitize(fact.value)
             if _squeeze(value) in packed:
-                return
+                continue
             values = read_numbers(value)
             if values and values <= numbers:
-                return
-        shown = ", ".join(f"`{sanitize(f.value)}`" for f in cited[:3])
+                continue
+            missing.append(value)
+        if not missing:
+            return
+        # **댄 근거는 전부 맞아야 한다.** 하나만 맞으면 되게 두면, 짧은 값
+        # 하나를 대 놓고 나머지를 거짓으로 채울 수 있다. 쓰지 않은 사실은
+        # 근거로 대지 않으면 된다.
+        shown = ", ".join(f"`{v}`" for v in missing[:3])
         add(
             "CLAIM_VALUE_NOT_ANCHORED",
             "2.10",
             part,
-            f"근거로 댄 사실의 값이 문장에 없습니다. 댄 근거: {shown}.",
+            f"근거로 댄 사실의 값이 문장에 없습니다: {shown}"
+            + (f" 외 {len(missing) - 3}개" if len(missing) > 3 else "")
+            + ". 쓰지 않은 사실은 근거로 대지 마십시오.",
             text[:60],
         )
 
@@ -661,6 +680,25 @@ def check_draft(
         check_anchored(f"핵심 요약 {i}", point.text, point.fact_ids)
     for claim in candidate.claims:
         check_anchored(f"주장 {claim.claim_id}", claim.text, claim.fact_ids)
+    rule_values = {r.rule_id: r.applies_to for r in ledger.supplementary_rules}
+    for paragraph in candidate.paragraphs:
+        check_anchored(
+            f"본문 {paragraph.paragraph_id}", paragraph.text, paragraph.fact_ids
+        )
+        # 부칙을 근거로 댄 문단은 **그 부칙 원문을 담아야 한다.** 담지 않으면
+        # 부칙 번호만 붙여 놓고 전혀 다른 시행 이야기를 쓸 수 있다.
+        packed_text = _squeeze(paragraph.text)
+        for rule_id in paragraph.supplementary_rule_ids:
+            value = rule_values.get(rule_id)
+            if value is None or _squeeze(sanitize(value)) in packed_text:
+                continue
+            add(
+                "RULE_VALUE_NOT_ANCHORED",
+                "2.16.4",
+                f"본문 {paragraph.paragraph_id}",
+                f"근거로 댄 부칙 원문이 문장에 없습니다: “{value[:40]}”.",
+                paragraph.text[:60],
+            )
 
     # --- G3. 필수 항목이 비어 있지 않은가 ------------------------------------
     # 3차 검토가 제목·리드·요약·본문을 전부 빈 글자로 바꿔도 초안이 나가는 것을
@@ -676,7 +714,11 @@ def check_draft(
 
     # --- F1. 자료에 없는 수를 쓰지 않는가 (표기법 무관) ----------------------
     for part, text in parts:
-        for number in sorted(read_numbers(text) - allowed_numbers):
+        # 흩어 쓴 글자도 붙여서 본다. `이 백 오 십`을 그대로 두면 한 글자씩
+        # 흩어져 수를 하나도 못 읽는다. 그때 낱말 검사는 "수는 수 검사가
+        # 따로 본다"며 넘긴다. 두 검사가 서로 상대를 믿고 둘 다 안 보게 된다.
+        probe_numbers = read_numbers(text) | read_numbers(_join_scattered(text))
+        for number in sorted(probe_numbers - allowed_numbers):
             add(
                 "NUMBER_NOT_IN_LEDGER",
                 "4.2",
@@ -792,8 +834,19 @@ def check_draft(
                 for m in pattern.finditer(sentence)
             ]
             if len(spans) < 2:
-                continue
-            whole = sentence[min(s for s, _ in spans) : max(e for _, e in spans)]
+                # 따옴표를 빼면 이 검사를 피할 수 있었다. 그래서 따옴표가
+                # 없어도 **개정 지시문을 옮기는 모양**이면 문장 전체를 본다.
+                packed_sentence = _squeeze(sentence)
+                if not (
+                    ARTICLE_MENTION.search(packed_sentence)
+                    and AMENDMENT_VERB.search(packed_sentence)
+                ):
+                    continue
+                whole = sentence.strip()
+            else:
+                whole = sentence[
+                    min(s for s, _ in spans) : max(e for _, e in spans)
+                ]
             packed = _squeeze(whole)
             if any(packed in _squeeze(hay) for hay in haystacks):
                 continue
@@ -815,24 +868,27 @@ def check_draft(
                 packed = _squeeze(sentence)
                 # `개정 문구`, `공포일`처럼 이름으로 쓴 것은 주장이 아니다.
                 # `공포됐다`, `시행된다`처럼 **서술로 쓴 것**만 본다.
-                found = ASSERTIVE_EFFECT.search(packed)
-                if found is None:
-                    continue
-                stem = found.group(1)
-                # 헤지는 **효력 표현 바로 뒤에** 붙어 있어야 한다.
-                # 문장 어딘가에 있기만 하면 되게 두면 `제안한 법률은 공포됐다`가
-                # 통과한다. `제안`이 부정하는 것은 `법률`이지 `공포`가 아니다.
-                after = packed[found.end() :][:HEDGE_WINDOW]
-                if any(h in after for h in HEDGES):
-                    continue
-                add(
-                    "PREMATURE_EFFECT_CLAIM",
-                    "2.16.1",
-                    part,
-                    f"아직 법률이 아닌데 ‘{stem}’을(를) 확정된 일처럼 썼습니다. "
-                    "제안 내용임을 함께 밝혀야 합니다.",
-                    sentence.strip()[:60],
-                )
+                #
+                # 한 문장에 여러 개가 나오면 **모두** 본다. 첫 것만 보면
+                # `적용 완료 예정이며 공포되었다`처럼 앞을 헤지로 덮어
+                # 뒤쪽 주장을 통째로 검사에서 빼낼 수 있다.
+                for found in ASSERTIVE_EFFECT.finditer(packed):
+                    stem = found.group(1)
+                    # 헤지는 **효력 표현 바로 뒤에** 붙어 있어야 한다.
+                    # 문장 어딘가에 있기만 하면 되게 두면 `제안한 법률은
+                    # 공포됐다`가 통과한다. `제안`이 부정하는 것은 `법률`이지
+                    # `공포`가 아니다.
+                    after = packed[found.end() :][:HEDGE_WINDOW]
+                    if any(h in after for h in HEDGES):
+                        continue
+                    add(
+                        "PREMATURE_EFFECT_CLAIM",
+                        "2.16.1",
+                        part,
+                        f"아직 법률이 아닌데 ‘{stem}’을(를) 확정된 일처럼 "
+                        "썼습니다. 제안 내용임을 함께 밝혀야 합니다.",
+                        sentence.strip()[:60],
+                    )
 
     # --- H2. 시행 이야기에는 부칙 근거가 붙는가 ------------------------------
     # 본문뿐 아니라 제목·리드·요약도 본다. 한 칸이라도 빠지면 그 칸으로 나간다.

@@ -123,14 +123,30 @@ def fake_draft_writing(payload: dict[str, Any]) -> dict[str, Any]:
         ),
     ]
 
+    # 근거는 **글에 실제로 쓴 사실만** 댄다. 쓰지도 않은 사실을 대면
+    # 그 문장이 맞는지 근거로 되짚을 수 없다.
+    def _used_in(text: str) -> tuple[list[str], list[str]]:
+        used_claims: list[str] = []
+        used_facts: list[str] = []
+        for claim, fact in zip(claims, chosen):
+            value = str(fact.get("value", ""))
+            if value and value in text:
+                used_claims.append(claim["claim_id"])
+                used_facts.append(fact["fact_id"])
+        if not used_facts:  # 형식은 근거를 하나 이상 요구한다
+            return claim_ids[:1], fact_ids[:1]
+        return used_claims, used_facts
+
+    lead_claim_ids, lead_fact_ids = _used_in(lead_text)
+
     paragraphs: list[dict[str, Any]] = [
         {
             "paragraph_id": "P-01",
             "section_kind": "BODY",
             "priority_rank": 1,
             "text": lead_text,
-            "claim_ids": claim_ids,
-            "fact_ids": fact_ids,
+            "claim_ids": lead_claim_ids,
+            "fact_ids": lead_fact_ids,
             "supplementary_rule_ids": [],
         }
     ]
@@ -148,7 +164,7 @@ def fake_draft_writing(payload: dict[str, Any]) -> dict[str, Any]:
                     f"{body.strip()}"
                 ),
                 "claim_ids": [],
-                "fact_ids": fact_ids[:1],
+                "fact_ids": article_fact_ids,
                 "supplementary_rule_ids": [],
             }
         )
@@ -186,7 +202,7 @@ def fake_draft_writing(payload: dict[str, Any]) -> dict[str, Any]:
             "draft_label": payload.get("draft_label") or "",
             "title": _claim_text(title_text, *_cite(identity or chosen[0])),
             "key_points": key_points,
-            "lead": _claim_text(lead_text, claim_ids, fact_ids),
+            "lead": _claim_text(lead_text, lead_claim_ids, lead_fact_ids),
             "paragraphs": paragraphs,
             "contact_status": "NEEDS_CONFIRMATION",
             "contact_text": payload.get("contact_text") or "[문의처 확인 필요]",
