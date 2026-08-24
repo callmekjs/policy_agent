@@ -64,7 +64,7 @@ ASSERTIVE_EFFECT = re.compile(
     "(" + "|".join(EFFECT_STEMS) + ")"
     # 어간과 서술 사이에 조사가 낄 수 있다. `개정이 완료되었다`가 그렇다.
     r"(?:[가-힣]{0,3})?"
-    r"(되었|되어|되고|된|됐|됨|하였|했|한다|합니다|중이|완료|시켰|시킨|"
+    r"(되었|되어|되고|되며|된|됐|됨|하였|하여|하고|했|한다|합니다|중이|완료|시켰|시킨|"
     r"이다|입니다|들어갔|들어간|단계|이르렀|마쳤|끝났|마무리)"
 )
 
@@ -73,6 +73,9 @@ FIXED_EFFECT_PHRASES = ("효력상태", "절차단계")
 
 #: 효력 표현 뒤 몇 글자 안에서 헤지를 찾을지. 한 어절 남짓이다.
 HEDGE_WINDOW = 6
+
+#: 앞말을 사실로 놓고 뒤를 잇는 어미. 이 모양은 헤지로 덮을 수 없다.
+CONNECTIVE_ENDINGS = frozenset({"되어", "되고", "되며", "하여", "하고", "하였", "되었"})
 
 #: 문장을 끝맺는 글자. 이 글자가 바로 뒤에 오면 주장이 완성된 것이다.
 TERMINAL_ENDINGS = frozenset({"다", "음", "함", "임", "죠", "네"})
@@ -169,6 +172,9 @@ ARTICLE_MENTION = re.compile(
     r"조(?:의([0-9０-９]+|[一二三四五六七八九十百千]+|[일이삼사오육륙칠팔구십백천]+))?"
 )
 
+#: 조문 아래 단위. `제7조제10항`처럼 조는 맞고 항만 지어내는 길을 막는다.
+PROVISION_UNIT = re.compile(r"제\s*[0-9０-９]+\s*(항|호|목)")
+
 #: 개정 지시문을 옮기는 모양. 조문 번호와 함께 나오면 자료와 대조한다.
 AMENDMENT_VERB = re.compile(r"중.{0,40}로한다|로한다|신설한다|삭제한다|본다")
 
@@ -184,7 +190,8 @@ PARTIAL_DATE = re.compile(r"(\d{1,4})\s*(년|월)\s*(\d{1,2})\s*(월|일)")
 # 엉뚱한 글자를 단위로 읽는다. 단위 뒤 조사는 그대로 둔다 — `26명이`를
 # 놓치면 조사 하나로 검사가 꺼진다.
 COUNTED_NUMBER = re.compile(
-    r"\d+(?:만|억|조|천)?(명|인|표|건|개|차|회|석|점|번|쪽|장|원|퍼센트|%)"
+    r"\d+(?:만|억|조|천)?(명|인|표|건|개|차|회|석|점|번|쪽|장|원|퍼센트|%|"
+    r"항|호|일|년|월|절|관|편|줄)"
 )
 
 #: 자리값이 붙은 수. `26만`은 26이 아니라 260000이다.
@@ -226,13 +233,28 @@ ARTICLE_ACTION = re.compile(
 #: 나머지를 아무 말로나 채울 수 있었다 — `의안번호 2207285은 처리 결과가
 #: 없다`처럼. 방향을 뒤집어 **글이 말하는 항목** 쪽에서도 본다.
 FACT_TOPICS: tuple[tuple[str, tuple[str, ...]], ...] = (
-    ("PLENARY_RESULT", ("처리결과", "의결결과", "회의결과", "심의결과", "처리됐", "처리되")),
-    ("PLENARY_DECIDED_ON", ("의결일", "처리일", "의결한날", "가결일")),
+    # `처리결과`만 막았더니 `심사 결과`·`표결 결과`로 빠져나갔다. 낱말을
+    # 늘리는 대신 **결과라는 말 자체**를 신호로 본다.
+    ("PLENARY_RESULT", ("결과",)),
+    (
+        "PLENARY_DECIDED_ON",
+        ("의결일", "처리일", "가결일", "의결한날", "처리한날", "심사한날", "의결날짜"),
+    ),
     ("BILL_IDENTITY", ("의안번호",)),
     ("VOTE_PRESENT_COUNT", ("재석",)),
     ("VOTE_YES_COUNT", ("찬성",)),
     ("VOTE_NO_COUNT", ("반대",)),
 )
+
+#: 부정하는 말. 자료가 말한 값 뒤에 오면 자료를 뒤집는 것이다.
+NEGATIONS = (
+    # 한글은 음절 단위라 `아닌`은 `아니`를 담지 않는다. 활용형을 함께 적는다.
+    "아니", "아닌", "아님", "아녀", "아냐",
+    "않", "없", "못", "미확인", "불가", "반대로", "거짓", "취소",
+)
+
+#: 값 뒤 몇 글자까지 부정어를 찾을지.
+NEGATION_WINDOW = 10
 
 #: 시점을 가리키는 말. 시행 이야기에 쓰려면 부칙에도 있어야 한다 (§2.16.4).
 TIME_WORDS = (
@@ -346,25 +368,52 @@ def _article_number(token: str) -> int | None:
     return read_numeral_word(flattened)
 
 
-def _starts_a_word(piece: str, haystack: str) -> bool:
-    """이 조각이 자료의 **낱말 시작 자리**에 있는가.
+def _is_hangul_char(char: str) -> bool:
+    return "가" <= char <= "힣"
 
-    그냥 부분 문자열로 보면 `조계원 의원실`에서 `계원의원실`을 잘라내 없는
-    이름을 만들 수 있다. 낱말 한가운데서 시작하는 조각은 자료가 말한 낱말이
-    아니다.
+
+def _word_phrases(haystack: str) -> frozenset[str]:
+    """자료의 **낱말 하나 또는 이어진 낱말들**을 붙여 놓은 집합.
+
+    자료가 `자료 기준일`로 띄어 썼는데 초안이 `자료기준일`로 붙여 쓰는 것은
+    같은 말이므로 허용해야 한다. 그렇다고 아무 데서나 잘라 쓰게 두면 안 된다.
+    그래서 **낱말 경계에서 시작하고 낱말 경계에서 끝나는 것만** 모은다.
+
+    이 방식이면 `조계원`에서 `조계`(앞 자르기)도, `계원`(뒤 자르기)도 나오지
+    않는다. 둘 다 낱말 경계가 아니기 때문이다.
     """
-    packed = _squeeze(haystack)
-    for probe in (haystack, packed):
-        start = 0
-        while True:
-            index = probe.find(piece, start)
-            if index < 0:
+    words = [w for w in re.split(r"[^가-힣A-Za-z0-9]+", haystack) if w]
+    phrases: set[str] = set()
+    # `제7조제6항`처럼 숫자가 낀 낱말은 한글 조각도 넣는다. 그러지 않으면
+    # 초안의 `조제`(제7'조제'6항)가 자료에 없다고 막힌다.
+    for word in words:
+        phrases.update(m.group(0) for m in HANGUL_RUN.finditer(word))
+    for start in range(len(words)):
+        joined = ""
+        for end in range(start, len(words)):
+            joined += words[end]
+            if len(joined) > MAX_PIECE:
                 break
-            before = probe[index - 1] if index else ""
-            if not ("가" <= before <= "힣"):
-                return True
-            start = index + 1
-    return False
+            phrases.add(joined)
+    return frozenset(phrases)
+
+
+#: 자료마다 한 번만 만든다. 같은 자료로 여러 번 검사하므로 다시 세지 않는다.
+_PHRASE_CACHE: dict[int, frozenset[str]] = {}
+
+
+def _starts_a_word(piece: str, haystack: str) -> bool:
+    """이 조각이 자료가 말한 **낱말**인가.
+
+    앞뒤 어느 쪽으로도 자를 수 없다. `조계원 의원실`에서 `조계`도 `계원`도
+    나오지 않는다.
+    """
+    key = id(haystack)
+    phrases = _PHRASE_CACHE.get(key)
+    if phrases is None:
+        phrases = _word_phrases(haystack)
+        _PHRASE_CACHE[key] = phrases
+    return piece in phrases
 
 
 def _is_content(piece: str, haystack: str) -> bool:
@@ -869,6 +918,36 @@ def check_draft(
     for fact in ledger.facts:
         values_by_kind.setdefault(fact.kind, []).append(sanitize(fact.value))
 
+    def check_negation(part: str, text: str) -> None:
+        """원장 값을 **부정하는** 말이 붙었는지 본다.
+
+        `원안가결이 아니다`는 값이 문장에 있으므로 값 대조도, 항목 대조도
+        지나간다. 그런데 자료는 원안가결이라고 말한다. 자료가 말한 값을
+        부정하는 것은 자료에 없는 새 사실이다.
+        """
+        packed = _squeeze(text)
+        for values in values_by_kind.values():
+            for value in values:
+                packed_value = _squeeze(value)
+                start = 0
+                while True:
+                    index = packed.find(packed_value, start)
+                    if index < 0:
+                        break
+                    after = packed[index + len(packed_value) :][:NEGATION_WINDOW]
+                    hit = next((n for n in NEGATIONS if n in after), None)
+                    if hit:
+                        add(
+                            "LEDGER_VALUE_NEGATED",
+                            "2.10",
+                            part,
+                            f"자료가 말한 값 `{value}`을(를) 부정했습니다: "
+                            f"‘{hit}’. 자료에 없는 새 사실입니다.",
+                            text[:60],
+                        )
+                        return
+                    start = index + 1
+
     def check_topics(part: str, text: str) -> None:
         packed = _squeeze(text)
         for kind, words in FACT_TOPICS:
@@ -936,6 +1015,7 @@ def check_draft(
     # --- F1. 자료에 없는 수를 쓰지 않는가 (표기법 무관) ----------------------
     for part, text in agent_parts:
         check_topics(part, text)
+        check_negation(part, text)
 
     # 날짜와 세는 수는 조각이 아니라 **통째로** 자료에 있어야 한다.
     allowed_dates = set(_dates_in(allowed_text).values())
@@ -1228,6 +1308,19 @@ def check_draft(
                     # 아니다. 붙어 있어야 그 주장을 부정하는 것이다.
                     # 문장부호를 빼고 글자만 센다. `시행한다.”라고 제안`처럼
                     # 따옴표가 끼면 창이 밀려 헤지를 못 본다.
+                    # `공포되어 아직 확인이 필요하다`처럼 **잇는 어미**로 쓰면
+                    # 그 주장은 이미 사실로 놓인 것이다. 뒤에 오는 헤지는
+                    # 다른 말을 부정한다. 이 모양은 헤지를 받지 않는다.
+                    if found.group(2) in CONNECTIVE_ENDINGS:
+                        add(
+                            "PREMATURE_EFFECT_CLAIM",
+                            "2.16.1",
+                            part,
+                            f"아직 법률이 아닌데 ‘{stem}’을(를) 이미 일어난 일로 "
+                            "이어 썼습니다. 제안 내용임을 함께 밝혀야 합니다.",
+                            sentence.strip()[:60],
+                        )
+                        continue
                     rest = LETTERS_ONLY.sub("", packed[found.end() :])
                     # 주장이 이미 끝났으면 뒤에 오는 헤지는 그 주장을
                     # 부정하지 않는다. `개정이 완료되었다, 예정 절차가 있다`의
@@ -1340,7 +1433,19 @@ def check_draft(
 
         counted = set(article_set.article_ids)
         for part, text in agent_parts:
-            for match in ARTICLE_MENTION.finditer(_squeeze(text)):
+            packed_all = _squeeze(text)
+            body_all = _squeeze(sanitize(final_text.body_text)) if final_text else ""
+            for match in PROVISION_UNIT.finditer(packed_all):
+                if match.group(0) in body_all:
+                    continue
+                add(
+                    "PROVISION_UNIT_NOT_IN_SOURCE",
+                    "2.16.3",
+                    part,
+                    f"개정문에 없는 `{match.group(0)}`을(를) 초안이 말합니다.",
+                    text[:60],
+                )
+            for match in ARTICLE_MENTION.finditer(packed_all):
                 # 한자·한글 수사를 아라비아 숫자로 되돌려 코드 집합과 견준다.
                 number = _article_number(match.group(1))
                 branch = _article_number(match.group(2)) if match.group(2) else None

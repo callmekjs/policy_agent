@@ -1911,3 +1911,127 @@ def test_조각_날짜도_자료와_대조한다(good_draft) -> None:
     assert run.draft_version == 0, "조각 날짜를 놓쳤습니다."
     rules = {f.rule_id for f in run.validation_findings}
     assert "DATE_NOT_IN_LEDGER" in rules, rules
+
+
+# ---------------------------------------------------------------------------
+# 9차 검토가 뚫었던 공격
+# ---------------------------------------------------------------------------
+
+ATTACKS_V10 = [
+    ("처리한 날은 6일", "의안번호 2207285을 처리한 날은 6일이다.", ("F-06",)),
+    ("26년에 심사", "의안번호 2207285은 26년에 심사되었다.", ("F-06",)),
+    ("제7조제10항", "바뀐 조문은 제7조제10항이다.", ("F-03",)),
+    ("26항이 있다", "제7조에는 26항이 있다.", ("F-03",)),
+    ("이름 앞 자르기 조계", "조계가 의안번호 2207285을 확인하였다.", ("F-06",)),
+    ("기관 앞 자르기", "문화체육관광위가 의안번호 2207285을 심사하였다.", ("F-06",)),
+    ("심사 결과는 없다", "의안번호 2207285의 심사 결과는 없다.", ("F-06",)),
+    ("표결 결과는 없다", "의안번호 2207285의 표결 결과는 없다.", ("F-06",)),
+    ("원안가결이 아니다", "의안번호 2207285은 원안가결이 아니다.", ("F-06", "F-02")),
+    (
+        "원안가결이 아닌 결과",
+        "의안번호 2207285은 원안가결이 아닌 결과로 처리되었다.",
+        ("F-06", "F-02"),
+    ),
+    (
+        "처리된 사실이 없다",
+        "의안번호 2207285은 원안가결로 처리된 사실이 없다.",
+        ("F-06", "F-02"),
+    ),
+    ("제7조가 아니다", "바뀐 조문은 제7조가 아니다.", ("F-03",)),
+    ("2207285이 아니다", "의안번호는 2207285이 아니다.", ("F-06",)),
+]
+
+
+@pytest.mark.parametrize(
+    ("name", "text", "fact_ids"), ATTACKS_V10, ids=[a[0] for a in ATTACKS_V10]
+)
+def test_9차_검토가_뚫었던_공격은_이제_막힌다(good_draft, name, text, fact_ids) -> None:
+    payload = copy.deepcopy(good_draft)
+    payload["result"]["paragraphs"].append(
+        {
+            "paragraph_id": "P-09",
+            "section_kind": "BODY",
+            "priority_rank": 9,
+            "text": text,
+            "claim_ids": [],
+            "fact_ids": list(fact_ids),
+            "supplementary_rule_ids": [],
+        }
+    )
+    run = asyncio.run(_run(canned_draft=payload))
+    assert run.draft_version == 0, f"{name}: 오염된 초안이 나갔습니다."
+    assert [f for f in run.validation_findings if f.severity.value == "BLOCKING"], (
+        f"{name}: 초안은 막혔지만 이유가 기록되지 않았습니다."
+    )
+
+
+CONNECTIVE_ATTACKS = [
+    ("공포되어", "이 법률은 공포되어 아직 확인이 필요한 절차가 있다."),
+    ("시행되어", "이 법률은 시행되어 아직 확인이 필요한 절차가 있다."),
+    ("공포하여", "이 법률을 공포하여 아직 확인이 필요한 절차가 있다."),
+]
+
+
+@pytest.mark.parametrize(
+    ("name", "text"), CONNECTIVE_ATTACKS, ids=[a[0] for a in CONNECTIVE_ATTACKS]
+)
+def test_잇는_어미로_쓴_효력_주장은_헤지를_받지_않는다(good_draft, name, text) -> None:
+    """`공포되어 아직 …`의 `아직`은 뒤의 절차를 부정한다."""
+    payload = copy.deepcopy(good_draft)
+    _ai_paragraphs(payload["result"])[-1]["text"] = (
+        "부칙은 “이 법은 공포한 날부터 시행한다.”라고 제안하고 있다. " + text
+    )
+    run = asyncio.run(_run(canned_draft=payload))
+    assert run.draft_version == 0, f"{name}: 오염된 초안이 나갔습니다."
+    rules = {f.rule_id for f in run.validation_findings}
+    assert "PREMATURE_EFFECT_CLAIM" in rules, rules
+
+
+def test_문의처와_빈칸_표시도_자료와_대조한다(good_draft) -> None:
+    """두 칸 다 화면에 나간다. 근거 대조를 안 받으므로 다른 검사가 봐야 한다."""
+    for name, mutate in (
+        ("문의처", lambda d: d.__setitem__("contact_text", "의안번호 2207285의 심사 결과는 없다")),
+        (
+            "빈칸 표시",
+            lambda d: d.__setitem__("placeholders", ["의안번호 2207285은 원안가결이 아니다"]),
+        ),
+    ):
+        run = asyncio.run(_run(canned_draft=_spoil(good_draft, mutate)))
+        assert run.draft_version == 0, f"{name}: 오염된 초안이 나갔습니다."
+
+
+def test_자료가_말한_값을_부정할_수_없다() -> None:
+    """`LEDGER_VALUE_NEGATED`만 겨눈다.
+
+    한글은 음절 단위라 `아닌`은 `아니`를 담지 않는다. 활용형을 함께 봐야 한다.
+    """
+    from app.gates.draft_gate import NEGATIONS
+
+    for form in ("아니다", "아닌 결과", "아님", "없다", "않는다", "못한다"):
+        assert any(n in form for n in NEGATIONS), f"부정형을 놓칩니다: {form}"
+
+
+def test_낱말을_앞뒤_어느_쪽으로도_자를_수_없다() -> None:
+    from app.gates.draft_gate import _starts_a_word
+
+    haystack = "조계원 의원 등 16인, 문화체육관광위원회"
+    assert _starts_a_word("조계원", haystack)
+    assert _starts_a_word("문화체육관광위원회", haystack)
+    assert not _starts_a_word("조계", haystack), "앞을 잘라 통과시켰습니다."
+    assert not _starts_a_word("계원", haystack), "뒤를 잘라 통과시켰습니다."
+    assert not _starts_a_word("문화체육관광위", haystack)
+
+
+def test_조문_아래_단위도_개정문과_대조한다() -> None:
+    """`PROVISION_UNIT`만 겨눈다.
+
+    조는 맞는데 항만 지어내는 길(`제7조제10항`)을 막는다. 지금 고정 자료에서는
+    셈 검사가 먼저 잡지만, 자료가 달라지면 이 규칙만 남는다.
+    """
+    from app.gates.draft_gate import PROVISION_UNIT, _squeeze
+
+    body = _squeeze("제7조제6항 중 “모집할”을 “모집ㆍ접수할”로 한다.")
+    found = [m.group(0) for m in PROVISION_UNIT.finditer(_squeeze("제7조제10항이다"))]
+    assert found == ["제10항"], found
+    assert found[0] not in body, "개정문에 없는 항을 있다고 봤습니다."
+    assert [m.group(0) for m in PROVISION_UNIT.finditer(body)] == ["제6항"]
