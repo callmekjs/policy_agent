@@ -984,15 +984,24 @@ def test_보이지_않는_문자를_찾아_이름을_말한다() -> None:
     assert find_invisible("보통 글자입니다.") == []
 
 
-def test_이름으로_쓴_개정은_주장이_아니다() -> None:
-    """`ASSERTIVE_EFFECT`만 겨눈다. 이름까지 막으면 개정문을 옮길 수 없다."""
-    from app.gates.draft_gate import ASSERTIVE_EFFECT
+def test_이름으로_쓴_개정은_주장이_아니다(good_draft) -> None:
+    """이름까지 막으면 개정문을 옮길 수 없다.
 
-    assert ASSERTIVE_EFFECT.search("공포됐다")
-    assert ASSERTIVE_EFFECT.search("시행된다")
-    assert ASSERTIVE_EFFECT.search("확정됐다")
-    assert not ASSERTIVE_EFFECT.search("개정 문구는"), "이름으로 쓴 것까지 막습니다."
-    assert not ASSERTIVE_EFFECT.search("공포일")
+    전에는 `ASSERTIVE_EFFECT`라는 어미 목록을 직접 봤다. 그 목록은 이제 문을
+    여는 조건이 아니므로, 시험도 **초안이 실제로 나가는지**를 본다. 상수를
+    보는 시험은 상수가 죽어도 계속 통과해 아무것도 지키지 못한다.
+    """
+    # 이름으로 쓴 자리는 정상 초안에 이미 들어 있다. 초안이 나오는 것이 곧
+    # 이름을 막지 않는다는 증거다.
+    assert asyncio.run(_run()).draft_version >= 1
+
+    for sentence in ("이 법률은 공포됐다.", "이 법률은 시행된다.", "이 내용은 확정됐다."):
+        run = asyncio.run(
+            _run(canned_draft=_spoil(good_draft, lambda d: _rule_paragraph(d, sentence)))
+        )
+        assert run.draft_version == 0, f"`{sentence}` 가 그대로 나갔습니다."
+        rules = {f.rule_id for f in run.validation_findings}
+        assert "PREMATURE_EFFECT_CLAIM" in rules, rules
 
 
 def test_헤지는_효력_표현에_붙어_있어야_한다(good_draft) -> None:
@@ -2035,3 +2044,134 @@ def test_조문_아래_단위도_개정문과_대조한다() -> None:
     assert found == ["제10항"], found
     assert found[0] not in body, "개정문에 없는 항을 있다고 봤습니다."
     assert [m.group(0) for m in PROVISION_UNIT.finditer(body)] == ["제6항"]
+
+
+# ---------------------------------------------------------------------------
+# 10차 검토가 뚫은 자리
+#
+# 두 구멍 다 **낱말 목록의 빈칸**이었다. 어미 목록에 `함`이 없었고, 시점 낱말
+# 목록에 맨 `다음`이 없었다. 목록을 채우는 대신 규칙의 방향을 뒤집는다 —
+# 효력·시점을 말하는 자리는 **자료에 적힌 그대로**여야 하고, 아니면 제안임을
+# 밝혀야 한다. 설계는 `docs/superpowers/specs/2026-08-25-h1-h2-ledger-driven-design.md`.
+# ---------------------------------------------------------------------------
+
+#: 부칙 원문을 그대로 옮긴 문장. 정상 초안이 쓰는 모양이며 통과해야 한다.
+_RULE_QUOTE = "부칙은 “이 법은 공포한 날부터 시행한다.”라고 제안하고 있다."
+
+
+def _rule_paragraph(d: dict, sentence: str) -> None:
+    """부칙 문단을 `부칙 원문 + 공격 문장`으로 바꾼다.
+
+    부칙 근거(`SR-01`)는 붙어 있게 둔다. 근거를 떼면 `EFFECTIVE_DATE_NEEDS_RULE`이
+    먼저 잡아서 **겨누는 규칙이 아닌 다른 규칙으로** 막히기 때문이다.
+
+    공격 문장에 숫자를 넣지 않는다. 부칙 원문에 없는 숫자는 셈 대조가 먼저
+    잡으므로, 역시 겨누는 규칙을 확인할 수 없게 된다.
+    """
+    _ai_paragraphs(d)[-1]["text"] = f"{_RULE_QUOTE} {sentence}"
+
+
+def test_목록에_없는_어미로_공포를_앞지를_수_없다(good_draft) -> None:
+    """`PREMATURE_EFFECT_CLAIM`만 겨눈다. 10차 검토가 뚫은 입력 그대로다.
+
+    `공포됨`은 어미 목록에 있고 `공포함`은 없었다. 글자 하나 차이로 절차
+    앞지르기 검사가 통째로 꺼졌다.
+    """
+    run = asyncio.run(
+        _run(
+            canned_draft=_spoil(
+                good_draft,
+                lambda d: _rule_paragraph(d, "이 법률은 공포함으로써 효력이 있다."),
+            )
+        )
+    )
+    assert run.draft_version == 0, "아직 법이 아닌데 공포됐다고 쓴 초안이 나갔습니다."
+    rules = {f.rule_id for f in run.validation_findings}
+    assert "PREMATURE_EFFECT_CLAIM" in rules, rules
+
+
+def test_이름꼴_어미로_개정을_앞지를_수_없다(good_draft) -> None:
+    """`PREMATURE_EFFECT_CLAIM`만 겨눈다. 10차 검토가 뚫은 입력 그대로다.
+
+    `-함`은 어미 목록에도 없고, 낱말 검사에서는 `개정`(허용 낱말) + `함`(조사)로
+    갈라져 둘 다 지나간다. 두 검사가 서로 상대를 믿고 아무도 안 보던 자리다.
+    """
+    run = asyncio.run(
+        _run(
+            canned_draft=_spoil(
+                good_draft, lambda d: _rule_paragraph(d, "이번 조문을 개정함.")
+            )
+        )
+    )
+    assert run.draft_version == 0, "아직 법이 아닌데 개정됐다고 쓴 초안이 나갔습니다."
+    rules = {f.rule_id for f in run.validation_findings}
+    assert "PREMATURE_EFFECT_CLAIM" in rules, rules
+
+
+def test_부칙에_없는_시점은_숫자가_없어도_막는다(good_draft) -> None:
+    """`EFFECTIVE_DATE_NOT_IN_RULE`만 겨눈다. 10차 검토가 뚫은 입력 그대로다.
+
+    부칙은 `공포한 날부터`인데 초안은 `다음 날부터`라고 딴소리를 한다. 숫자가
+    없어서 셈 대조를 지나가고, 시점 낱말 목록에는 `다음달`만 있고 맨 `다음`이
+    없어서 그 검사도 지나갔다.
+    """
+    run = asyncio.run(
+        _run(
+            canned_draft=_spoil(
+                good_draft,
+                lambda d: _rule_paragraph(
+                    d, "조문은 다음 날부터 시행하도록 제안하고 있다."
+                ),
+            )
+        )
+    )
+    assert run.draft_version == 0, "부칙에 없는 시점을 쓴 초안이 나갔습니다."
+    rules = {f.rule_id for f in run.validation_findings}
+    assert "EFFECTIVE_DATE_NOT_IN_RULE" in rules, rules
+
+
+#: `-함` 꼴 변형. 10차 검토가 목록 밖 어미 12종을 시도해 **5종이 통과했고 전부
+#: 이 꼴**이었다. `함`과 `으로써`가 둘 다 허용 조사 목록에 있어서, 낱말 검사는
+#: `공포`(허용 낱말) + `함`(조사)로 갈라 보고 어미 검사는 목록에 없어 안 본다.
+#: 두 검사가 서로 상대를 믿고 아무도 안 보는 자리다.
+NAMED_FORM_ATTACKS = [
+    "이 법률은 공포함으로써 효력이 있다.",
+    "이번 조문을 개정함.",
+    "이 법률을 시행함으로써 효력이 있다.",
+    "이번 내용을 확정함.",
+    "이번 조문을 적용함.",
+]
+
+
+@pytest.mark.parametrize("sentence", NAMED_FORM_ATTACKS, ids=NAMED_FORM_ATTACKS)
+def test_이름꼴_어미로는_어느_효력_어간도_앞지를_수_없다(good_draft, sentence) -> None:
+    """어간을 바꿔 가며 같은 어미로 찌른다. 하나라도 통과하면 구멍이다."""
+    run = asyncio.run(
+        _run(canned_draft=_spoil(good_draft, lambda d: _rule_paragraph(d, sentence)))
+    )
+    assert run.draft_version == 0, f"`{sentence}` 가 그대로 나갔습니다."
+    rules = {f.rule_id for f in run.validation_findings}
+    assert "PREMATURE_EFFECT_CLAIM" in rules, rules
+
+
+#: 부칙 원문 `이 법은 공포한 날부터 시행한다.`에 없는 시점.
+#: 허용 낱말 157개를 전수로 훑어 **시점을 가리킬 수 있는 말**만 골라 찌른다.
+NOT_IN_RULE_TIMES = [
+    "조문은 다음 날부터 시행하도록 제안하고 있다.",
+    "조문은 공포한 날 뒤부터 시행하도록 제안하고 있다.",
+    "조문은 공포한 날 앞부터 시행하도록 제안하고 있다.",
+    "조문은 공포한 날 전부터 시행하도록 제안하고 있다.",
+    "조문은 공포한 날 후부터 시행하도록 제안하고 있다.",
+    "조문은 현재부터 시행하도록 제안하고 있다.",
+]
+
+
+@pytest.mark.parametrize("sentence", NOT_IN_RULE_TIMES, ids=NOT_IN_RULE_TIMES)
+def test_부칙에_없는_시점은_어느_낱말이든_막는다(good_draft, sentence) -> None:
+    """시점 낱말 목록을 없애고 허용 낱말 전수 분류로 바꾸면 전부 막혀야 한다."""
+    run = asyncio.run(
+        _run(canned_draft=_spoil(good_draft, lambda d: _rule_paragraph(d, sentence)))
+    )
+    assert run.draft_version == 0, f"`{sentence}` 가 그대로 나갔습니다."
+    rules = {f.rule_id for f in run.validation_findings}
+    assert "EFFECTIVE_DATE_NOT_IN_RULE" in rules, rules

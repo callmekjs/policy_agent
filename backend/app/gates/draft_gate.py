@@ -59,31 +59,68 @@ EFFECT_STEMS = (
     "공포", "시행", "개정", "확정", "효력", "통과", "제정", "발효", "적용",
 )
 
-#: 효력 표현을 **서술로** 쓴 모양. 이름으로 쓴 `개정 문구`와 구분한다.
-ASSERTIVE_EFFECT = re.compile(
-    "(" + "|".join(EFFECT_STEMS) + ")"
-    # 어간과 서술 사이에 조사가 낄 수 있다. `개정이 완료되었다`가 그렇다.
-    r"(?:[가-힣]{0,3})?"
-    r"(되었|되어|되고|되며|된|됐|됨|하였|하여|하고|했|한다|합니다|중이|완료|시켰|시킨|"
-    r"이다|입니다|들어갔|들어간|단계|이르렀|마쳤|끝났|마무리)"
-)
-
 #: 이 프로그램이 늘 넣는 표시 문구. 시행일 이야기로 세지 않는다.
-FIXED_EFFECT_PHRASES = ("효력상태", "절차단계")
+#: `개정문구`는 **이름**이지 주장이 아니다. `효력상태`·`절차단계`와 같은 자리다.
+FIXED_EFFECT_PHRASES = ("효력상태", "절차단계", "개정문구")
+
+#: 어간이 든 자리를 자료 원문과 대조할 때 몇 글자를 잡을지.
+#:
+#: 이 값이 이 규칙에서 가장 위험한 숫자다. **짧으면** 자료 어딘가에 쉽게 있어서
+#: 다 통과한다(`공포` 두 글자는 자료에 늘 있다). **길면** 자료를 그대로 옮긴
+#: 정상 문장까지 막는다(`…시행한다.”라고 제안하고 있다`는 자료에 없다).
+#: 어간 뒤 네 글자면 `공포한날부터`가 잡혀 부칙 원문과 맞는다.
+SOURCE_SPAN = 4
 
 #: 효력 표현 뒤 몇 글자 안에서 헤지를 찾을지. 한 어절 남짓이다.
 HEDGE_WINDOW = 6
 
 #: 앞말을 사실로 놓고 뒤를 잇는 어미. 이 모양은 헤지로 덮을 수 없다.
-CONNECTIVE_ENDINGS = frozenset({"되어", "되고", "되며", "하여", "하고", "하였", "되었"})
+#:
+#: 이 목록은 **`draft_vocabulary.SUFFIXES`를 전수로 훑어** 고른 것이다. 초안은
+#: 허용 조사·어미만 쓸 수 있으므로 어간에 붙을 수 있는 어미는 유한하다.
+#:
+#: 그리고 이 목록은 **문을 여는 조건이 아니다.** 여기 없는 어미가 와도 검사가
+#: 꺼지지 않고 헤지 요구로 내려온다. 빠뜨려도 안전한 쪽으로 넘어진다.
+CONNECTIVE_ENDINGS = frozenset(
+    {
+        "되어", "되고", "되며", "하여", "하고", "하였", "되었",
+        # `SUFFIXES` 전수 분류에서 더한 것. 모두 앞말을 사실로 놓고 뒤를 잇는다.
+        "으로써", "으로서", "으로써는", "으로서는", "이므로", "으므로", "므로",
+        "이지만", "지만", "면서", "면서도", "이며", "이고", "라며", "이라며",
+    }
+)
 
-#: 문장을 끝맺는 글자. 이 글자가 바로 뒤에 오면 주장이 완성된 것이다.
-TERMINAL_ENDINGS = frozenset({"다", "음", "함", "임", "죠", "네"})
+#: 주장을 **끝맺는** 어미. `SUFFIXES` 전수 분류에서 골랐다.
+#: 주장이 이미 끝났으면 뒤에 오는 헤지는 그 주장을 부정하지 않는다.
+#: `개정이 완료되었다, 예정 절차가 있다`의 `예정`이 부정하는 것은 `절차`다.
+TERMINAL_SUFFIXES = frozenset(
+    {
+        "하였다", "되었다", "이었다", "습니다", "입니다",
+        "한다", "된다", "이다", "했다", "됐다",
+    }
+)
+
+#: 헤지를 받지 않는 어미. 잇는 어미와 끝맺는 어미를 합친 것이다.
+UNHEDGEABLE_ENDINGS = CONNECTIVE_ENDINGS | TERMINAL_SUFFIXES
+
+#: 효력 어간을 **어미와 상관없이** 찾는다. 문을 여는 조건이 여기다.
+EFFECT_STEM = re.compile("(" + "|".join(EFFECT_STEMS) + ")")
+
+#: 어미를 찾을 때 **긴 것부터** 본다. `되었다`를 `되`로 끊으면 뜻이 달라진다.
+SORTED_SUFFIXES: tuple[str, ...] = tuple(
+    sorted(SUFFIXES, key=len, reverse=True)
+)
+
+#: 따옴표로 묶인 자리. 인용문은 `QUOTE_NOT_IN_SOURCE`가 따로 자료와 대조하므로
+#: 효력 검사에서는 넘어간다. 정상 초안이 부칙 원문을 통째로 옮기는 자리다.
+QUOTED_SPAN = re.compile(r"[“\"']([^”\"']{2,200})[”\"']")
 
 #: 아직 확정되지 않았음을 드러내는 말.
 HEDGES = (
     "제안", "아직", "예정", "전이", "전입니다", "않", "아니", "확정 전", "미확정",
     "하도록", "되도록", "법률 아님", "될 예정", "앞두", "남아",
+    # `전인`은 `전이다`의 관형형이다. `전이`와 같은 말인데 빠져 있었다.
+    "전인",
 )
 
 #: 문장을 나누는 자리. 규칙을 문장 단위로 적용한다.
@@ -94,6 +131,15 @@ WHITESPACE = re.compile(r"\s+")
 
 #: 글자와 숫자만 남긴다. 창을 셀 때 문장부호가 자리를 먹지 않게 한다.
 LETTERS_ONLY = re.compile(r"[^가-힣0-9A-Za-z]")
+
+
+def _letters(text: str) -> str:
+    """글자만 남긴 사본.
+
+    따옴표·마침표·가운뎃점을 빼고 본다. `시행한다.”라고`처럼 문장부호가 끼면
+    자료와 통째로 대조할 때 어긋난다.
+    """
+    return LETTERS_ONLY.sub("", text)
 
 
 def _squeeze(text: str) -> str:
@@ -257,9 +303,26 @@ NEGATIONS = (
 NEGATION_WINDOW = 10
 
 #: 시점을 가리키는 말. 시행 이야기에 쓰려면 부칙에도 있어야 한다 (§2.16.4).
+#:
+#: 전에는 사람이 떠올린 표현을 적었다(`다음달`·`즉시`·`익일`…). 그 방식은 졌다.
+#: 10차 검토가 `다음달`은 있고 맨 `다음`이 없는 빈칸으로 들어왔다. 사람이 쓸 수
+#: 있는 시점 표현은 무한하므로 그 목록은 끝까지 따라갈 수 없다.
+#:
+#: 그래서 목록을 만드는 **방법**을 바꿨다. 초안은 `draft_vocabulary.SAFE_WORDS`에
+#: 있는 말과 자료에 있는 말만 쓸 수 있다. **그 목록은 유한하다.** 그러니 그 안에서
+#: 시점을 가리킬 수 있는 낱말을 **전수로** 골라낼 수 있다. 아래는 `SAFE_WORDS`
+#: 157개를 한 낱말씩 훑어 고른 것이다.
+#:
+#: 여기 없는 시점 표현(`즉시`·`익일`·`상반기`…)은 `SAFE_WORDS`에도 없으므로
+#: 낱말 검사가 먼저 막는다. 자료에 그 말이 적혀 있을 때만 쓸 수 있다.
+#:
+#: **`SAFE_WORDS`에 낱말을 더하면 이 목록도 다시 훑어야 한다.**
 TIME_WORDS = (
-    "다음달", "이달", "내달", "개월", "즉시", "곧바로", "당장", "이내", "이후",
-    "익일", "익월", "내년", "올해", "분기", "상반기", "하반기", "말일",
+    # CONNECTIVES에서
+    "다음", "뒤", "앞", "때", "이번", "현재", "안", "중",
+    # FORM_WORDS에서
+    "날", "월", "년", "일", "차", "전", "후", "기준일", "기준",
+    "이상", "이하", "미만", "초과",
 )
 
 RULE_DOC = "README §"
@@ -400,6 +463,16 @@ def _word_phrases(haystack: str) -> frozenset[str]:
 
 #: 자료마다 한 번만 만든다. 같은 자료로 여러 번 검사하므로 다시 세지 않는다.
 _PHRASE_CACHE: dict[int, frozenset[str]] = {}
+
+
+def _opens_a_word(piece: str, haystack: str) -> bool:
+    """이 조각이 어느 낱말의 **첫머리**에 오는가.
+
+    `제안하고`의 `안`처럼 낱말 가운데에 묻힌 것은 세지 않는다. 대신
+    `뒤부터`·`현재부터`처럼 조사가 붙은 것은 센다. 시점 표현은 조사를 달고
+    나오므로 어절 전체가 같은지만 보면 놓친다.
+    """
+    return any(token.startswith(piece) for token in haystack.split())
 
 
 def _starts_a_word(piece: str, haystack: str) -> bool:
@@ -1280,6 +1353,14 @@ def check_draft(
                 whole[:60],
             )
 
+    # 효력·시점을 말하는 자리를 대조할 자료 원문.
+    # 자료 본문, 부칙 원문, 최종 의결문을 모두 넣는다. 한 곳이라도 빠지면
+    # 그곳을 옮긴 정상 문장이 막힌다.
+    effect_sources = [_letters(hay) for hay in haystacks]
+    effect_sources += [_letters(r.applies_to) for r in ledger.supplementary_rules]
+    if final_text:
+        effect_sources.append(_letters(sanitize(final_text.body_text)))
+
     # --- H1. 절차를 앞질러 말하지 않는가 ------------------------------------
     # 금지 낱말을 세지 않고, **함께 쓸 말을 요구한다.** 어미를 바꿔도 빠져나갈
     # 수 없고, 새 표현이 생겨도 규칙을 고칠 필요가 없다.
@@ -1293,8 +1374,32 @@ def check_draft(
                 # 한 문장에 여러 개가 나오면 **모두** 본다. 첫 것만 보면
                 # `적용 완료 예정이며 공포되었다`처럼 앞을 헤지로 덮어
                 # 뒤쪽 주장을 통째로 검사에서 빼낼 수 있다.
-                for found in ASSERTIVE_EFFECT.finditer(packed):
+                # 따옴표 안은 인용이다. 그 안이 자료에 그대로 있는지는
+                # `QUOTE_NOT_IN_SOURCE`가 따로 대조한다. 여기서 또 보면 부칙
+                # 원문을 통째로 옮긴 정상 문장을 막게 된다.
+                quoted = [
+                    (m.start(1), m.end(1))
+                    for m in QUOTED_SPAN.finditer(packed)
+                    if any(
+                        _letters(m.group(1)) in hay for hay in effect_sources
+                    )
+                ]
+                for found in EFFECT_STEM.finditer(packed):
                     stem = found.group(1)
+                    # 1) 자료에 그대로 있으면 넘어간다.
+                    if any(s <= found.start() < e for s, e in quoted):
+                        continue
+                    span = _letters(
+                        packed[found.start() : found.end() + SOURCE_SPAN]
+                    )
+                    if any(span in hay for hay in effect_sources):
+                        continue
+                    # 2) 프로그램이 늘 넣는 이름은 주장이 아니다.
+                    if any(
+                        label in packed[found.start() : found.end() + 6]
+                        for label in FIXED_EFFECT_PHRASES
+                    ):
+                        continue
                     # 헤지는 **효력 표현 바로 뒤에** 붙어 있어야 한다.
                     # 문장 어딘가에 있기만 하면 되게 두면 `제안한 법률은
                     # 공포됐다`가 통과한다. `제안`이 부정하는 것은 `법률`이지
@@ -1308,35 +1413,38 @@ def check_draft(
                     # 아니다. 붙어 있어야 그 주장을 부정하는 것이다.
                     # 문장부호를 빼고 글자만 센다. `시행한다.”라고 제안`처럼
                     # 따옴표가 끼면 창이 밀려 헤지를 못 본다.
-                    # `공포되어 아직 확인이 필요하다`처럼 **잇는 어미**로 쓰면
-                    # 그 주장은 이미 사실로 놓인 것이다. 뒤에 오는 헤지는
-                    # 다른 말을 부정한다. 이 모양은 헤지를 받지 않는다.
-                    if found.group(2) in CONNECTIVE_ENDINGS:
+                    # 3) 어간에 붙은 어미를 본다.
+                    #
+                    # 전에는 어미 목록에 있는 어미만 **문을 여는 조건**으로
+                    # 썼다. 그래서 목록에 `됨`은 있고 `함`이 없다는 이유로
+                    # `공포함으로써`가 검사를 통째로 껐다(10차 검토).
+                    #
+                    # 이제는 어간이 나오면 무조건 여기까지 온다. 어미 목록은
+                    # **더 엄격하게 만드는 조건**으로만 쓴다. 목록에 없는
+                    # 어미가 와도 검사가 꺼지지 않고 헤지 요구로 내려온다.
+                    rest = LETTERS_ONLY.sub("", packed[found.end() :])
+                    ending = next(
+                        (s for s in SORTED_SUFFIXES if rest.startswith(s)), ""
+                    )
+                    # `공포되어 아직 확인이 필요하다`처럼 **잇는 어미**로 쓰거나
+                    # `공포되었다, 아직 …`처럼 **끝맺는 어미**로 쓰면 그 주장은
+                    # 이미 사실로 놓인 것이다. 뒤에 오는 헤지는 다른 말을
+                    # 부정한다. 이 모양은 헤지를 받지 않는다.
+                    if ending and ending in UNHEDGEABLE_ENDINGS:
                         add(
                             "PREMATURE_EFFECT_CLAIM",
                             "2.16.1",
                             part,
                             f"아직 법률이 아닌데 ‘{stem}’을(를) 이미 일어난 일로 "
-                            "이어 썼습니다. 제안 내용임을 함께 밝혀야 합니다.",
+                            "썼습니다. 제안 내용임을 함께 밝혀야 합니다.",
                             sentence.strip()[:60],
                         )
                         continue
-                    rest = LETTERS_ONLY.sub("", packed[found.end() :])
-                    # 주장이 이미 끝났으면 뒤에 오는 헤지는 그 주장을
-                    # 부정하지 않는다. `개정이 완료되었다, 예정 절차가 있다`의
-                    # `예정`이 부정하는 것은 `절차`다.
-                    if rest[:1] in TERMINAL_ENDINGS:
-                        if not any(h in found.group(0) for h in HEDGES):
-                            add(
-                                "PREMATURE_EFFECT_CLAIM",
-                                "2.16.1",
-                                part,
-                                f"아직 법률이 아닌데 ‘{stem}’을(를) 확정된 일처럼 "
-                                "썼습니다. 제안 내용임을 함께 밝혀야 합니다.",
-                                sentence.strip()[:60],
-                            )
-                        continue
-                    if any(h in rest[:HEDGE_WINDOW] for h in HEDGES):
+                    # 헤지는 **주장 바로 뒤**에 붙어 있어야 한다. 어미를 지나
+                    # 한 어절 남짓까지만 본다.
+                    if any(
+                        h in rest[: len(ending) + HEDGE_WINDOW] for h in HEDGES
+                    ):
                         continue
                     add(
                         "PREMATURE_EFFECT_CLAIM",
@@ -1404,7 +1512,10 @@ def check_draft(
         # `즉시`는 숫자 대조만으로는 걸리지 않는다.
         packed_rule = _squeeze(rule_text)
         for word in TIME_WORDS:
-            if word in _squeeze(text) and word not in packed_rule:
+            # 낱말 **첫머리**에 온 것만 본다. 부분 문자열로 찾으면 `제안하고`의
+            # `안`, `법률안`의 `안`까지 걸려 정상 문장이 막힌다. 어절 전체가
+            # 같은지만 보면 `뒤부터`·`현재부터`를 놓친다.
+            if _opens_a_word(word, text) and word not in packed_rule:
                 add(
                     "EFFECTIVE_DATE_NOT_IN_RULE",
                     "2.16.4",
