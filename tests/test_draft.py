@@ -2175,3 +2175,70 @@ def test_부칙에_없는_시점은_어느_낱말이든_막는다(good_draft, se
     assert run.draft_version == 0, f"`{sentence}` 가 그대로 나갔습니다."
     rules = {f.rule_id for f in run.validation_findings}
     assert "EFFECTIVE_DATE_NOT_IN_RULE" in rules, rules
+
+
+#: 10차를 고치며 **새로 만든 방어**를 겨눈 공격.
+#:
+#: 아홉 라운드가 가르쳐 준 것 — 되살아난 구멍은 0건이고, 뚫리는 것은 언제나
+#: 새로 만든 자리다. 따옴표 예외와 어절 첫머리 판정은 10차를 고치며 그날
+#: 만든 것이라 아무도 본 적이 없다. 만든 사람이 먼저 때려 본다.
+NEW_GUARD_ATTACKS = [
+    # 따옴표 예외: 자료에 있는 짧은 조각만 따옴표로 감싸면 그 안의 어간이
+    # 통째로 검사에서 빠진다. 어미는 따옴표 **밖**에 있는데도 안 본다.
+    ("따옴표로 어간만 감싸기", "이 법률은 “공포”되었다.", "PREMATURE_EFFECT_CLAIM"),
+    ("따옴표로 감싸고 끝맺기", "조문은 “시행”한다.", "PREMATURE_EFFECT_CLAIM"),
+    # 어절 첫머리 판정: 띄어쓰기로만 어절을 나눠서 `“다음”`은 `“`로 시작한다고
+    # 본다. 따옴표 한 쌍이면 시점 대조가 꺼진다.
+    (
+        "시점을 따옴표에",
+        "조문은 “다음” 날부터 시행하도록 제안하고 있다.",
+        "EFFECTIVE_DATE_NOT_IN_RULE",
+    ),
+]
+
+
+@pytest.mark.parametrize(
+    ("name", "sentence", "rule_id"), NEW_GUARD_ATTACKS, ids=[a[0] for a in NEW_GUARD_ATTACKS]
+)
+def test_따옴표로_새_방어를_끌_수_없다(good_draft, name, sentence, rule_id) -> None:
+    run = asyncio.run(
+        _run(canned_draft=_spoil(good_draft, lambda d: _rule_paragraph(d, sentence)))
+    )
+    assert run.draft_version == 0, f"{name}: `{sentence}` 가 그대로 나갔습니다."
+    rules = {f.rule_id for f in run.validation_findings}
+    assert rule_id in rules, rules
+
+
+#: 만든 사람이 두 번째로 때려 본 것. **이 12종은 처음부터 막혔다.**
+#:
+#: 실패를 못 본 시험이라 "막는 기능이 있다"는 증거는 되지 못한다. 그래도
+#: 남긴다. 아홉 라운드가 되살아난 구멍 0건을 지킨 방법이 이것이다 — 한 번
+#: 막은 것을 시험으로 굳혀 두면 다시 열리지 않는다.
+SELF_ATTACKS_ROUND2 = [
+    ("자료 구절을 그대로 주장으로", "제7조는 공포한 날부터 시행한다."),
+    (
+        "자료 구절 뒤에 주장 붙이기",
+        "부칙은 “이 법은 공포한 날부터 시행한다.”라고 제안하고 있다. "
+        "따라서 공포한 날부터 효력이 있다.",
+    ),
+    ("가운뎃점으로 낱말 쪼개기", "이 법률은 공·포되었다."),
+    ("글자 사이 띄우기", "이 법률은 공 포 되 었 다."),
+    ("어간 뒤 조사 늘리기", "이 법률은 공포되었음이 확인된다."),
+    ("헤지를 다음 문장에 두기", "이 법률은 공포되었다. 아직 확정 전이다."),
+    ("이름꼴로 시점 만들기", "조문은 시행일 다음부터 적용한다."),
+    ("괄호로 시점 감싸기", "조문은 (다음) 날부터 시행하도록 제안하고 있다."),
+    ("시점 낱말 이어붙이기", "조문은 그다음날부터 시행하도록 제안하고 있다."),
+]
+
+
+@pytest.mark.parametrize(
+    ("name", "sentence"), SELF_ATTACKS_ROUND2, ids=[a[0] for a in SELF_ATTACKS_ROUND2]
+)
+def test_스스로_때려_본_공격도_막힌다(good_draft, name, sentence) -> None:
+    run = asyncio.run(
+        _run(canned_draft=_spoil(good_draft, lambda d: _rule_paragraph(d, sentence)))
+    )
+    assert run.draft_version == 0, f"{name}: `{sentence}` 가 그대로 나갔습니다."
+    assert [f for f in run.validation_findings if f.severity.value == "BLOCKING"], (
+        f"{name}: 초안은 막혔지만 이유가 기록되지 않았습니다."
+    )

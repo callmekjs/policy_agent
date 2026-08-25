@@ -111,9 +111,6 @@ SORTED_SUFFIXES: tuple[str, ...] = tuple(
     sorted(SUFFIXES, key=len, reverse=True)
 )
 
-#: 따옴표로 묶인 자리. 인용문은 `QUOTE_NOT_IN_SOURCE`가 따로 자료와 대조하므로
-#: 효력 검사에서는 넘어간다. 정상 초안이 부칙 원문을 통째로 옮기는 자리다.
-QUOTED_SPAN = re.compile(r"[“\"']([^”\"']{2,200})[”\"']")
 
 #: 아직 확정되지 않았음을 드러내는 말.
 HEDGES = (
@@ -131,6 +128,9 @@ WHITESPACE = re.compile(r"\s+")
 
 #: 글자와 숫자만 남긴다. 창을 셀 때 문장부호가 자리를 먹지 않게 한다.
 LETTERS_ONLY = re.compile(r"[^가-힣0-9A-Za-z]")
+
+#: 어절을 나누는 자리. 띄어쓰기뿐 아니라 따옴표·문장부호도 자르는 자리로 본다.
+WORD_SPLIT = re.compile(r"[^가-힣0-9A-Za-z]+")
 
 
 def _letters(text: str) -> str:
@@ -465,14 +465,51 @@ def _word_phrases(haystack: str) -> frozenset[str]:
 _PHRASE_CACHE: dict[int, frozenset[str]] = {}
 
 
+
+def _copied_from_source(
+    letters: str, start: int, end: int, sources: list[str]
+) -> bool:
+    """어간이 든 이 자리가 자료를 그대로 옮긴 것인가.
+
+    어간을 품은 채 자료와 **통째로 겹치는 가장 긴 조각**을 재서, 어간보다
+    `SOURCE_SPAN`만큼 더 길면 옮긴 것으로 본다.
+
+    앞뒤를 고정 길이로 자르면 안 된다. 인용이 문장 한가운데서 시작하면
+    (`부칙은 “이 법은 …`) 앞쪽 프로그램 글자가 섞여 정상 문장이 막힌다.
+
+    뒤만 보아도 안 된다. `시행한다` 네 글자는 자료에 늘 있으므로
+    `조문은 시행한다`가 자료를 옮긴 것처럼 보인다. 짧은 조각은 긴 자료
+    어딘가에 반드시 있다. **얼마나 길게 겹치는지**가 옮긴 것과 지어낸 문맥을
+    가른다.
+    """
+    need = (end - start) + SOURCE_SPAN
+    for hay in sources:
+        if letters[start:end] not in hay:
+            continue
+        lo, hi = start, end
+        while lo > 0 and letters[lo - 1 : hi] in hay:
+            lo -= 1
+        while hi < len(letters) and letters[lo : hi + 1] in hay:
+            hi += 1
+        if hi - lo >= need:
+            return True
+    return False
+
+
 def _opens_a_word(piece: str, haystack: str) -> bool:
     """이 조각이 어느 낱말의 **첫머리**에 오는가.
 
     `제안하고`의 `안`처럼 낱말 가운데에 묻힌 것은 세지 않는다. 대신
     `뒤부터`·`현재부터`처럼 조사가 붙은 것은 센다. 시점 표현은 조사를 달고
     나오므로 어절 전체가 같은지만 보면 놓친다.
+
+    띄어쓰기로만 나누면 안 된다. `“다음”`은 따옴표로 시작해 `다음`으로
+    시작하지 않는 것이 되고, 따옴표 한 쌍이면 시점 대조가 꺼진다. 글자가
+    아닌 것은 **모두** 자르는 자리로 본다.
     """
-    return any(token.startswith(piece) for token in haystack.split())
+    return any(
+        token.startswith(piece) for token in WORD_SPLIT.split(haystack) if token
+    )
 
 
 def _starts_a_word(piece: str, haystack: str) -> bool:
@@ -1374,29 +1411,20 @@ def check_draft(
                 # 한 문장에 여러 개가 나오면 **모두** 본다. 첫 것만 보면
                 # `적용 완료 예정이며 공포되었다`처럼 앞을 헤지로 덮어
                 # 뒤쪽 주장을 통째로 검사에서 빼낼 수 있다.
-                # 따옴표 안은 인용이다. 그 안이 자료에 그대로 있는지는
-                # `QUOTE_NOT_IN_SOURCE`가 따로 대조한다. 여기서 또 보면 부칙
-                # 원문을 통째로 옮긴 정상 문장을 막게 된다.
-                quoted = [
-                    (m.start(1), m.end(1))
-                    for m in QUOTED_SPAN.finditer(packed)
-                    if any(
-                        _letters(m.group(1)) in hay for hay in effect_sources
-                    )
-                ]
-                for found in EFFECT_STEM.finditer(packed):
+                # 따옴표·문장부호를 빼고 글자만 남겨 본다. 남겨 두면
+                # `“시행”한다`처럼 따옴표 한 쌍으로 낱말을 갈라 검사를 끌 수
+                # 있다. 인용인지 아닌지는 `QUOTE_NOT_IN_SOURCE`가 따로 본다.
+                letters = _letters(packed)
+                for found in EFFECT_STEM.finditer(letters):
                     stem = found.group(1)
-                    # 1) 자료에 그대로 있으면 넘어간다.
-                    if any(s <= found.start() < e for s, e in quoted):
-                        continue
-                    span = _letters(
-                        packed[found.start() : found.end() + SOURCE_SPAN]
-                    )
-                    if any(span in hay for hay in effect_sources):
+                    # 1) 자료를 옮긴 자리면 넘어간다.
+                    if _copied_from_source(
+                        letters, found.start(), found.end(), effect_sources
+                    ):
                         continue
                     # 2) 프로그램이 늘 넣는 이름은 주장이 아니다.
                     if any(
-                        label in packed[found.start() : found.end() + 6]
+                        label in letters[found.start() : found.end() + 6]
                         for label in FIXED_EFFECT_PHRASES
                     ):
                         continue
@@ -1422,7 +1450,7 @@ def check_draft(
                     # 이제는 어간이 나오면 무조건 여기까지 온다. 어미 목록은
                     # **더 엄격하게 만드는 조건**으로만 쓴다. 목록에 없는
                     # 어미가 와도 검사가 꺼지지 않고 헤지 요구로 내려온다.
-                    rest = LETTERS_ONLY.sub("", packed[found.end() :])
+                    rest = letters[found.end() :]
                     ending = next(
                         (s for s in SORTED_SUFFIXES if rest.startswith(s)), ""
                     )
