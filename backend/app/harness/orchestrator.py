@@ -567,6 +567,8 @@ class Orchestrator:
                                 "release_date", RELEASE_DATE_PLACEHOLDER
                             ),
                             internet_notice=INTERNET_NOTICE,
+                            # 부칙은 자료에 적힌 그대로다. AI에게 맡기지 않는다.
+                            supplementary_rules=ledger.supplementary_rules,
                         ),
                         *[
                             p

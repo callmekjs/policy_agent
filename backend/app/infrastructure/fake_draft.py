@@ -85,10 +85,12 @@ def fake_draft_writing(payload: dict[str, Any]) -> dict[str, Any]:
     # 결과를 말하는 제목이면 **결과를 적는다.** `의결 결과`라고만 하고
     # 무엇으로 의결됐는지 안 쓰면 읽는 사람이 알 수 없다.
     title_text = f"{bill_label} {stage_label}: {result_label}"
+    # 효력 상태와 자료 기준일은 Harness가 `BASIS_AND_STATUS` 자리에 직접
+    # 적는다. AI가 또 쓰면 같은 값을 두 곳에서 관리하게 되고, 무엇보다
+    # **AI가 효력을 말하는 자리**가 생긴다 (11차 검토).
     lead_text = (
         f"{subject or '발표 주체 확인 필요'}은(는) {when}{bill_label}이(가) "
-        f"{result_label}로 처리된 사실을 알린다. 자료 기준일은 {basis_date}이며, "
-        f"현재 효력 상태는 {effect_label}이다."
+        f"{result_label}로 처리된 사실을 알린다."
     )
 
     # 근거는 **그 문장이 실제로 말하는 값**을 가진 사실이어야 한다.
@@ -160,9 +162,11 @@ def fake_draft_writing(payload: dict[str, Any]) -> dict[str, Any]:
                 "section_kind": "BODY",
                 "priority_rank": 2,
                 # 개정문 본칙을 그대로 옮긴다. 요약하면 없는 말이 섞일 수 있다.
+                # `개정 문구`·`확정`은 효력을 말하는 낱말이라 AI가 쓸 수
+                # 없다. 개정문 본문은 원장이 정한 값이라 그대로 옮길 수 있다.
                 "text": (
                     f"바뀐 조문은 {', '.join(articles)}이다. "
-                    f"아직 확정 전인 공식 자료의 개정 문구는 다음과 같다. "
+                    f"공식 자료가 제안한 문구는 다음과 같다. "
                     f"{body.strip()}"
                 ),
                 "claim_ids": [],
@@ -171,17 +175,18 @@ def fake_draft_writing(payload: dict[str, Any]) -> dict[str, Any]:
             }
         )
 
+    # 부칙은 **Harness가 직접 만든다** (`draft_sections.build_fixed_sections`).
+    # 자료에 적힌 글 그대로이고 고를 것이 없는데 AI가 쓰면 `시행한다`를
+    # `시행되었다`로 바꿔 쓸 수 있다(11차 검토). 여기서 `SUPPLEMENTARY`로
+    # 보내면 Harness가 걷어내고 자기가 만든 것으로 갈아 끼운다. 진짜 AI가
+    # 이 자리를 채우려 해도 같은 일이 일어난다.
     for i, rule in enumerate(rules, start=3):
         paragraphs.append(
             {
                 "paragraph_id": f"P-{i:02d}",
-                "section_kind": "BODY",
+                "section_kind": "SUPPLEMENTARY",
                 "priority_rank": i,
-                # 아직 공포 전이므로 **제안 내용**으로만 적는다 (§2.16.4).
-                "text": (
-                    f"부칙은 “{rule['applies_to']}”라고 제안하고 있다. "
-                    f"{effect_label} 상태이므로 아직 확정된 내용이 아니다."
-                ),
+                "text": f"부칙은 “{rule['applies_to']}”라고 제안하고 있다.",
                 "claim_ids": [],
                 "fact_ids": [],
                 "supplementary_rule_ids": [rule["rule_id"]],

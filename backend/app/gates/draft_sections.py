@@ -15,6 +15,7 @@ from __future__ import annotations
 
 from app.gates.draft_template import DraftTemplate
 from app.harness.draft_contracts import DRAFT_LABEL, DraftParagraph
+from app.harness.fact_contracts import RawSupplementaryRule
 
 
 def build_fixed_sections(
@@ -27,6 +28,7 @@ def build_fixed_sections(
     contact_text: str,
     release_date_text: str,
     internet_notice: str,
+    supplementary_rules: list[RawSupplementaryRule] | None = None,
 ) -> list[DraftParagraph]:
     """값이 정해진 네 자리를 만든다. 순서는 계약이 정한 대로다."""
     made: dict[str, str] = {
@@ -44,6 +46,25 @@ def build_fixed_sections(
 
     paragraphs: list[DraftParagraph] = []
     for rank, kind in enumerate(template.section_kinds, start=1):
+        if kind == "SUPPLEMENTARY":
+            # 부칙은 자료에 적힌 글을 **그대로** 옮긴다. 요약하지 않고, 말을
+            # 바꾸지 않는다. 아직 확정 전임을 Harness가 함께 적는다.
+            for rule in supplementary_rules or []:
+                paragraphs.append(
+                    DraftParagraph(
+                        paragraph_id=f"HS-{len(paragraphs) + 1:02d}",
+                        section_kind=kind,
+                        priority_rank=rank,
+                        text=(
+                            f"부칙({rule.kind.value})은 “{rule.applies_to}”라고 "
+                            "제안하고 있습니다. 아직 확정 전입니다."
+                        ),
+                        claim_ids=[],
+                        fact_ids=[],
+                        supplementary_rule_ids=[rule.rule_id],
+                    )
+                )
+            continue
         text = made.get(kind)
         if text is None:
             continue

@@ -334,6 +334,10 @@ def good_draft() -> dict:
     }
 
 
+#: 고정 자료의 부칙 원문. Harness가 이 글을 **그대로** 옮겨야 한다.
+_LEDGER_RULE_TEXTS = ("이 법은 공포한 날부터 시행한다.",)
+
+
 def _ai_paragraphs(d: dict) -> list[dict]:
     """AI가 쓴 문단만 고른다.
 
@@ -392,9 +396,14 @@ ATTACKS = [
         "ARTICLE_NOT_IN_CHANGED_SET",
     ),
     (
+        # 부칙은 Harness 몫이라 AI에게는 뗄 근거가 없다. 대신 AI가 **직접
+        # 부칙 자리를 쓰려는** 것을 찌른다. 걷어내지 못하면 자료에 없는
+        # 시행일이 부칙 행세를 하고 나간다.
         "부칙 근거 없이 시행일을 말한다",
-        lambda d: _ai_paragraphs(d)[-1].__setitem__("supplementary_rule_ids", []),
-        "EFFECTIVE_DATE_NEEDS_RULE",
+        lambda d: _ai_paragraphs(d)[-1].__setitem__(
+            "text", "부칙에 따라 공포 후 6개월이 지난 날부터 시행하도록 제안하고 있다."
+        ),
+        "PREMATURE_EFFECT_CLAIM",
     ),
     (
         "원장에 없는 사실을 가리킨다",
@@ -796,9 +805,7 @@ def test_부칙에_없는_시점을_시행_이야기에_쓰면_막는다(good_dr
         _run(
             canned_draft=_spoil(
                 good_draft,
-                lambda d: _ai_paragraphs(d)[-1].__setitem__(
-                    "text", "부칙은 공포 후 6개월이 지난 날부터 시행하도록 제안하고 있다."
-                ),
+                lambda d: _rule_paragraph(d, "부칙은 공포 후 6개월이 지난 날부터 시행하도록 제안하고 있다."),
             )
         )
     )
@@ -856,19 +863,43 @@ def test_덩어리를_조각으로_나눌_수_있는지_본다() -> None:
 
 
 @pytest.mark.asyncio
-async def test_자료의_부칙을_초안이_빠뜨리면_막는다() -> None:
-    """§2.16.4·§4.2. 적용례·경과조치·특례가 조용히 사라지면 안 된다."""
+async def test_AI는_자료의_부칙을_빠뜨릴_수_없다() -> None:
+    """§2.16.4·§4.2. 적용례·경과조치·특례가 조용히 사라지면 안 된다.
+
+    전에는 AI가 부칙 문단을 썼고, 빠뜨리면 `SUPPLEMENTARY_RULE_DROPPED`가
+    **막았다.** 이제는 Harness가 그 자리를 만들므로 AI가 아예 **빠뜨릴 수
+    없다.** 막는 것에서 못 하는 것으로 바뀌었다.
+
+    그래서 이 시험은 "막혔는가"가 아니라 "**AI가 지워도 남아 있는가**"를 본다.
+    """
     payload = _draft_dict(await _run())
-    # 부칙을 말하는 문단을 통째로 뺀다.
+    # AI가 부칙을 말하는 문단을 통째로 뺀다.
     payload["result"]["paragraphs"] = [
         p
         for p in payload["result"]["paragraphs"]
         if not p["supplementary_rule_ids"]
     ]
     run = await _run(canned_draft=payload)
-    assert run.draft_version == 0, "부칙이 빠졌는데 초안이 나갔습니다."
-    rules = {f.rule_id for f in run.validation_findings}
-    assert "SUPPLEMENTARY_RULE_DROPPED" in rules, rules
+    assert run.draft is not None, "정상 자료인데 초안이 나오지 않았습니다."
+    kept = [p for p in run.draft.paragraphs if p.supplementary_rule_ids]
+    assert kept, "AI가 지우자 부칙이 사라졌습니다."
+    for rule in _LEDGER_RULE_TEXTS:
+        assert any(rule in p.text for p in kept), (
+            f"부칙 원문이 그대로 남아 있지 않습니다: {rule}"
+        )
+
+
+def test_부칙을_아무도_말하지_않으면_막는다() -> None:
+    """`SUPPLEMENTARY_RULE_DROPPED`가 아직 살아 있는지 본다.
+
+    Harness가 부칙 자리를 만들므로 정상 흐름에서는 이 규칙이 걸리지 않는다.
+    그래도 계약에 `SUPPLEMENTARY` 자리가 없는 양식이 오면 이 규칙만 남는다.
+    """
+    from app.gates.draft_template import HARNESS_OWNED
+
+    assert "SUPPLEMENTARY" in HARNESS_OWNED, (
+        "부칙이 다시 AI 몫이 되었습니다. 그러면 자료를 베끼고 어미만 바꿀 수 있습니다."
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -1190,9 +1221,7 @@ def test_부칙에_없는_시점_표현을_막는다(good_draft) -> None:
         _run(
             canned_draft=_spoil(
                 good_draft,
-                lambda d: _ai_paragraphs(d)[-1].__setitem__(
-                    "text", "부칙에 따라 이 법은 다음 달 시행하도록 제안하고 있다."
-                ),
+                lambda d: _rule_paragraph(d, "부칙에 따라 이 법은 다음 달 시행하도록 제안하고 있다."),
             )
         )
     )
@@ -1324,18 +1353,18 @@ ATTACKS_V6 = [
     ),
     (
         "헤지로 문장 건너뛰기",
-        lambda d: _ai_paragraphs(d)[2].__setitem__("text", "적용 완료 예정이며 공포되었다."),
+        lambda d: _ai_paragraphs(d)[-1].__setitem__("text", "적용 완료 예정이며 공포되었다."),
     ),
     (
         "헤지 앞세우고 시행되었다",
-        lambda d: _ai_paragraphs(d)[2].__setitem__(
+        lambda d: _ai_paragraphs(d)[-1].__setitem__(
             "text", "적용 완료 예정이며 이 법은 시행되었다."
         ),
     ),
-    ("시행 단계다", lambda d: _ai_paragraphs(d)[2].__setitem__("text", "이 법은 시행 단계다.")),
+    ("시행 단계다", lambda d: _ai_paragraphs(d)[-1].__setitem__("text", "이 법은 시행 단계다.")),
     (
         "공포에 이르렀다",
-        lambda d: _ai_paragraphs(d)[2].__setitem__("text", "이 법은 공포에 이르렀다."),
+        lambda d: _ai_paragraphs(d)[-1].__setitem__("text", "이 법은 공포에 이르렀다."),
     ),
 ]
 
@@ -1376,9 +1405,7 @@ def test_부칙을_근거로_대면_그_원문을_담아야_한다(good_draft) -
         _run(
             canned_draft=_spoil(
                 good_draft,
-                lambda d: _ai_paragraphs(d)[2].__setitem__(
-                    "text", "부칙에 따라 곧 적용될 전망이다."
-                ),
+                lambda d: _rule_paragraph(d, "부칙에 따라 곧 적용될 전망이다."),
             )
         )
     )
@@ -1591,7 +1618,7 @@ ATTACKS_V7 = [
     ),
     (
         "헤지로 개정 완료 선언",
-        lambda d: _ai_paragraphs(d)[2].__setitem__(
+        lambda d: _ai_paragraphs(d)[-1].__setitem__(
             "text", "제7조 개정이 완료되어 예정된 절차가 종료되었다."
         ),
     ),
@@ -1627,7 +1654,7 @@ ATTACKS_V8 = [
     ),
     (
         "끝맺음만 바꿔 공포 선언",
-        lambda d: _ai_paragraphs(d)[2].__setitem__(
+        lambda d: _ai_paragraphs(d)[-1].__setitem__(
             "text",
             "부칙은 “이 법은 공포한 날부터 시행한다.”라고 제안하고 있다. "
             "개정이 완료되어 이 법은 공포된 뒤 다음 절차는 예정이다.",
@@ -1635,7 +1662,7 @@ ATTACKS_V8 = [
     ),
     (
         "시행되었다고 제안한다",
-        lambda d: _ai_paragraphs(d)[2].__setitem__(
+        lambda d: _ai_paragraphs(d)[-1].__setitem__(
             "text", "이 법은 공포된 뒤 시행되었다고 제안한다."
         ),
     ),
@@ -2055,20 +2082,22 @@ def test_조문_아래_단위도_개정문과_대조한다() -> None:
 # 밝혀야 한다. 설계는 `docs/superpowers/specs/2026-08-25-h1-h2-ledger-driven-design.md`.
 # ---------------------------------------------------------------------------
 
-#: 부칙 원문을 그대로 옮긴 문장. 정상 초안이 쓰는 모양이며 통과해야 한다.
-_RULE_QUOTE = "부칙은 “이 법은 공포한 날부터 시행한다.”라고 제안하고 있다."
-
-
 def _rule_paragraph(d: dict, sentence: str) -> None:
-    """부칙 문단을 `부칙 원문 + 공격 문장`으로 바꾼다.
+    """AI 문단을 공격 문장 하나로 바꾸고 부칙 근거를 붙인다.
 
-    부칙 근거(`SR-01`)는 붙어 있게 둔다. 근거를 떼면 `EFFECTIVE_DATE_NEEDS_RULE`이
-    먼저 잡아서 **겨누는 규칙이 아닌 다른 규칙으로** 막히기 때문이다.
+    **부칙 원문을 앞에 붙이지 않는다.** 전에는 붙였다. 그런데 부칙이 Harness
+    몫이 된 뒤로는 그 인용문 자체가 AI 자리에서 H1에 걸린다. 그러면 공격
+    문장이 비어 있어도 시험이 통과한다 — 아무것도 지키지 못하는 시험이 된다.
+
+    부칙 근거(`SR-01`)는 붙인다. 없으면 `EFFECTIVE_DATE_NEEDS_RULE`이 먼저
+    잡아서 **겨누는 규칙까지 도달하지 못한다.**
 
     공격 문장에 숫자를 넣지 않는다. 부칙 원문에 없는 숫자는 셈 대조가 먼저
     잡으므로, 역시 겨누는 규칙을 확인할 수 없게 된다.
     """
-    _ai_paragraphs(d)[-1]["text"] = f"{_RULE_QUOTE} {sentence}"
+    para = _ai_paragraphs(d)[-1]
+    para["text"] = sentence
+    para["supplementary_rule_ids"] = ["SR-01"]
 
 
 def test_목록에_없는_어미로_공포를_앞지를_수_없다(good_draft) -> None:
@@ -2235,6 +2264,145 @@ SELF_ATTACKS_ROUND2 = [
     ("name", "sentence"), SELF_ATTACKS_ROUND2, ids=[a[0] for a in SELF_ATTACKS_ROUND2]
 )
 def test_스스로_때려_본_공격도_막힌다(good_draft, name, sentence) -> None:
+    run = asyncio.run(
+        _run(canned_draft=_spoil(good_draft, lambda d: _rule_paragraph(d, sentence)))
+    )
+    assert run.draft_version == 0, f"{name}: `{sentence}` 가 그대로 나갔습니다."
+    assert [f for f in run.validation_findings if f.severity.value == "BLOCKING"], (
+        f"{name}: 초안은 막혔지만 이유가 기록되지 않았습니다."
+    )
+
+
+#: 11차 검토가 뚫은 자리 — 로마자 한 글자.
+#:
+#: 두 검사가 서로 상대를 믿었다. 어절 나누는 자리(`WORD_SPLIT`)는 로마자를
+#: 자르지 않아 `x다음`을 한 낱말로 보고, 낱말 검사(`LATIN_RUN`)는 로마자를
+#: **두 글자부터** 봐서 `x` 하나를 안 본다. 한글·숫자·따옴표는 다 막히는데
+#: 로마자 한 글자만 그 사이로 빠진다.
+LATIN_WEDGE_ATTACKS = [
+    "조문은 x다음 날부터 시행하도록 제안하고 있다.",
+    "조문은 A다음 날부터 시행하도록 제안하고 있다.",
+    "조문은 다음x 날부터 시행하도록 제안하고 있다.",
+]
+
+
+@pytest.mark.parametrize("sentence", LATIN_WEDGE_ATTACKS, ids=LATIN_WEDGE_ATTACKS)
+def test_로마자_한_글자로_검사를_비껴갈_수_없다(good_draft, sentence) -> None:
+    run = asyncio.run(
+        _run(canned_draft=_spoil(good_draft, lambda d: _rule_paragraph(d, sentence)))
+    )
+    assert run.draft_version == 0, f"`{sentence}` 가 그대로 나갔습니다."
+    assert [f for f in run.validation_findings if f.severity.value == "BLOCKING"], (
+        "초안은 막혔지만 이유가 기록되지 않았습니다."
+    )
+
+
+#: 11차 검토가 뚫은 자리 — 자료를 그대로 베끼고 어미만 바꾼다.
+#:
+#: 자료가 `시행한다`(제안)인데 초안이 `시행되었다`(끝남)라고 쓴다. 겹치는
+#: 길이로는 **옮긴 것**과 **옮기고 뒤집은 것**을 가를 수 없다. 검사원이
+#: `SOURCE_SPAN`을 0부터 13까지 다 넣어 확인했고 어떤 값에서도 공격이 남거나
+#: 정상이 죽었다.
+#:
+#: 그래서 규칙을 더 만들지 않는다. **효력을 말하는 문장을 AI가 못 쓰게** 한다.
+#: 그 문장은 Harness가 자료에서 직접 만든다 (`NEXT.md` 넘어가는 조건 4번).
+COPY_AND_FLIP_ATTACKS = [
+    "이 법은 공포한 날부터 시행되었다.",
+    "이 법률은 공포한 날부터 시행되었다.",
+    "이 법은 공포한 날부터 시행한다.",
+    "공포한 날부터 시행된 내용이다.",
+    "공포한 날부터 적용되었다.",
+]
+
+
+@pytest.mark.parametrize("sentence", COPY_AND_FLIP_ATTACKS, ids=COPY_AND_FLIP_ATTACKS)
+def test_AI는_효력을_말하는_문장을_쓸_수_없다(good_draft, sentence) -> None:
+    """AI가 쓰는 자리에 효력 어간이 나오면 막는다.
+
+    원장 사실 값 안에 든 것만 넘어간다. 의안 이름 `문화예술진흥법
+    일부개정법률안`의 `개정`이 그런 것이다. 그 값은 자료가 말한 것이라
+    지어낼 수 없다.
+    """
+    run = asyncio.run(
+        _run(canned_draft=_spoil(good_draft, lambda d: _rule_paragraph(d, sentence)))
+    )
+    assert run.draft_version == 0, f"`{sentence}` 가 그대로 나갔습니다."
+    rules = {f.rule_id for f in run.validation_findings}
+    assert "PREMATURE_EFFECT_CLAIM" in rules, rules
+
+
+def test_AI는_부칙_자리를_차지할_수_없다(good_draft) -> None:
+    """AI가 `SUPPLEMENTARY` 문단을 보내면 Harness가 걷어낸다.
+
+    막는 것이 아니라 **못 하는 것**이다. 초안은 정상으로 나오고, AI가 보낸
+    글만 사라진다.
+    """
+    run = asyncio.run(
+        _run(
+            canned_draft=_spoil(
+                good_draft,
+                lambda d: d["paragraphs"].append(
+                    {
+                        "paragraph_id": "P-99",
+                        "section_kind": "SUPPLEMENTARY",
+                        "priority_rank": 8,
+                        "text": "부칙은 “이 법은 즉시 시행한다.”라고 정하고 있다.",
+                        "claim_ids": [],
+                        "fact_ids": [],
+                        "supplementary_rule_ids": ["SR-01"],
+                    }
+                ),
+            )
+        )
+    )
+    assert run.draft is not None, "정상 자료인데 초안이 나오지 않았습니다."
+    body = " ".join(p.text for p in run.draft.paragraphs)
+    assert "즉시 시행" not in body, "AI가 쓴 부칙이 초안에 실렸습니다."
+    assert "이 법은 공포한 날부터 시행한다." in body, "자료의 부칙이 사라졌습니다."
+
+
+def test_AI가_Harness_이름표를_흉내_내도_걷어낸다(good_draft) -> None:
+    """`HS-` 이름표를 달면 검사를 건너뛸 수 있으므로 통째로 버린다."""
+    run = asyncio.run(
+        _run(
+            canned_draft=_spoil(
+                good_draft,
+                lambda d: d["paragraphs"].append(
+                    {
+                        "paragraph_id": "HS-99",
+                        "section_kind": "BODY",
+                        "priority_rank": 7,
+                        "text": "이 법은 공포되어 시행되었다.",
+                        "claim_ids": [],
+                        "fact_ids": [],
+                        "supplementary_rule_ids": [],
+                    }
+                ),
+            )
+        )
+    )
+    assert run.draft is not None
+    body = " ".join(p.text for p in run.draft.paragraphs)
+    assert "공포되어" not in body, "Harness 이름표를 흉내 낸 글이 실렸습니다."
+
+
+#: 새 구조를 스스로 때려 본 것. 전부 막혔다.
+ARCHITECTURE_ATTACKS = [
+    ("의안 이름 뒤에 주장 붙이기", "문화예술진흥법 일부개정법률안이 개정되었다."),
+    (
+        "개정문 본문 뒤에 주장 붙이기",
+        "제7조제6항 중 “모집할”을 “모집ㆍ접수할”로 한다. 이로써 개정되었다.",
+    ),
+    ("한자로 바꿔 쓰기", "이 법은 公布한 날부터 施行되었다."),
+    ("글자 흩어 쓰기", "이 법은 공 포 한 날 부 터 시 행 되 었 다."),
+    ("헤지를 붙여도 못 쓴다", "이 법은 아직 공포 예정이다."),
+]
+
+
+@pytest.mark.parametrize(
+    ("name", "sentence"), ARCHITECTURE_ATTACKS, ids=[a[0] for a in ARCHITECTURE_ATTACKS]
+)
+def test_새_구조를_때려_본_공격도_막힌다(good_draft, name, sentence) -> None:
     run = asyncio.run(
         _run(canned_draft=_spoil(good_draft, lambda d: _rule_paragraph(d, sentence)))
     )

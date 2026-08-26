@@ -25,7 +25,18 @@ from typing import Any
 
 #: Harness가 직접 채우는 자리. AI가 쓰지 못한다.
 #: 값이 이미 정해져 있으므로 AI에게 맡길 이유가 없고, 맡기면 거짓이 들어갈 수 있다.
-HARNESS_OWNED = ("DRAFT_MARK", "BASIS_AND_STATUS", "ANNOUNCER_AND_RELEASE", "CONTACT")
+#:
+#: `SUPPLEMENTARY`(부칙)는 11차 검토 뒤에 들어왔다. 부칙은 자료에 적힌 글
+#: 그대로이고 고를 것이 없는데 AI가 썼다. 그래서 `시행한다`를 `시행되었다`로
+#: 바꿔 쓸 수 있었고, 검사기는 자료와 겹치는 길이로 그 둘을 가르지 못했다.
+#: 자리를 Harness가 가져오면 **가릴 일 자체가 없어진다.**
+HARNESS_OWNED = (
+    "DRAFT_MARK",
+    "BASIS_AND_STATUS",
+    "ANNOUNCER_AND_RELEASE",
+    "SUPPLEMENTARY",
+    "CONTACT",
+)
 
 #: Harness가 만든 문단의 이름표 접두어. AI가 보낸 초안에서 이 접두어는 걷어낸다.
 HARNESS_ID_PREFIX = "HS-"
