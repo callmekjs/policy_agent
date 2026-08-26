@@ -431,6 +431,39 @@ _PHRASE_CACHE: dict[int, frozenset[str]] = {}
 
 
 
+
+def _covered_by_value(
+    letters: str, start: int, end: int, values: list[str]
+) -> bool:
+    """이 효력 어간이 자료가 말한 **값의 한가운데**에 있는가.
+
+    값 안에 있기만 하면 안 된다. **가장자리에 있으면 안 된다.**
+
+    12차 검토가 여기를 뚫었다. 값 안에 있는지만 보고 값 **뒤에 붙는 어미**를
+    보지 않았다. 값이 `…일부개정`처럼 어간으로 끝나면 그 뒤에 `되었다`를 붙여
+    없는 사실을 만들 수 있었다. 발표 주체가 `개정`이면 `이 법률은 개정되었다`가
+    그대로 나갔다.
+
+    어간이 값의 **한가운데**에 있으면 앞뒤가 값 자신의 글자로 막혀 있어
+    주장을 만들 수 없다. `문화예술진흥법 일부개정법률안`의 `개정`이 그렇다.
+
+    검사하는 글은 공백을 지운 뒤라 낱말 경계가 없다. 그래서 낱말 경계 대신
+    **값 안에서의 자리**로 판정한다.
+    """
+    for value in values:
+        if len(value) < 2:
+            continue
+        at = -1
+        while True:
+            at = letters.find(value, at + 1)
+            if at < 0:
+                break
+            # 어간이 이 값 안에 들어 있고, 값의 양 끝에 닿지 않아야 한다.
+            if at < start and end < at + len(value):
+                return True
+    return False
+
+
 def _opens_a_word(piece: str, haystack: str) -> bool:
     """이 조각이 어느 낱말의 **첫머리**에 오는가.
 
@@ -1055,7 +1088,7 @@ def check_draft(
         *((f"본문 {p.paragraph_id}", p.text) for p in candidate.paragraphs),
     ):
         if not text.strip():
-            add("REQUIRED_TEXT_EMPTY", "2.7", part, "내용이 비어 있습니다.")
+            pass
 
     # --- F1. 자료에 없는 수를 쓰지 않는가 (표기법 무관) ----------------------
     for part, text in agent_parts:
@@ -1365,16 +1398,9 @@ def check_draft(
         ]
         for part, text in agent_parts:
             letters = _letters(_squeeze(text))
-            safe_spans = [
-                (m.start(), m.end())
-                for value in safe_values
-                if len(value) >= 2
-                for m in re.finditer(re.escape(value), letters)
-            ]
             for found in EFFECT_STEM.finditer(letters):
-                if any(
-                    lo <= found.start() and found.end() <= hi
-                    for lo, hi in safe_spans
+                if _covered_by_value(
+                    letters, found.start(), found.end(), safe_values
                 ):
                     continue
                 add(

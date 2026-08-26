@@ -2534,3 +2534,27 @@ def test_새_구조를_때려_본_공격도_막힌다(good_draft, name, sentence
     assert [f for f in run.validation_findings if f.severity.value == "BLOCKING"], (
         f"{name}: 초안은 막혔지만 이유가 기록되지 않았습니다."
     )
+
+
+def test_사실_값에_붙은_어미까지_본다(good_draft) -> None:
+    """12차 검토가 뚫은 자리.
+
+    효력 낱말이 원장 사실 값 **안에** 있으면 넘어간다. 그런데 값 **뒤에 붙는
+    어미를 보지 않았다.** 값이 효력 어간으로 끝나면 그 뒤에 무엇이 붙어도
+    지나갔다 — `…일부개정` + `되었다`.
+
+    값이 **낱말 끝까지 덮을 때만** 넘어가야 한다. 값이 끝난 자리 다음 글자가
+    한글이면 그 낱말은 값이 아니라 새로 만든 말이다.
+    """
+    from app.gates.draft_gate import _covered_by_value
+
+    # 어간이 값의 **한가운데**에 있다 → 앞뒤가 값 자신의 글자로 막혀 있다.
+    assert _covered_by_value("일부개정법률안", 2, 4, ["일부개정법률안"])
+    # 어간이 값의 **끝**에 있다 → 뒤에 어미를 붙일 수 있다.
+    assert not _covered_by_value("일부개정되었다", 2, 4, ["일부개정"])
+    # 값이 어간 그 자체다 → 무엇이든 붙일 수 있다.
+    assert not _covered_by_value("개정되었다", 0, 2, ["개정"])
+    # 어간이 값의 **앞**에 있다 → 앞에 말을 붙일 수 있다.
+    assert not _covered_by_value("개정문구", 0, 2, ["개정문구"])
+    # 값이 없으면 넘어가지 않는다.
+    assert not _covered_by_value("개정되었다", 0, 2, [])
