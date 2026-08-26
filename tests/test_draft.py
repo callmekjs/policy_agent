@@ -676,20 +676,91 @@ ATTACKS_V2 = [
 ]
 
 
+# 공격 문장을 **덧붙인다. 갈아치우지 않는다.**
+#
+# 전에는 갈아치웠다. 그러면 글은 바뀌는데 근거(`claim_ids`·`fact_ids`)는 그대로
+# 남아 글과 근거가 안 맞고, `CLAIM_VALUE_NOT_ANCHORED`가 **무슨 문장을 넣든**
+# 걸린다. 그래서 멀쩡한 문장을 넣어도 초안이 안 나오고, `초안이 안 나왔다`만
+# 보는 시험은 전부 통과한다 — **아무것도 지키지 못하는 시험**이 된다.
+#
+# 12차 검토가 이런 시험을 67개 찾았다. 덧붙이면 원래 글과 근거가 그대로 있어서
+# 대조군이 통과하고, 막혔다면 그것은 **덧붙인 문장 때문**이다.
+#
+# 이 성질은 `test_도우미는_멀쩡한_문장을_막지_않는다`가 지킨다.
+
+
 def _lead(d: dict, text: str) -> None:
-    d["lead"]["text"] = text
+    d["lead"]["text"] += " " + text
 
 
 def _title(d: dict, text: str) -> None:
-    d["title"]["text"] = text
+    d["title"]["text"] += " " + text
 
 
 def _point(d: dict, text: str) -> None:
-    d["key_points"][1]["text"] = text
+    d["key_points"][1]["text"] += " " + text
 
 
 def _append(d: dict, text: str) -> None:
     _ai_paragraphs(d)[0]["text"] += " " + text
+
+
+# --- 갈아치우는 도우미 -------------------------------------------------------
+#
+# **비우기**나 **근거가 말하는 값을 지우기**처럼 갈아치워야만 성립하는 공격이
+# 있다. 덧붙이기로는 표현할 수 없다.
+#
+# 다만 갈아치우면 글과 근거가 어긋나 `CLAIM_VALUE_NOT_ANCHORED`가 무슨 문장을
+# 넣든 걸린다. 그래서 **이 도우미를 쓰는 시험은 규칙 이름까지 확인해야 한다.**
+# `초안이 안 나왔다`만 보면 아무것도 지키지 못한다.
+
+
+def _set_title(d: dict, text: str) -> None:
+    d["title"]["text"] = text
+
+
+def _set_lead(d: dict, text: str) -> None:
+    d["lead"]["text"] = text
+
+
+def _set_point(d: dict, text: str) -> None:
+    d["key_points"][1]["text"] = text
+
+
+def _append_body(d: dict, text: str) -> None:
+    """마지막 AI 문단에 덧붙인다. 근거는 건드리지 않는다."""
+    _ai_paragraphs(d)[-1]["text"] += " " + text
+
+
+#: 대조군 문장. 자료에 있는 말로만 만들었고 아무 규칙도 어기지 않는다.
+#: 이 문장을 넣었는데 초안이 막히면, 그 도우미를 쓰는 시험은 공격이 아니라
+#: **도우미 자체**를 재고 있는 것이다.
+_HARMLESS = "이번 자료의 내용이다."
+
+
+@pytest.mark.parametrize(
+    "helper",
+    (_lead, _title, _point, _append, _append_body),
+    ids=("lead", "title", "point", "append", "append_body"),
+)
+def test_도우미는_멀쩡한_문장을_막지_않는다(good_draft, helper) -> None:
+    """공격 시험이 **판별력을 갖는지** 지킨다.
+
+    도우미가 멀쩡한 문장까지 막으면 `초안이 안 나왔다`만 보는 시험은 공격
+    문장이 무엇이든 통과한다. 그런 시험은 방어가 죽어도 초록불을 낸다.
+
+    이 시험이 깨지면 그 도우미를 쓰는 공격 시험을 **전부 믿을 수 없다.**
+    """
+    run = asyncio.run(
+        _run(canned_draft=_spoil(good_draft, lambda d: helper(d, _HARMLESS)))
+    )
+    rules = sorted(
+        f.rule_id for f in run.validation_findings if f.severity.value == "BLOCKING"
+    )
+    assert run.draft_version >= 1, (
+        f"{helper.__name__}: 멀쩡한 문장인데 막혔습니다 {rules}. "
+        "이 도우미를 쓰는 공격 시험은 아무것도 지키지 못합니다."
+    )
 
 
 @pytest.mark.parametrize(
@@ -918,16 +989,36 @@ HIDDEN_SEPARATORS = [
 ]
 
 
+#: 낱말 검사가 흩어진 글자를 못 붙이는 자리. 근거 대조가 대신 막는다.
+#: 방어가 하나뿐이라 그 하나가 죽으면 뚫린다. `남은 일`(중 / 5일차).
+WORD_CHECK_BLIND_SPOTS = {"줄바꿈", "가운뎃점"}
+
+
 @pytest.mark.parametrize(
     ("name", "separator"), HIDDEN_SEPARATORS, ids=[n for n, _ in HIDDEN_SEPARATORS]
 )
 def test_보이지_않는_문자로_낱말_검사를_끌_수_없다(good_draft, name, separator) -> None:
-    """화면에는 `김영수`로 보이는데 검사에서만 흩어지는 것을 막는다."""
+    """화면에는 `김영수`로 보이는데 검사에서만 흩어지는 것을 막는다.
+
+    갈아치우는 도우미를 쓰므로 **겨누는 규칙까지** 확인한다. `초안이 안
+    나왔다`만 보면 낱말 검사가 죽어도 통과한다 — 실제로 그랬다(12차 검토).
+
+    **낱말 검사가 못 잡는 자리가 둘 있다.** 줄바꿈과 가운뎃점이다. 지금은
+    근거 대조(`CLAIM_VALUE_NOT_ANCHORED`)가 대신 받아내서 초안은 나가지
+    않는다. 숨기지 않고 여기 적어 둔다. `남은 일`이며 5일차에 다룬다.
+    """
     text = f"해당 내용은 김{separator}영{separator}수 의원실이 확인한 사항이다."
     run = asyncio.run(
-        _run(canned_draft=_spoil(good_draft, lambda d: _point(d, text)))
+        _run(canned_draft=_spoil(good_draft, lambda d: _set_point(d, text)))
     )
     assert run.draft_version == 0, f"{name}: 지어낸 이름이 나갔습니다."
+    rules = {f.rule_id for f in run.validation_findings}
+    expected = (
+        "CLAIM_VALUE_NOT_ANCHORED"
+        if name in WORD_CHECK_BLIND_SPOTS
+        else "WORD_NOT_IN_LEDGER"
+    )
+    assert expected in rules, f"{name}: {rules}"
 
 
 def test_자모가_분해된_글자도_붙여_본다(good_draft) -> None:
@@ -958,10 +1049,10 @@ ATTACKS_V4 = [
         "설명이다",
         lambda d: _lead(d, "조계원 의원실의 설명이다. “기부금품을 모집할 수 있다”"),
     ),
-    ("제목 비움", lambda d: _title(d, "")),
-    ("리드 비움", lambda d: _lead(d, "")),
+    ("제목 비움", lambda d: _set_title(d, "")),
+    ("리드 비움", lambda d: _set_lead(d, "")),
     ("본문 전부 비움", lambda d: [p.__setitem__("text", "") for p in _ai_paragraphs(d)]),
-    ("공백만 채운 제목", lambda d: _title(d, "   ")),
+    ("공백만 채운 제목", lambda d: _set_title(d, "   ")),
     ("제안한…확정됐다", lambda d: _title(d, "제안한 문화예술진흥법 개정이 확정됐다")),
     ("제안한 법률은 공포됐다", lambda d: _lead(d, "제안한 법률은 공포됐다.")),
     ("아직 이 법률은 시행된다", lambda d: _lead(d, "아직 이 법률은 시행된다.")),
@@ -994,7 +1085,7 @@ def test_근거로_댄_사실의_값이_문장에_있어야_한다(good_draft) -
         _run(
             canned_draft=_spoil(
                 good_draft,
-                lambda d: _point(d, "의안번호 2207285이(가) 부결로 처리되었다."),
+                lambda d: _set_point(d, "의안번호 2207285이(가) 부결로 처리되었다."),
             )
         )
     )
@@ -1147,7 +1238,7 @@ ATTACKS_V5 = [
     ("공포됨", lambda d: _lead(d, "이 법률은 공포됨. 부칙은 다음과 같다.")),
     ("개정이 완료되었다", lambda d: _lead(d, "제7조 개정이 완료되었다.")),
     ("시행에 들어갔다", lambda d: _lead(d, "개정 내용은 시행에 들어갔다.")),
-    ("제 여섯 조", lambda d: _point(d, "바뀐 조문은 제 여섯 조이다.")),
+    ("제 여섯 조", lambda d: _set_point(d, "바뀐 조문은 제 여섯 조이다.")),
     ("第六條", lambda d: _point(d, "바뀐 조문은 第六條이다.")),
     (
         "〈〉 괄호 인용",
@@ -2273,28 +2364,61 @@ def test_스스로_때려_본_공격도_막힌다(good_draft, name, sentence) ->
     )
 
 
-#: 11차 검토가 뚫은 자리 — 로마자 한 글자.
-#:
-#: 두 검사가 서로 상대를 믿었다. 어절 나누는 자리(`WORD_SPLIT`)는 로마자를
-#: 자르지 않아 `x다음`을 한 낱말로 보고, 낱말 검사(`LATIN_RUN`)는 로마자를
-#: **두 글자부터** 봐서 `x` 하나를 안 본다. 한글·숫자·따옴표는 다 막히는데
-#: 로마자 한 글자만 그 사이로 빠진다.
-LATIN_WEDGE_ATTACKS = [
-    "조문은 x다음 날부터 시행하도록 제안하고 있다.",
-    "조문은 A다음 날부터 시행하도록 제안하고 있다.",
-    "조문은 다음x 날부터 시행하도록 제안하고 있다.",
-]
+# 11차 검토가 뚫은 자리 — 로마자 한 글자.
+#
+# 두 검사가 서로 상대를 믿었다. 어절 나누는 자리(`WORD_SPLIT`)는 로마자를
+# 자르지 않아 `x다음`을 한 낱말로 보고, 낱말 검사(`LATIN_RUN`)는 로마자를
+# **두 글자부터** 봐서 `x` 하나를 안 본다. 한글·숫자·따옴표는 다 막히는데
+# 로마자 한 글자만 그 사이로 빠진다.
+#
+# 아래 두 시험은 **방어를 하나씩 따로** 겨눈다. 처음에는 `초안이 안 나왔다`만
+# 봤는데, 그러면 두 방어를 되돌려도 시험이 통과했다(12차 검토). 무엇을 겨누는지
+# 이름을 대야 그 방어가 죽었을 때 시험이 죽는다.
 
 
-@pytest.mark.parametrize("sentence", LATIN_WEDGE_ATTACKS, ids=LATIN_WEDGE_ATTACKS)
-def test_로마자_한_글자로_검사를_비껴갈_수_없다(good_draft, sentence) -> None:
+def test_로마자_한_글자도_자료에_있어야_한다(good_draft) -> None:
+    """`LATIN_RUN`만 겨눈다.
+
+    한글은 한 글자짜리가 조사와 겹쳐 못 보지만 로마자는 조사가 아니다.
+    한 글자도 자료에 있어야 한다.
+    """
     run = asyncio.run(
-        _run(canned_draft=_spoil(good_draft, lambda d: _rule_paragraph(d, sentence)))
+        _run(
+            canned_draft=_spoil(
+                good_draft, lambda d: _append_body(d, "해당 내용은 x 자료이다.")
+            )
+        )
     )
-    assert run.draft_version == 0, f"`{sentence}` 가 그대로 나갔습니다."
-    assert [f for f in run.validation_findings if f.severity.value == "BLOCKING"], (
-        "초안은 막혔지만 이유가 기록되지 않았습니다."
+    assert run.draft_version == 0, "자료에 없는 로마자가 나갔습니다."
+    rules = {f.rule_id for f in run.validation_findings}
+    assert "WORD_NOT_IN_LEDGER" in rules, rules
+
+
+def test_로마자를_끼워_어절_첫머리를_옮길_수_없다(good_draft) -> None:
+    """`WORD_SPLIT`의 글자 종류 경계만 겨눈다.
+
+    `x다음`을 한 낱말로 보면 `다음`이 어절 첫머리가 아니게 되어 시점 대조가
+    꺼진다. 부칙 근거를 붙여 두어야 `EFFECTIVE_DATE_NOT_IN_RULE`까지 도달한다.
+    """
+
+    # 문단을 **통째로 갈아 끼운다.** 덧붙이면 원래 문단의 날짜 숫자와
+    # `다음과 같다`가 붙이는 문장과 상관없이 같은 규칙을 걸어서, 이 시험이
+    # 겨누는 것을 확인할 수 없다.
+    #
+    # 갈아 끼우면 다른 규칙도 함께 걸리므로 **규칙 이름으로 판별한다.**
+    run = asyncio.run(
+        _run(
+            canned_draft=_spoil(
+                good_draft,
+                lambda d: _rule_paragraph(
+                    d, "조문은 x다음 날부터 시행하도록 제안하고 있다."
+                ),
+            )
+        )
     )
+    assert run.draft_version == 0, "부칙에 없는 시점이 나갔습니다."
+    rules = {f.rule_id for f in run.validation_findings}
+    assert "EFFECTIVE_DATE_NOT_IN_RULE" in rules, rules
 
 
 #: 11차 검토가 뚫은 자리 — 자료를 그대로 베끼고 어미만 바꾼다.
