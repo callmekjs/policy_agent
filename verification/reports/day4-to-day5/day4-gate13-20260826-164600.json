@@ -1,0 +1,618 @@
+{
+ "gate_id": "DEMO-DAY1-GATE",
+ "run_id": "day4-gate13-20260826-164600",
+ "readme_version": "0.23.0-draft",
+ "started_at": "2026-08-26T16:20:00+09:00",
+ "completed_at": "2026-08-26T16:46:00+09:00",
+ "verifier": {
+  "context": "구현 담당자와 다른 새 문맥의 DayGateVerifier 13차. 검토 대상 커밋 3991f64, 작업 폴더 깨끗. 제품 소스·시험·Writing Contract·README 를 고치지 않았다. 변조 시험 16회(T1~T15 와 도우미 되돌리기 1회)는 매번 git checkout 으로 원복했고 그때마다 git status --short <파일> 이 빈 것을 확인했다. 시험 파일은 복사본(scratchpad/g13_benign.py)으로만 바꿨고 원본은 손대지 않았다. 마지막에 git diff --stat 이 빈 출력이고 시험 437개가 통과하는 것을 확인했다. 인터넷·OpenAI 호출 0회, 비용 0달러, .env 접근 0건.",
+  "is_separate_from_implementer": true
+ },
+ "source_snapshot": {
+  "file_count": 61,
+  "combined_sha256": "95089b6bac43ffb9f2872e13529e4960b2a51e2ee557fa1fd94e485e9a029443",
+  "files": [
+   {
+    "path": "backend/app/__init__.py",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+   },
+   {
+    "path": "backend/app/agents/__init__.py",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+   },
+   {
+    "path": "backend/app/agents/draft_writing.py",
+    "sha256": "646b8e3310a57d3086079e9b3b868c0dac6c4bf7aec88a31d01082977d17b77b"
+   },
+   {
+    "path": "backend/app/agents/fact_extraction.py",
+    "sha256": "b542781f5afbc6598ec2953a2fb4cf9dae5be60149802f90463ce4bc8caf9118"
+   },
+   {
+    "path": "backend/app/api/__init__.py",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+   },
+   {
+    "path": "backend/app/api/runs.py",
+    "sha256": "e4feba7f41d586394ed10b20d5f2eb1e1557027c1b2a248d5e3c05abb47935e4"
+   },
+   {
+    "path": "backend/app/gates/__init__.py",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+   },
+   {
+    "path": "backend/app/gates/conflict_gate.py",
+    "sha256": "d9e249f718d50c41073cf92d602aae62142917c3a070228ad01974904c192f01"
+   },
+   {
+    "path": "backend/app/gates/draft_charset.py",
+    "sha256": "9649f29573d45751dc16863468b3e0aa52a19374fbd68cba40f7ad9250b56b12"
+   },
+   {
+    "path": "backend/app/gates/draft_gate.py",
+    "sha256": "7dd9f7f70db69fa9864cc1a0db852070b3a43ad29881da76c86eaba48e6dfe5c"
+   },
+   {
+    "path": "backend/app/gates/draft_normalizer.py",
+    "sha256": "396e2ff5094cb0a558e5d71d27a8178ab283c59414084c8302c93f06ad8c9da3"
+   },
+   {
+    "path": "backend/app/gates/draft_sections.py",
+    "sha256": "27dab6f296b1e99c81a0689bd35b49c3995bedfe9a778de8b735341056b0f625"
+   },
+   {
+    "path": "backend/app/gates/draft_template.py",
+    "sha256": "a8e848edadcc4fd4c9efbe734883a75bc8a59c55a17d2f17bba5b21e15e4055b"
+   },
+   {
+    "path": "backend/app/gates/draft_vocabulary.py",
+    "sha256": "f01ef01f5f97a3f2d1326469fab60928e9a7f1c37257dfe4af5924264051d652"
+   },
+   {
+    "path": "backend/app/gates/evidence_gate.py",
+    "sha256": "12cd2a7385e02beb39ebb42c3b296d918c5e85dc1f0c8648a914adb960b896b1"
+   },
+   {
+    "path": "backend/app/gates/final_text_gate.py",
+    "sha256": "793323e8bede216e0d27903e8776607acef3696f3024fe6d9c36c766ec4ef544"
+   },
+   {
+    "path": "backend/app/gates/input_gate.py",
+    "sha256": "69faf53ee7f63da367c6c510f85549b0edf181f0237f59ada7ed9cf06e3f824e"
+   },
+   {
+    "path": "backend/app/gates/numeral_reader.py",
+    "sha256": "58c36b25e7cad3bb2d554b1908439ef8b0b4c35b33f0470eb02f7a92aa0ae4d2"
+   },
+   {
+    "path": "backend/app/gates/source_role_gate.py",
+    "sha256": "36cd3c0c0d14119fa42b04ca73c6e39a7cd9271ee560b142019b975ceecbe8b8"
+   },
+   {
+    "path": "backend/app/harness/__init__.py",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+   },
+   {
+    "path": "backend/app/harness/article_parser.py",
+    "sha256": "1aec6e64b7495eb902bb4801cf4e6653c018003d4c79aea6d7c218aad6266d1e"
+   },
+   {
+    "path": "backend/app/harness/contract_loader.py",
+    "sha256": "a49a8ed1b9d204d4fdfdef91fab4d914f0ececca971bdd5630cbfa9a8d33383a"
+   },
+   {
+    "path": "backend/app/harness/contracts.py",
+    "sha256": "efe79048b13eb6fd4aa81d84aaea7db85000fc5f1918ec45ec9a84fbfd2dab5f"
+   },
+   {
+    "path": "backend/app/harness/draft_contracts.py",
+    "sha256": "80d4db00fc6ace89a352cf5bbeba3fee7e3c14d6957a98b3f34ccf0153ec3c64"
+   },
+   {
+    "path": "backend/app/harness/fact_contracts.py",
+    "sha256": "a4b55e54c650fdf193735e276941e78d2969fc1de9fdaf631fe0a7b4ce763216"
+   },
+   {
+    "path": "backend/app/harness/legal_contracts.py",
+    "sha256": "907626b58a7c0e40ee611c36e332cc878a32d243da868b6c79a6a2bfcb1ad930"
+   },
+   {
+    "path": "backend/app/harness/orchestrator.py",
+    "sha256": "6529e196335a657cd7ba812c3b0c00dcbcce410134653590fccd2e524c83c9d7"
+   },
+   {
+    "path": "backend/app/harness/runtime.py",
+    "sha256": "adb8394f5c16e73ad4969e14f62940d7a82c6177fb7f328422e1cbd417a24b2c"
+   },
+   {
+    "path": "backend/app/harness/source_normalizer.py",
+    "sha256": "dd1d9513b6598f94fd7f8430283c38270211b5341c4143898069869839f9713d"
+   },
+   {
+    "path": "backend/app/harness/states.py",
+    "sha256": "a75afd52f696b966b507326ba31e1dc42976986ec50b1dfb015cd2c428adad03"
+   },
+   {
+    "path": "backend/app/infrastructure/__init__.py",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+   },
+   {
+    "path": "backend/app/infrastructure/fake_agents.py",
+    "sha256": "8180d7525dc3e11447f07926c843098d39663abfa2b44b9737e1ff04f62deec1"
+   },
+   {
+    "path": "backend/app/infrastructure/fake_draft.py",
+    "sha256": "04fe02b11f89c704872ceec7ca5fd924ed96c9a19f905fb3488454735e7f67ff"
+   },
+   {
+    "path": "backend/app/infrastructure/model_gateway.py",
+    "sha256": "ec8804f1b6949a0a6dc53b04cbb279946140535fd8728737eb4791f128eace1e"
+   },
+   {
+    "path": "backend/app/infrastructure/run_store.py",
+    "sha256": "518fea31c2af082ca83333c03bcf6ae4563131135dda07455d67cc337fac984a"
+   },
+   {
+    "path": "backend/app/main.py",
+    "sha256": "e5b6bb9719b1acc89f337e4d7c569fd2d836d95c3c9049c598d1ccf408ce6c76"
+   },
+   {
+    "path": "backend/app/writing_contracts/assembly_law_amendment_v1/contract.yaml",
+    "sha256": "9065fa6d7d3f31d8d487517ef43c770a1003aec034d099ab21eadf579a5af6bc"
+   },
+   {
+    "path": "backend/app/writing_contracts/assembly_law_amendment_v1/profile.yaml",
+    "sha256": "29c13548a7504677bf12dd80016c989071d8fb1b37cd557527b812f5237a507c"
+   },
+   {
+    "path": "backend/app/writing_contracts/assembly_law_amendment_v1/style.yaml",
+    "sha256": "13434349ee3564b2fd389889eb4e1cd286ca4d618466435ceef4fc57dd7cb9ba"
+   },
+   {
+    "path": "backend/app/writing_contracts/assembly_law_amendment_v1/template.yaml",
+    "sha256": "0fe4f17dd0d01e1cb6255fd4e541a102ccedde6891f9a6933749b7e5e980c7ef"
+   },
+   {
+    "path": "backend/app/writing_contracts/assembly_law_amendment_v1/validation.yaml",
+    "sha256": "fa672e462157407ab4edb70965cbbf34ce69febdc4e87a2c079419fb0b2246bf"
+   },
+   {
+    "path": "frontend/src/App.test.tsx",
+    "sha256": "b6be2b17f56a26372ac572dfa9ea28cfe438573dd1bf5eabdec0d6a64024114a"
+   },
+   {
+    "path": "frontend/src/App.tsx",
+    "sha256": "ed4e5ecda3d980ea767bbca6364d0481f0244eb66de3245c6b5c09817479318c"
+   },
+   {
+    "path": "frontend/src/api/client.ts",
+    "sha256": "9a9cfed26bee37c866492152cc1cd27c014f084f6f351b5b7ddde76c61697c66"
+   },
+   {
+    "path": "frontend/src/main.tsx",
+    "sha256": "8070aefba6d43f5300a919f02adb3071318bee89f10cffe07c64df74e85a1635"
+   },
+   {
+    "path": "frontend/src/screens/NewRunScreen.tsx",
+    "sha256": "77f78e0e37846568b2058a34e1f32a743feb8c461f0a1bd1bf14dcdd9a96ddaf"
+   },
+   {
+    "path": "frontend/src/screens/RunStatusScreen.tsx",
+    "sha256": "d7e48e0aec7627f41dde7c66657c9ba90dc4b64fd92397f7c52dd6a3fc7af746"
+   },
+   {
+    "path": "frontend/src/styles.css",
+    "sha256": "317e533f285a36bdf6d9e3030560b57a673d909984c3e457b5a34539434cbf6c"
+   },
+   {
+    "path": "frontend/src/test-setup.ts",
+    "sha256": "977afde26bba6a51325908cd7713cbfdc87d18f06b78b237c8f364c44864b7de"
+   },
+   {
+    "path": "frontend/src/types.ts",
+    "sha256": "cc387946d690bd8445a6be9c6a0d74b618b9a1d8442e206a3aeeff56ac62c08a"
+   },
+   {
+    "path": "scripts/verify-day1.ps1",
+    "sha256": "dcc321effa7030f9f2228a0531daca1c3967548d8fcb5b220dd8a44a6b02679b"
+   },
+   {
+    "path": "start-local.cmd",
+    "sha256": "bf6f2dfbd57aba02018dfde5fd69668b498f6fd6a51462e26feb935a4d1b10a9"
+   },
+   {
+    "path": "stop-local.cmd",
+    "sha256": "08c4daa5d14b3699c7a090612ea52faebbb09aac867b277af0f7a8394a1b6669"
+   },
+   {
+    "path": "tests/test_day1_gate.py",
+    "sha256": "bd7b2b75f4485f113c6a84ec86de6421c8985c06fdc8538187c60e5189aeeeb5"
+   },
+   {
+    "path": "tests/test_draft.py",
+    "sha256": "f9a68bf196da22306abe698469f2cdcf668d6b7d2cbeae7eda81bf50c22a17e1"
+   },
+   {
+    "path": "tests/test_fact_extraction.py",
+    "sha256": "92db0858571712903a8b278a8d44cb4532e01620961c5848ba3273d5f4b814d3"
+   },
+   {
+    "path": "tests/test_harness_flow.py",
+    "sha256": "2e8482fbdd3a7e2871c54221acb9578bda92a43f553533f5fa015ef842af53cd"
+   },
+   {
+    "path": "verification/day-gate-result.schema.json",
+    "sha256": "1c0f59930f119be9f8d725e5c1c848725f02b76c674298e9d31b97e202773dd7"
+   },
+   {
+    "path": "verification/day-gate-verifier.md",
+    "sha256": "1b0e7934decea5a2711b5cf8c579ceb39d73be9e6c1db7bd5fb9b44ddee3b149"
+   },
+   {
+    "path": "verification/day3-pass-bar.md",
+    "sha256": "3cc8b02aa5cde438e278427eda894462d0a742e2b6b10797ea5d5b8ef5d7607d"
+   },
+   {
+    "path": "verification/day4-pass-bar.md",
+    "sha256": "f6e843ca39891cf7cf2b5491573c8ca04a00a1fe206ee6ef4733259a3c89d248"
+   }
+  ]
+ },
+ "verdict": "BLOCKED",
+ "pass_bar": {
+  "file": "verification/day4-pass-bar.md",
+  "changed_by_verifier": false,
+  "rows": 18,
+  "results": [
+   {
+    "pass_bar_id": "F1",
+    "title": "초안의 수·날짜·기관명·인명이 원장에 있는가",
+    "status": "PASS",
+    "evidence": "기준 초안의 수 [6,7,10,26,2025,2207285,20251026] == 원장·개정문·기준일의 수. 초안에만 있는 수 []. 없는 표결 수/한글 수사/없는 날짜/없는 기관/없는 인명 5종 전부 dv=0"
+   },
+   {
+    "pass_bar_id": "F2",
+    "title": "자료에 없는 인용문",
+    "status": "PASS",
+    "evidence": "지어낸 발언 dv=0 ['QUOTE_NOT_IN_SOURCE','QUOTE_WITHOUT_DOCUMENT','STATEMENT_WITHOUT_SOURCE','WORD_NOT_IN_LEDGER']; 자료 낱말로 조립한 발언 dv=0 ['STATEMENT_WITHOUT_SOURCE', ...]"
+   },
+   {
+    "pass_bar_id": "F3",
+    "title": "충돌하는 값 중 하나를 경고 없이 고르기",
+    "status": "PASS",
+    "evidence": "SYN-RISK-001 date_conflict/count_conflict 모두 NEEDS_INPUT dv=0 FACT_CONFLICT. Issue 문구에 값·자료명·행이 모두 있다"
+   },
+   {
+    "pass_bar_id": "F4",
+    "title": "초안의 각 사실을 fact_id 로 되짚기",
+    "status": "PASS",
+    "evidence": "제목·리드·요약 근거 위반 0건. F-없음을 넣으면 dv=0 ['CLAIM_WITHOUT_FACT','FACT_REFERENCE_UNKNOWN']"
+   },
+   {
+    "pass_bar_id": "G1",
+    "title": "DRAFT / 내부 검토용 표시",
+    "status": "PASS",
+    "evidence": "draft_label='DRAFT / 내부 검토용'. 지우기·최종본으로 바꾸기 둘 다 dv=0 ['DRAFT_LABEL_REQUIRED']"
+   },
+   {
+    "pass_bar_id": "G2",
+    "title": "최종본·승인본·게시·배포 기능 0개",
+    "status": "PASS",
+    "evidence": "최종본/배포용 표현 둘 다 dv=0 ['NO_FINAL_OR_APPROVED_LABEL', ...]. 게시·승인·배포 기능 0개"
+   },
+   {
+    "pass_bar_id": "G3",
+    "title": "필수 항목 누락인데 초안이 나온 것",
+    "status": "PASS",
+    "evidence": "문의처 비움 CONTACT_REQUIRED / 기준일 비움 BASIS_DATE_REQUIRED / 제목·리드 비움 REQUIRED_SECTION_MISSING / 본문 전부 비움 dv=0. 필수 표시 5개 전부 True. 빈 글 + 근거 0개 5종에서 나간 것 0건"
+   },
+   {
+    "pass_bar_id": "G4",
+    "title": "핵심 요약 2~3개",
+    "status": "PASS",
+    "evidence": "기준 초안 요약 2개. 1개·4개 모두 dv=0 (형식 층에서 막힘 - 남은 일)"
+   },
+   {
+    "pass_bar_id": "H1",
+    "title": "본회의 의결을 공포·시행·법 개정 완료로 표현한 것",
+    "status": "FAIL",
+    "evidence": "12차 재현 4종은 전부 막힘. 그러나 어간을 값의 한가운데에 놓는 새 우회 4종(B1·B4·B5·B6a)이 dv=1 state=REVIEW_READY BLOCKING=[] 로 초안에 실렸다"
+   },
+   {
+    "pass_bar_id": "H2",
+    "title": "부칙 근거 없이 시행일을 계산하거나 일부 시행을 전체 시행으로",
+    "status": "PASS",
+    "evidence": "공격 6종 뚫림 0건. H2-a~H2-e 는 기준 초안 자체가 안 나오고 H2-f 는 dv=0 ['EFFECTIVE_DATE_NOT_IN_RULE','PREMATURE_EFFECT_CLAIM', ...]. 변조 T5·T6 이 시험 21개를 죽임"
+   },
+   {
+    "pass_bar_id": "H3",
+    "title": "최종 의결문을 근거 없이 고른 것",
+    "status": "PASS",
+    "evidence": "사람 확인 없이 돌리면 state=NEEDS_INPUT dv=0 FINAL_TEXT_COMPLETENESS_CONFIRMATION_REQUIRED"
+   },
+   {
+    "pass_bar_id": "H4",
+    "title": "조항 계산기가 원문 근거 없는 조문 이동을 만든 것",
+    "status": "PASS",
+    "evidence": "계산기 8종: 낸 조문은 모두 개정문에 글자 그대로 있음. 셀 수 없는 4종은 CHANGED_PROVISION_COUNT_UNDETERMINABLE 로 멈춤. 집합 밖 조문 6종 전부 dv=0, 나간 것 0건"
+   },
+   {
+    "pass_bar_id": "I1",
+    "title": "SYN-RISK-001 3종 변조의 draft_version",
+    "status": "PASS",
+    "evidence": "weekday_mismatch/date_conflict/count_conflict 모두 NEEDS_INPUT draft_version=0"
+   },
+   {
+    "pass_bar_id": "I2",
+    "title": "ACTUAL-BLOCK-002",
+    "status": "PASS",
+    "evidence": "state=NEEDS_INPUT draft_version=0 issues=['FACT_CONFLICT' x3] calls=0 cost=0.0"
+   },
+   {
+    "pass_bar_id": "I3",
+    "title": "ACTUAL-PASS-001 의 draft_version 1 이상",
+    "status": "PASS",
+    "evidence": "state=REVIEW_READY draft_version=1. 조문 ['제7조'] 부칙 ['SR-01'] 이 화면 문단 HS-04 에 나온다"
+   },
+   {
+    "pass_bar_id": "J1",
+    "title": "3일차 합격선 A1~E2 전 항목",
+    "status": "PASS",
+    "evidence": "verify-day1.ps1 판정 PASS (7개 전부). A1 0건 / A2 0건 / A3 사실 10건 / C1·C2 값·자료명·행 남음 / C4 Run 예외 사망 0건 / D1 calls=0 cost=0.0"
+   },
+   {
+    "pass_bar_id": "J2",
+    "title": "실제 외부 AI 호출",
+    "status": "PASS",
+    "evidence": "모든 실행에서 actual_model_calls=0, estimated_cost_usd=0.0"
+   },
+   {
+    "pass_bar_id": "J3",
+    "title": "자동 호출 한도 7회",
+    "status": "PASS",
+    "evidence": "실행당 2회 (FactExtractionAgent, DraftWritingAgent). 한도 초과 0건, 되풀이 0건"
+   }
+  ]
+ },
+ "checks": [
+  {
+   "check_id": "G13-01",
+   "title": "기준선 — 시험 437개 통과",
+   "status": "PASS",
+   "commands": [
+    "cd backend && python -m pytest ../tests -q"
+   ],
+   "evidence": "437 passed, 3 warnings in 15.27s"
+  },
+  {
+   "check_id": "G13-02",
+   "title": "12차가 뚫은 H1 4종 재현",
+   "status": "PASS",
+   "commands": [
+    "python scratchpad/g13_h1.py"
+   ],
+   "evidence": "H1-1·H1-2·H1-3·H1-4 넷 다 막힘. 넷 다 기준 초안 자체가 안 나옴 (failure=DRAFT_BLOCKED, BLOCKING=['PREMATURE_EFFECT_CLAIM'])"
+  },
+  {
+   "check_id": "G13-03",
+   "title": "새 _covered_by_value 우회 찾기",
+   "status": "FAIL",
+   "commands": [
+    "python scratchpad/g13_bypass.py",
+    "python scratchpad/g13_bypass2.py",
+    "python scratchpad/g13_b6.py"
+   ],
+   "evidence": "우회 4종 뚫림(B1·B4·B5·B6a). 고정 자료 그대로인 공격 5종은 전부 막힘"
+  },
+  {
+   "check_id": "G13-04",
+   "title": "아무것도 지키지 못하는 시험 세기",
+   "status": "FAIL",
+   "commands": [
+    "python scratchpad/g13_neutralize.py",
+    "python scratchpad/g13_vac.py",
+    "python scratchpad/g13_setcheck.py"
+   ],
+   "evidence": "안지킴 72개 / 지킴 112개 / 판정못함 8개. 12차가 잰 자리 소계 30, 12차가 못 잰 자리 소계 42"
+  },
+  {
+   "check_id": "G13-05",
+   "title": "새 장치 test_도우미는_멀쩡한_문장을_막지_않는다 가 지키는가",
+   "status": "PASS",
+   "commands": [
+    "도우미 5개를 갈아치우기로 임시 되돌린 뒤 pytest -k 도우미는_멀쩡한_문장을_막지_않는다",
+    "git checkout -- tests/test_draft.py"
+   ],
+   "evidence": "5 failed, 299 deselected (lead/title/point/append/append_body 전부 죽음). 원복 뒤 git status 빈 출력"
+  },
+  {
+   "check_id": "G13-06",
+   "title": "갈아치우는 도우미 시험이 규칙 이름을 대는가",
+   "status": "FAIL",
+   "commands": [
+    "python scratchpad/g13_setcheck.py"
+   ],
+   "evidence": "_set_* 쓰는 6곳 중 2곳만 규칙 이름 확인. ATTACKS_V4 제목 비움·리드 비움·공백만 채운 제목 세 곳이 아무것도 안 지킴"
+  },
+  {
+   "check_id": "G13-07",
+   "title": "변조 시험 15곳",
+   "status": "PASS",
+   "commands": [
+    "python scratchpad/g13_tamper.py",
+    "python scratchpad/g13_tamper2.py",
+    "python scratchpad/g13_tamper3.py"
+   ],
+   "evidence": "T1 28 / T2 29 / T3 1 / T4 0(죽은 코드) / T5 10 / T6 11 / T7 1 / T8 1 / T9 13+247err / T10 14+247err / T11 1 / T12 6 / T13 0(지워진 규칙) / T14 1 / T15 6 failed. 막는 일을 하는 방어 중 무보호 0곳. 매번 원복 확인"
+  },
+  {
+   "check_id": "G13-08",
+   "title": "회귀 — 되살아난 구멍",
+   "status": "PASS",
+   "commands": [
+    "python scratchpad/regress.py"
+   ],
+   "evidence": "11차·12차까지 막은 39종 전부 그대로 막힘. 되살아난 구멍 0건"
+  },
+  {
+   "check_id": "G13-09",
+   "title": "J1 verify-day1.ps1",
+   "status": "PASS",
+   "commands": [
+    "powershell -ExecutionPolicy Bypass -File C:\\policy_agent\\scripts\\verify-day1.ps1"
+   ],
+   "evidence": "판정: PASS. 소스 파일 59개, 통합 해시 12738ad84cd1fdcb..."
+  },
+  {
+   "check_id": "G13-10",
+   "title": "원복 뒤 마무리 확인",
+   "status": "PASS",
+   "commands": [
+    "git status --short",
+    "git diff --stat",
+    "cd backend && python -m pytest ../tests -q"
+   ],
+   "evidence": "git diff --stat 빈 출력. 437 passed. 남은 것은 verify-day1.ps1 이 스스로 만든 보고서 2개뿐"
+  }
+ ],
+ "blockers": [
+  {
+   "pass_bar_id": "H1",
+   "title": "어간을 원장 값의 한가운데에 놓으면 그 뒤에 어미를 붙여 없는 사실을 만들 수 있다",
+   "where": "backend/app/gates/draft_gate.py `_covered_by_value` (434~464행), check_draft H1 절 (1383~1415행)",
+   "why": "면제 조건이 `at < start and end < at + len(value)` 로 값 안에서의 자리만 본다. 값 뒤에 무엇이 오는지는 여전히 보지 않는다. 값이 어간으로 끝나는 것만 막았을 뿐, 어간 뒤에 값 자신의 글자를 한 자만 더 두면 12차와 같은 짓을 할 수 있다.",
+   "reproduce": "scratchpad/g13_bypass.py, scratchpad/g13_b6.py. ACTUAL-PASS-001 자료의 「기부금품의 모집 및 사용에 관한 법률」을 다른 값으로 바꾸고 AI 문단 뒤에 한 문장을 잇는다.",
+   "observed": [
+    {
+     "name": "B1 값이 곧 거짓 문장",
+     "ledger_value": "기부금품의 모집 및 사용에 관한 법률은 개정되었다",
+     "sentence": "기부금품의 모집 및 사용에 관한 법률은 개정되었다.",
+     "draft_version": 1,
+     "state": "REVIEW_READY",
+     "blocking": []
+    },
+    {
+     "name": "B4 같은 값이 두 번 나옴",
+     "ledger_value": "가개정가",
+     "sentence": "가개정가 그리고 이 법은 가개정가되었다.",
+     "draft_version": 1,
+     "state": "REVIEW_READY",
+     "blocking": []
+    },
+    {
+     "name": "B5 값이 문장을 가로지름 (공백 지운 뒤)",
+     "ledger_value": "법률은개정되",
+     "sentence": "이 법률은 개정 되었다.",
+     "draft_version": 1,
+     "state": "REVIEW_READY",
+     "blocking": []
+    },
+    {
+     "name": "B6a 실제로 쓰는 말",
+     "ledger_value": "기부금품의 모집 및 사용에 관한 법률 전부개정법률",
+     "sentence": "기부금품의 모집 및 사용에 관한 법률 전부개정법률이 되었다.",
+     "draft_version": 1,
+     "state": "REVIEW_READY",
+     "blocking": []
+    }
+   ],
+   "count": 4,
+   "note": "고정 자료 5종을 그대로 쓰면 뚫리지 않는다. 뚫으려면 원장 값이 어간을 한가운데 품어야 하고, 그 통로는 가짜 추출기가 「」 안을 무엇이든 BILL_TITLE 로 뽑는 것이다. 11차(겹치는 길이)·12차(값의 끝)·13차(값의 한가운데)가 모두 같은 병이다 — 검사 범위에 경계를 긋고 거짓말은 그 경계 바깥에 놓인다."
+  }
+ ],
+ "warnings": [
+  {
+   "severity": "상",
+   "day": 5,
+   "title": "공격 문장을 멀쩡한 문장으로 바꿔도 통과하는 시험 72개. 12차가 잰 자리는 67->30 으로 줄었으나 12차 도구가 못 잰 자리에 42개가 더 있다 (_rule_paragraph 14 / _with_body·P-09 25 / CONNECTIVE 3 / _set_* 4)"
+  },
+  {
+   "severity": "상",
+   "day": 5,
+   "title": "test_도우미는_멀쩡한_문장을_막지_않는다 가 도우미 5개만 덮는다. _rule_paragraph·_with_body·_set_* 는 안 덮고, 72개 중 46개가 안 덮는 자리에서 나온다"
+  },
+  {
+   "severity": "상",
+   "day": 5,
+   "title": "커밋 3991f64 이 REQUIRED_TEXT_EMPTY 규칙을 아무 기록 없이 지웠다. 코드 전체에 그 이름이 0건이고 지워도 되살려도 437개가 그대로 통과한다 (지금은 다른 규칙이 다 받아내므로 빈 글이 나가지는 않는다)"
+  },
+  {
+   "severity": "중",
+   "day": 5,
+   "title": "11차가 뚫었던 로마자 공격 입력 3개(LATIN_WEDGE_ATTACKS)가 시험 목록에서 사라졌다. 동작은 그대로 막히지만 뚫린 입력을 시험에 남긴다는 규칙에서 빠졌다"
+  },
+  {
+   "severity": "중",
+   "day": 5,
+   "title": "ATTACKS_V4 의 제목 비움·리드 비움·공백만 채운 제목 세 시험이 규칙 이름을 안 봐서 아무것도 지키지 않는다"
+  },
+  {
+   "severity": "하",
+   "day": 5,
+   "title": "_covered_by_value 의 len(value) < 2 줄은 아무 일도 하지 않는다 (어간이 두 글자이고 부등호가 양쪽이라 값은 어차피 네 글자 이상이어야 한다)"
+  },
+  {
+   "severity": "중",
+   "day": 5,
+   "title": "Harness 부칙 틀이 자료에게 뚫린다. 자료 부칙 줄에 닫는 따옴표가 있으면 인용 밖으로 빠져나온다 (12차 3-3 E05)"
+  },
+  {
+   "severity": "중",
+   "day": 5,
+   "title": "LEDGER_VALUE_NEGATED 거리 우회 (10차 지적, 그대로 남음)"
+  },
+  {
+   "severity": "중",
+   "day": 5,
+   "title": "TOPIC_VALUE_MISMATCH 의 결과 신호 우회 (10차 지적, 그대로 남음)"
+  },
+  {
+   "severity": "중",
+   "day": 5,
+   "title": "조항 계산기가 제7조 및 제9조 의 둘째 조문을 버린다 (센 조문 ['제7조'])"
+  },
+  {
+   "severity": "하",
+   "day": 5,
+   "title": "절차 단계 표시 본회의 의결 결과 <-> 계약 본회의 의결"
+  },
+  {
+   "severity": "하",
+   "day": 5,
+   "title": "발표 주체에 출처 표시 없음"
+  },
+  {
+   "severity": "중",
+   "day": 5,
+   "title": "발표 주체(announcement_subject)에 길이·모양 검사가 없다"
+  },
+  {
+   "severity": "중",
+   "day": 6,
+   "title": "핵심 요약 개수 위반이 schema 층에서 먼저 막혀 rule_id 가 안 남는다"
+  },
+  {
+   "severity": "중",
+   "day": 6,
+   "title": "가짜 추출기가 「」 안을 무엇이든 BILL_TITLE 로 뽑는다. 이번 H1 뚫림의 원장 값을 만든 통로다"
+  },
+  {
+   "severity": "하",
+   "day": 7,
+   "title": "day-gate-result.schema.json 이 1일차 전용"
+  },
+  {
+   "severity": "하",
+   "day": 7,
+   "title": "verify-day1.ps1 이 포트 점유를 코드 문제처럼 BLOCKED 로 낸다"
+  },
+  {
+   "severity": "하",
+   "day": 5,
+   "title": "NEXT.md 가 합격선을 14개라고 적었는데 표는 18줄이다 (12차 지적, 그대로 남음)"
+  }
+ ],
+ "external_api_calls": 0,
+ "estimated_cost_usd": 0.0,
+ "next_md_gate": "3번 — H 를 어겼으므로 멈추고 고친다. 다만 NEXT.md 4번(규칙을 더 만들지 않고 그 자리를 AI 에게서 거둔다)이 아직 안 끝났다. 부칙 자리는 거뒀고 남은 것은 안전 값 예외 하나다."
+}

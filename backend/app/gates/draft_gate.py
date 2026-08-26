@@ -1088,7 +1088,7 @@ def check_draft(
         *((f"본문 {p.paragraph_id}", p.text) for p in candidate.paragraphs),
     ):
         if not text.strip():
-            pass
+            add("REQUIRED_TEXT_EMPTY", "2.7", part, "내용이 비어 있습니다.")
 
     # --- F1. 자료에 없는 수를 쓰지 않는가 (표기법 무관) ----------------------
     for part, text in agent_parts:

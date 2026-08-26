@@ -2558,3 +2558,23 @@ def test_사실_값에_붙은_어미까지_본다(good_draft) -> None:
     assert not _covered_by_value("개정문구", 0, 2, ["개정문구"])
     # 값이 없으면 넘어가지 않는다.
     assert not _covered_by_value("개정되었다", 0, 2, [])
+
+
+def test_빈_칸은_이유를_남기고_막는다(good_draft) -> None:
+    """`REQUIRED_TEXT_EMPTY`만 겨눈다.
+
+    이 규칙은 한 번 조용히 사라진 적이 있다. 검토 agent가 방어를 꺼 보는
+    중에 멈춰서 `pass`가 남았고, 그대로 커밋됐다(13차 검토가 찾음).
+    지워도 되살려도 시험 437개가 그대로 통과했다 — **어느 시험도 두 방향
+    모두에서 보지 않았다.**
+
+    다른 규칙이 다 받아내서 빈 글이 나가지는 않았다. 그래도 **왜 막혔는지**를
+    사람에게 알려 주는 규칙이 사라진 것은 사라진 것이다. 이유가 없으면
+    사용자는 무엇을 고쳐야 할지 알 수 없다.
+    """
+    run = asyncio.run(
+        _run(canned_draft=_spoil(good_draft, lambda d: _set_lead(d, "   ")))
+    )
+    assert run.draft_version == 0
+    rules = {f.rule_id for f in run.validation_findings}
+    assert "REQUIRED_TEXT_EMPTY" in rules, rules
