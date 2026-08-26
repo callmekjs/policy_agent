@@ -268,6 +268,7 @@ def run_view(run: Run) -> dict[str, Any]:
                 "instruction": a.instruction,
                 "outcome": a.outcome.value,
                 "blocking_rule_ids": a.blocking_rule_ids,
+                "blocking_messages": a.blocking_messages,
                 "resulting_version": a.resulting_version,
             }
             for a in run.revision_attempts

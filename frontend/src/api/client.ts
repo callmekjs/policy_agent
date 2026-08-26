@@ -80,4 +80,21 @@ export const api = {
     request<{ run_id: string; deleted: boolean }>(`/api/runs/${runId}`, {
       method: 'DELETE',
     }),
+  /** 사람이 확인한 결과를 보낸다. 확인이 곧 보호다. */
+  reviewFacts: (runId: string, reviews: { fact_id: string; verdict: string }[]) =>
+    request<RunView>(`/api/runs/${runId}/fact-review`, {
+      method: 'POST',
+      body: JSON.stringify({ reviews }),
+    }),
+  /** 고쳐 달라고 부탁한다. 실패해도 이전 초안은 그대로 남는다. */
+  reviseDraft: (runId: string, clientRequestId: string, instruction: string) =>
+    request<RunView>(`/api/runs/${runId}/revisions`, {
+      method: 'POST',
+      body: JSON.stringify({ client_request_id: clientRequestId, instruction }),
+    }),
+  /** 확인을 마친 초안을 완료로 옮긴다. */
+  completeRun: (runId: string) =>
+    request<RunView>(`/api/runs/${runId}/complete`, { method: 'POST' }),
+  /** 내려받기 주소. 확인을 안 마쳤으면 서버가 거부한다. */
+  draftDownloadUrl: (runId: string) => `/api/runs/${runId}/draft.md`,
 }

@@ -838,6 +838,9 @@ class Orchestrator:
                     instruction=instruction,
                     outcome=RevisionOutcome.REJECTED,
                     blocking_rule_ids=sorted({f.rule_id for f in blocked}),
+                    blocking_messages=list(
+                        dict.fromkeys(f.message for f in blocked)
+                    ),
                     attempted_at=now,
                 )
             )

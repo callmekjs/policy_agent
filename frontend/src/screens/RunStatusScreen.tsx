@@ -1,6 +1,9 @@
 // 진행·보완·실패 화면 (README §2.8, §2.9).
 // 정확한 완료율을 알 수 없으므로 가짜 퍼센트는 보여주지 않는다.
 
+import { useState } from 'react'
+
+import { api } from '../api/client'
 import type { RunView } from '../types'
 
 interface Props {
@@ -8,6 +11,8 @@ interface Props {
   onConfirmFinalText: (sourceIds: string[]) => void
   onNewRun: () => void
   onDelete: () => void
+  /** 5일차 동작이 끝나면 새 상태로 화면을 갈아 준다. */
+  onUpdated: (run: RunView) => void
 }
 
 /** 발의안을 최종 의결 내용으로 대신 쓸 때만 나오는 질문의 대상 이름. */
@@ -23,8 +28,39 @@ const BUSY_STATES = new Set([
   'CHECKING_REVISION',
 ])
 
-export function RunStatusScreen({ run, onConfirmFinalText, onNewRun, onDelete }: Props) {
+export function RunStatusScreen({
+  run,
+  onConfirmFinalText,
+  onNewRun,
+  onDelete,
+  onUpdated,
+}: Props) {
   const busy = BUSY_STATES.has(run.state)
+  const [instruction, setInstruction] = useState('')
+  const [working, setWorking] = useState(false)
+  const [problem, setProblem] = useState<string | null>(null)
+
+  const reviews = run.fact_reviews ?? []
+  const unreviewed = run.unreviewed_fact_ids ?? []
+  const protectedIds = new Set(run.protected_candidate_fact_ids ?? [])
+  const attempts = run.revision_attempts ?? []
+  const verdictOf = new Map(reviews.map((r) => [r.fact_id, r.verdict]))
+
+  /** 서버를 부르는 동안 버튼을 잠근다. 두 번 눌러 두 번 처리되면 안 된다. */
+  async function guarded(work: () => Promise<RunView>) {
+    setWorking(true)
+    setProblem(null)
+    try {
+      onUpdated(await work())
+    } catch (error) {
+      setProblem(error instanceof Error ? error.message : '요청을 처리하지 못했습니다.')
+    } finally {
+      setWorking(false)
+    }
+  }
+
+  const reviewOne = (factId: string, verdict: 'OK' | 'WRONG') =>
+    guarded(() => api.reviewFacts(run.run_id, [{ fact_id: factId, verdict }]))
   // 목록 하나가 비어 오더라도 화면 전체가 사라지면 안 된다. 사용자는 아무것도
   // 보지 못한 채 무엇이 잘못됐는지 알 수 없게 된다.
   const rules = run.supplementary_rules ?? []
@@ -82,6 +118,15 @@ export function RunStatusScreen({ run, onConfirmFinalText, onNewRun, onDelete }:
           <p className="hint">
             모든 사실에 원문 근거가 붙어 있습니다. 근거를 찾지 못한 값은 쓰지 않습니다.
           </p>
+          {run.draft && (
+            <p className="hint">
+              <strong>원문과 맞대어 보고 하나씩 눌러 주세요.</strong> 남은 것{' '}
+              {unreviewed.length}건. 모두 확인해야 내려받을 수 있습니다.
+              <br />
+              <span className="badge">꼭 확인</span> 표시가 붙은 것은 틀리면 가장
+              위험한 값이라, 맞다고 하시면 이후 고치기에서 지켜 드립니다.
+            </p>
+          )}
           <ul className="facts">
             {facts.map((fact) => (
               <li key={fact.fact_id}>
@@ -100,6 +145,37 @@ export function RunStatusScreen({ run, onConfirmFinalText, onNewRun, onDelete }:
                     {fact.raw_line}행 {fact.raw_column}칸
                   </p>
                 </details>
+                {run.draft && (
+                  <p className="fact-review">
+                    {protectedIds.has(fact.fact_id) && (
+                      <span className="badge">꼭 확인</span>
+                    )}
+                    <button
+                      type="button"
+                      disabled={working}
+                      aria-pressed={verdictOf.get(fact.fact_id) === 'OK'}
+                      onClick={() => reviewOne(fact.fact_id, 'OK')}
+                    >
+                      원문과 맞습니다
+                    </button>
+                    <button
+                      type="button"
+                      disabled={working}
+                      aria-pressed={verdictOf.get(fact.fact_id) === 'WRONG'}
+                      onClick={() => reviewOne(fact.fact_id, 'WRONG')}
+                    >
+                      원문과 다릅니다
+                    </button>
+                    {verdictOf.get(fact.fact_id) === 'OK' && (
+                      <span className="reviewed">확인함</span>
+                    )}
+                    {verdictOf.get(fact.fact_id) === 'WRONG' && (
+                      <span className="reviewed wrong">
+                        다르다고 표시함 — 이 값을 쓴 문장은 초안에 남을 수 없습니다
+                      </span>
+                    )}
+                  </p>
+                )}
               </li>
             ))}
           </ul>
@@ -206,6 +282,110 @@ export function RunStatusScreen({ run, onConfirmFinalText, onNewRun, onDelete }:
           <p className="draft-contact">문의처: {run.draft.contact_text}</p>
           {run.draft.placeholders.length > 0 && (
             <p className="hint">사람이 채워야 하는 곳: {run.draft.placeholders.join(', ')}</p>
+          )}
+        </section>
+      )}
+
+      {run.draft && !busy && (
+        <section className="revise">
+          <h3>고치고 내려받기</h3>
+
+          {problem && <p className="problem">{problem}</p>}
+
+          <label htmlFor="instruction">어디를 어떻게 고칠까요?</label>
+          <p className="hint">
+            여기에 적은 글은 <strong>자료가 아닙니다.</strong> 없는 사실을 적어도
+            초안에 넣지 않습니다. 문장을 다듬는 부탁만 처리합니다.
+          </p>
+          <textarea
+            id="instruction"
+            rows={3}
+            value={instruction}
+            disabled={working}
+            placeholder="예: 문단 순서를 바꿔 주세요"
+            onChange={(event) => setInstruction(event.target.value)}
+          />
+          <button
+            type="button"
+            disabled={working || instruction.trim().length === 0}
+            onClick={() =>
+              guarded(async () => {
+                const next = await api.reviseDraft(
+                  run.run_id,
+                  `rev-${Date.now()}`,
+                  instruction.trim(),
+                )
+                setInstruction('')
+                return next
+              })
+            }
+          >
+            고쳐 주세요
+          </button>
+
+          {attempts.length > 0 && (
+            <>
+              <h4>고치기 기록 {attempts.length}건</h4>
+              <ul className="attempts">
+                {attempts.map((attempt) => (
+                  <li key={attempt.attempt_id}>
+                    <p>“{attempt.instruction}”</p>
+                    {attempt.outcome === 'APPLIED' ? (
+                      <p className="ok">
+                        고쳤습니다. 새 판 {attempt.resulting_version}입니다.
+                      </p>
+                    ) : (
+                      <div className="blocked">
+                        <p>
+                          고치지 않았습니다.{' '}
+                          <strong>이전 초안을 그대로 두었습니다.</strong>
+                        </p>
+                        <ul>
+                          {(attempt.blocking_messages ?? []).map((message, i) => (
+                            <li key={i}>{message}</li>
+                          ))}
+                        </ul>
+                        <details>
+                          <summary>개발자용 코드 보기</summary>
+                          <p className="mono">
+                            {attempt.blocking_rule_ids.join(', ')}
+                          </p>
+                        </details>
+                      </div>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+
+          <h4>내려받기</h4>
+          {run.can_download ? (
+            <p>
+              <a href={api.draftDownloadUrl(run.run_id)} download>
+                Markdown으로 내려받기
+              </a>
+              <br />
+              <span className="hint">
+                내려받은 파일에도 <strong>DRAFT / 내부 검토용</strong> 표시가
+                남습니다. 그대로 배포하지 마세요.
+              </span>
+            </p>
+          ) : (
+            <p className="hint">
+              아직 확인하지 않은 사실이 {unreviewed.length}건 있습니다. 위 목록에서
+              모두 확인해야 내려받을 수 있습니다.
+            </p>
+          )}
+
+          {run.can_download && run.state === 'REVIEW_READY' && (
+            <button
+              type="button"
+              disabled={working}
+              onClick={() => guarded(() => api.completeRun(run.run_id))}
+            >
+              확인을 마쳤습니다
+            </button>
           )}
         </section>
       )}

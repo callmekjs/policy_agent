@@ -157,3 +157,24 @@ def test_완료하면_상태가_바뀐다(client: TestClient) -> None:
     _confirm_all(client, run)
     after = client.post(f"/api/runs/{run['run_id']}/complete").json()
     assert after["state"] == "DRAFT_READY"
+
+
+def test_막힌_이유는_쉬운_말로_보인다(client: TestClient) -> None:
+    """직접 써 보고 찾은 문제.
+
+    화면에 `CLAIM_VALUE_NOT_ANCHORED` 같은 **영어 코드**만 보이면 사용자는
+    무엇을 고쳐야 할지 알 수 없다. 코드는 되짚을 때만 쓰고, 사람에게는 쉬운
+    말을 보여 준다.
+    """
+    run = _ready(client)
+    _confirm_all(client, run)
+    after = client.post(
+        f"/api/runs/{run['run_id']}/revisions",
+        json={"client_request_id": "rev-1", "instruction": "짧게 줄여 주세요"},
+    ).json()
+
+    attempt = after["revision_attempts"][-1]
+    assert attempt["outcome"] == "REJECTED"
+    assert attempt["blocking_messages"], "사람이 읽을 이유가 없습니다."
+    for message in attempt["blocking_messages"]:
+        assert not message.isascii(), f"영어 코드만 보입니다: {message}"

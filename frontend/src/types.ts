@@ -165,12 +165,41 @@ export interface RunView {
   supplementary_rules: SupplementaryRuleView[]
   draft: DraftView | null
   validation_findings: ValidationFindingView[]
+  /** 사람이 사실 하나하나를 확인한 기록 (누적 5일차). */
+  fact_reviews: FactReviewView[]
+  /** 확인하면 보호가 되는 사실. 틀리면 가장 위험한 값들이다. */
+  protected_candidate_fact_ids: string[]
+  /** 아직 사람이 안 본 사실. 하나라도 있으면 내려받을 수 없다. */
+  unreviewed_fact_ids: string[]
+  /** 고치기 기록. 실패한 시도도 보여 준다. */
+  revision_attempts: RevisionAttemptView[]
+  /** 지난 판 번호. 되짚을 수 있어야 한다. */
+  previous_versions: number[]
+  /** 지금 내려받을 수 있는지. */
+  can_download: boolean
   failure: {
     kind: string | null
     code: string | null
     message: string | null
     next_action: string | null
   } | null
+}
+
+export interface FactReviewView {
+  fact_id: string
+  verdict: 'OK' | 'WRONG'
+  note: string
+}
+
+export interface RevisionAttemptView {
+  attempt_id: string
+  instruction: string
+  outcome: 'APPLIED' | 'REJECTED'
+  /** 막은 규칙 코드. 되짚을 때만 쓴다. 사람에게 그대로 보여 주지 않는다. */
+  blocking_rule_ids: string[]
+  /** 사람이 읽는 이유. 화면은 이것을 보여 준다. */
+  blocking_messages: string[]
+  resulting_version: number
 }
 
 export interface ApiError {

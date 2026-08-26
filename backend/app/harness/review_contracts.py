@@ -81,7 +81,12 @@ class RevisionAttempt(BaseModel):
     instruction: str
     outcome: RevisionOutcome
     #: 막혔으면 그 이유. 통과했으면 빈 목록이다.
+    #: 이 코드는 **개발자가 되짚기 위한 것**이다. 사람에게 보이는 말은 아래
+    #: `blocking_messages`다. 코드만 보여 주면 사용자는 무엇을 고쳐야 할지
+    #: 알 수 없다.
     blocking_rule_ids: list[str] = Field(default_factory=list)
+    #: 사람이 읽는 이유. 화면은 이것을 보여 준다.
+    blocking_messages: list[str] = Field(default_factory=list)
     #: 통과했을 때 새로 생긴 판 번호.
     resulting_version: int = 0
     attempted_at: datetime

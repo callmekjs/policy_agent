@@ -184,6 +184,7 @@ export function App() {
             onConfirmFinalText={handleConfirmFinalText}
             onNewRun={handleNewRun}
             onDelete={handleDelete}
+            onUpdated={setRun}
           />
         )}
       </main>
