@@ -10,6 +10,7 @@ prepare-draft·export는 2~5일차에 같은 파일에 이어서 붙인다.
 from __future__ import annotations
 
 import secrets
+from urllib.parse import quote
 from datetime import UTC, datetime
 from typing import Any
 
@@ -30,7 +31,10 @@ from app.harness.contracts import (
     CreateRunRequest,
     Run,
 )
+from app.gates.draft_export import file_name, to_markdown
+from app.gates.protection import is_protected_candidate, unreviewed_fact_ids
 from app.harness.orchestrator import payload_hash
+from app.harness.review_contracts import FactReview, FactVerdict
 from app.harness.runtime import BusyError
 from app.harness.states import DELETABLE_STATES, RunState, user_facing_status
 from app.infrastructure.model_gateway import CONFIGURED_MODEL, CONFIGURED_PROVIDER
@@ -241,6 +245,39 @@ def run_view(run: Run) -> dict[str, Any]:
             if run.fact_ledger
             else []
         ),
+        # 사람이 확인할 목록. 무엇을 아직 안 봤는지 화면이 알아야 한다 (`M1`).
+        "fact_reviews": [
+            {"fact_id": r.fact_id, "verdict": r.verdict.value, "note": r.note}
+            for r in run.fact_reviews
+        ],
+        "protected_candidate_fact_ids": (
+            [f.fact_id for f in run.fact_ledger.facts if is_protected_candidate(f)]
+            if run.fact_ledger
+            else []
+        ),
+        "unreviewed_fact_ids": (
+            unreviewed_fact_ids(run.fact_ledger, run.fact_reviews)
+            if run.fact_ledger
+            else []
+        ),
+        # 고치기 기록. **실패한 시도도 보여 준다.** 왜 막혔는지 모르면 사람은
+        # 같은 요청을 반복한다.
+        "revision_attempts": [
+            {
+                "attempt_id": a.attempt_id,
+                "instruction": a.instruction,
+                "outcome": a.outcome.value,
+                "blocking_rule_ids": a.blocking_rule_ids,
+                "resulting_version": a.resulting_version,
+            }
+            for a in run.revision_attempts
+        ],
+        "previous_versions": [d.version for d in run.draft_history],
+        "can_download": (
+            run.draft is not None
+            and run.fact_ledger is not None
+            and not unreviewed_fact_ids(run.fact_ledger, run.fact_reviews)
+        ),
         "draft": _draft_view(run.draft) if run.draft else None,
         "validation_findings": [
             {
@@ -409,6 +446,190 @@ async def get_run(request: Request, run_id: str) -> Any:
                 run_id,
             )
         return run_view(run)
+
+
+@router.post("/runs/{run_id}/fact-review")
+async def review_facts(request: Request, run_id: str) -> Any:
+    """사람이 사실을 하나씩 확인한 결과를 받는다 (§3.7 누적 5일차).
+
+    확인이 곧 보호다. "맞다"를 누른 보호 후보만 지켜진다. AI는 이 판정에
+    끼어들지 못한다 (README §4.3).
+    """
+    guard = guard_state_change(request)
+    if guard is not None:
+        return guard
+
+    body = await request.json()
+    store = request.app.state.store
+    orchestrator = request.app.state.orchestrator
+    async with store.lock:
+        run = store.get(run_id)
+        if run is None:
+            return error_response(
+                404,
+                "RUN_NOT_FOUND",
+                "작업을 더 이상 불러올 수 없습니다.",
+                "새 작업으로 다시 시작해 주세요.",
+                run_id,
+            )
+        now = datetime.now(UTC)
+        try:
+            reviews = [
+                FactReview(
+                    fact_id=str(item["fact_id"]),
+                    verdict=FactVerdict(str(item["verdict"])),
+                    note=str(item.get("note") or ""),
+                    reviewed_at=now,
+                )
+                for item in (body.get("reviews") or [])
+            ]
+            orchestrator.review_facts(run_id, reviews)
+        except (KeyError, ValueError) as exc:
+            return error_response(
+                400,
+                "FACT_REVIEW_INVALID",
+                f"확인 결과를 받을 수 없습니다. {exc}",
+                "화면을 새로 고친 뒤 다시 확인해 주세요.",
+                run_id,
+            )
+        return run_view(store.get(run_id))
+
+
+@router.post("/runs/{run_id}/revisions")
+async def create_revision(request: Request, run_id: str) -> Any:
+    """사람이 부탁한 대로 초안을 고친다.
+
+    **고치는 데 실패해도 이전 초안은 그대로 남는다.** 사람은 고쳐 달라고
+    했을 뿐인데 있던 것까지 없어지면 프로그램을 믿을 수 없다.
+    """
+    guard = guard_state_change(request)
+    if guard is not None:
+        return guard
+
+    body = await request.json()
+    instruction = str(body.get("instruction") or "").strip()
+    if not instruction:
+        return error_response(
+            400,
+            "REVISION_INSTRUCTION_EMPTY",
+            "무엇을 고칠지 적어 주세요.",
+            "고치고 싶은 내용을 한 줄로 적어 주세요.",
+            run_id,
+        )
+
+    store = request.app.state.store
+    orchestrator = request.app.state.orchestrator
+    async with store.lock:
+        run = store.get(run_id)
+        if run is None:
+            return error_response(
+                404,
+                "RUN_NOT_FOUND",
+                "작업을 더 이상 불러올 수 없습니다.",
+                "새 작업으로 다시 시작해 주세요.",
+                run_id,
+            )
+        if RunState(run.state) is not RunState.REVIEW_READY:
+            return error_response(
+                409,
+                "INVALID_RUN_STATE",
+                "지금은 고칠 수 없습니다.",
+                "초안이 나온 뒤에 고쳐 주세요.",
+                run_id,
+            )
+        try:
+            await orchestrator.revise(
+                run_id,
+                client_request_id=str(
+                    body.get("client_request_id") or secrets.token_hex(8)
+                ),
+                instruction=instruction,
+            )
+        except (KeyError, ValueError) as exc:
+            return error_response(
+                400,
+                "REVISION_FAILED",
+                f"고칠 수 없습니다. {exc}",
+                "화면을 새로 고친 뒤 다시 시도해 주세요.",
+                run_id,
+            )
+        return run_view(store.get(run_id))
+
+
+@router.post("/runs/{run_id}/complete")
+async def complete_run(request: Request, run_id: str) -> Any:
+    """확인을 마친 초안을 완료로 옮긴다 (`M1`)."""
+    guard = guard_state_change(request)
+    if guard is not None:
+        return guard
+
+    store = request.app.state.store
+    orchestrator = request.app.state.orchestrator
+    async with store.lock:
+        run = store.get(run_id)
+        if run is None:
+            return error_response(
+                404,
+                "RUN_NOT_FOUND",
+                "작업을 더 이상 불러올 수 없습니다.",
+                "새 작업으로 다시 시작해 주세요.",
+                run_id,
+            )
+        try:
+            orchestrator.finalize(run_id)
+        except (KeyError, ValueError) as exc:
+            return error_response(
+                409,
+                "REVIEW_NOT_FINISHED",
+                str(exc),
+                "사실 목록에서 남은 항목을 모두 확인해 주세요.",
+                run_id,
+            )
+        return run_view(store.get(run_id))
+
+
+@router.get("/runs/{run_id}/draft.md")
+async def download_draft(request: Request, run_id: str) -> Any:
+    """확인을 마친 초안을 Markdown으로 내려준다 (`M1`·`M2`).
+
+    **확인하지 않은 초안은 내려주지 않는다.** 내려받은 파일은 이 프로그램
+    밖으로 나가고, 받은 사람은 그 파일만 보고 판단한다.
+    """
+    guard = guard_local_host(request)
+    if guard is not None:
+        return guard
+
+    store = request.app.state.store
+    async with store.lock:
+        run = store.get(run_id)
+        if run is None or run.draft is None or run.fact_ledger is None:
+            return error_response(
+                404,
+                "DRAFT_NOT_FOUND",
+                "내려받을 초안이 없습니다.",
+                "새 작업으로 다시 시작해 주세요.",
+                run_id,
+            )
+        left = unreviewed_fact_ids(run.fact_ledger, run.fact_reviews)
+        if left:
+            return error_response(
+                409,
+                "REVIEW_NOT_FINISHED",
+                f"아직 확인하지 않은 사실이 {len(left)}건 있습니다.",
+                "사실 목록에서 남은 항목을 모두 확인해 주세요.",
+                run_id,
+            )
+        text = to_markdown(run.draft)
+        name = file_name(run_id, run.draft_version)
+    return Response(
+        content=text,
+        media_type="text/markdown; charset=utf-8",
+        headers={
+            "Content-Disposition": (
+                "attachment; filename*=UTF-8''" + quote(name)
+            )
+        },
+    )
 
 
 @router.delete("/runs/{run_id}")
