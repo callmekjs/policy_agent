@@ -340,5 +340,12 @@ _contracts.ValidationFinding = ValidationFinding
 _contracts.ChangedArticleSet = ChangedArticleSet
 _contracts.FinalTextConfirmation = FinalTextConfirmation
 _contracts.ResolvedFinalText = ResolvedFinalText
+# 5일차 칸(`fact_reviews`·`revision_attempts`)이 가리키는 계약도 함께 읽혀야
+# 앞선 참조가 풀린다.
+from app.harness.review_contracts import (  # noqa: E402
+    FactReview,
+    RevisionAttempt,
+)
+
 _contracts.Run.model_rebuild()
 _contracts.CreateRunRequest.model_rebuild()

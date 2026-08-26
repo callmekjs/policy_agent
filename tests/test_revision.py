@@ -268,3 +268,96 @@ def test_아무것도_안_바꾼_수정본은_통과한다(base_run) -> None:
         fact_reviews=[],
     )
     assert findings == [], [f.rule_id for f in findings]
+
+
+# ---------------------------------------------------------------------------
+# K4·N1·N2·N3 · 고치기를 실제로 돌려 본다
+# ---------------------------------------------------------------------------
+
+
+def _fresh():
+    """새 작업 하나. 사람이 모든 사실을 확인한 상태로 만든다."""
+    from app.harness.orchestrator import Orchestrator
+    from app.infrastructure.model_gateway import FakeModelGateway
+    from app.infrastructure.run_store import RunStore
+
+    store = RunStore()
+    orchestrator = Orchestrator(store, FakeModelGateway())
+    run = asyncio.run(_run())
+    stored = run.model_copy()
+    store.put(stored)
+    orchestrator.review_facts(stored.run_id, _confirm_all(stored.fact_ledger))
+    return orchestrator, store, stored.run_id
+
+
+def test_안전한_수정은_새_판이_된다() -> None:
+    """`N1`·`N3`. 순서만 바꾸는 수정은 값을 안 건드리므로 통과해야 한다."""
+    orchestrator, store, run_id = _fresh()
+    # 저장소는 **같은 객체를 돌려준다.** 고치기 전 값을 미리 베껴 둬야
+    # `before`가 고친 뒤 값으로 바뀌지 않는다.
+    before_version = store.get(run_id).draft_version
+    before_draft = store.get(run_id).draft.model_copy(deep=True)
+
+    asyncio.run(orchestrator.revise(run_id, client_request_id="r1", instruction="순서를 바꿔 주세요"))
+    after = store.get(run_id)
+
+    assert after.draft_version == before_version + 1, "새 판이 되지 않았습니다."
+    assert after.state == "REVIEW_READY"
+    assert after.draft_history, "이전 판을 되짚을 수 없습니다."
+    assert after.draft_history[-1].version == before_draft.version
+
+
+def test_값이_사라지는_수정은_이전_초안을_덮지_않는다() -> None:
+    """`K4`. 가장 중요한 성질이다.
+
+    고치는 데 실패했다고 **멀쩡하던 초안까지 잃으면 안 된다.** 사람은 고쳐
+    달라고 했을 뿐인데 있던 것까지 없어지면 프로그램을 믿을 수 없다.
+    """
+    orchestrator, store, run_id = _fresh()
+    before_version = store.get(run_id).draft_version
+    before_draft = store.get(run_id).draft.model_copy(deep=True)
+
+    asyncio.run(orchestrator.revise(run_id, client_request_id="r1", instruction="짧게 줄여 주세요"))
+    after = store.get(run_id)
+
+    assert after.draft_version == before_version, "실패한 수정이 판을 올렸습니다."
+    assert after.draft == before_draft, "실패한 수정이 이전 초안을 덮었습니다."
+    assert after.state == "REVIEW_READY", "고치기에 실패했다고 작업이 죽으면 안 됩니다."
+
+    attempt = after.revision_attempts[-1]
+    assert attempt.outcome == "REJECTED"
+    assert attempt.blocking_rule_ids, "왜 막혔는지 남기지 않았습니다."
+
+
+def test_같은_키로_두_번_요청해도_한_번만_고친다() -> None:
+    """`N2`. 사용자가 버튼을 두 번 누르는 일은 늘 일어난다."""
+    orchestrator, store, run_id = _fresh()
+    before_version = store.get(run_id).draft_version
+    for _ in range(2):
+        asyncio.run(
+            orchestrator.revise(run_id, client_request_id="같은키", instruction="순서를 바꿔 주세요")
+        )
+    after = store.get(run_id)
+    assert after.draft_version == before_version + 1, (
+        f"수정이 두 번 적용됐습니다: {before_version} -> {after.draft_version}"
+    )
+    assert len(after.revision_attempts) == 1
+
+
+def test_사실을_다_확인해야_완료할_수_있다() -> None:
+    """`M1`. 확인하지 않은 초안은 내려받을 수 없다."""
+    from app.harness.orchestrator import Orchestrator
+    from app.infrastructure.model_gateway import FakeModelGateway
+    from app.infrastructure.run_store import RunStore
+
+    store = RunStore()
+    orchestrator = Orchestrator(store, FakeModelGateway())
+    run = asyncio.run(_run())
+    store.put(run.model_copy())
+
+    with pytest.raises(ValueError):
+        orchestrator.finalize(run.run_id)
+
+    orchestrator.review_facts(run.run_id, _confirm_all(run.fact_ledger))
+    orchestrator.finalize(run.run_id)
+    assert store.get(run.run_id).state == "DRAFT_READY"

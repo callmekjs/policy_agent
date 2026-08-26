@@ -15,6 +15,7 @@ from pydantic import BaseModel, ConfigDict, Field, StringConstraints
 
 if TYPE_CHECKING:  # 순환 참조를 피한다
     from app.harness.fact_contracts import FactLedger
+    from app.harness.review_contracts import FactReview, RevisionAttempt
 
 # ---------------------------------------------------------------------------
 # 고정 enum
@@ -343,6 +344,15 @@ class Run(BaseModel):
     draft: "DraftCandidate | None" = None
     #: 초안 검사 결과. 막힌 이유를 rule_id와 함께 남긴다.
     validation_findings: list["ValidationFinding"] = Field(default_factory=list)
+
+    #: 사람이 사실 하나하나를 확인한 기록 (§3.7 누적 5일차).
+    #: 하나라도 안 본 것이 있으면 초안을 내려받을 수 없다.
+    fact_reviews: list["FactReview"] = Field(default_factory=list)
+    #: 고치기 시도 기록. **실패한 시도도 남긴다.** 무엇을 요청했고 왜 막혔는지
+    #: 되짚을 수 없으면 사람이 같은 요청을 반복하게 된다.
+    revision_attempts: list["RevisionAttempt"] = Field(default_factory=list)
+    #: 이전 판. 새 판이 생기면 여기 쌓인다. 되짚을 수 있어야 한다 (`N3`).
+    draft_history: list["DraftCandidate"] = Field(default_factory=list)
 
     draft_version: int = 0
     actual_model_calls: int = Field(default=0, description="SDK가 실제 보낸 요청 수")

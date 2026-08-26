@@ -20,7 +20,16 @@ from app.agents.draft_writing import build_request as build_draft_request
 from app.agents.draft_writing import parse_result as parse_draft_result
 from app.agents.fact_extraction import AgentResultError, build_request, parse_result
 from app.gates.conflict_gate import check_conflicts
+from pydantic import ValidationError
+
 from app.gates.draft_gate import blocking, check_draft
+from app.harness.draft_contracts import (
+    DraftCandidate,
+    ValidationFinding,
+    ValidationSeverity,
+)
+from app.gates.protection import apply_reviews, unreviewed_fact_ids
+from app.gates.revision_gate import check_revision
 from app.gates.draft_sections import build_fixed_sections
 from app.gates.draft_template import (
     HARNESS_ID_PREFIX,
@@ -38,6 +47,11 @@ from app.harness.article_parser import (
     top_level_article,
 )
 from app.harness.contract_loader import load_writing_contract
+from app.harness.review_contracts import (
+    FactReview,
+    RevisionAttempt,
+    RevisionOutcome,
+)
 from app.harness.contracts import (
     ACTIVE_CONTRACT_ID,
     SUPPORTED_PROCEDURE_STAGE,
@@ -58,12 +72,19 @@ from app.harness.states import FailureKind, RunState, assert_transition
 from app.infrastructure.model_gateway import (
     CONFIGURED_MODEL,
     CONFIGURED_PROVIDER,
+    ModelCallRequest,
     ModelGateway,
 )
 from app.infrastructure.run_store import RunStore
 
 #: 아직 구현하지 않은 단계에 도달했을 때의 코드. 성공한 것처럼 보이지 않는다.
 DAY1_SCOPE_LIMIT = "DAY1_SCOPE_LIMIT"
+
+#: 고치기 Agent. 이름·프롬프트 판·출력 상한은 실행 중 바꾸지 않는다 (§7.2).
+REVISION_AGENT_NAME = "RevisionAgent"
+REVISION_PROMPT_VERSION = "revision_v1"
+#: README §7.2가 정한 수정 출력 상한.
+REVISION_MAX_OUTPUT_TOKENS = 4500
 
 #: 화면과 초안에 같은 말로 나가는 효력 상태 이름.
 EFFECT_STATUS_LABEL = "아직 법률 아님"
@@ -653,6 +674,190 @@ class Orchestrator:
             run.draft = candidate
             run.draft_version = candidate.version
             self._transition(run, RunState.REVIEW_READY)
+
+    # -- 5일차: 사람이 확인하고 고친다 -------------------------------------
+
+    def _check_candidate(self, run: Run, candidate: DraftCandidate) -> list:
+        """초안 하나에 **4일차 검사를 그대로** 건다 (5일차 합격선 `L1`).
+
+        수정본이라고 검사를 덜 받으면 안 된다. 처음 초안이 통과한 검사를
+        수정본도 통과해야 한다. 검사 재료는 Run에 남아 있는 것으로 다시 만든다.
+        """
+        normalized = {
+            source.source_id: normalize_source(source.raw_text)
+            for source in run.sources
+        }
+        template = load_template(load_writing_contract().template)
+        return check_draft(
+            candidate,
+            run.fact_ledger,
+            run.resolved_final_text,
+            run.changed_article_set,
+            normalized,
+            announcement_subject=run.announcement_subject_input or "",
+            template=template,
+            has_statement_source=any(
+                s.use_scope is SourceUseScope.ATTRIBUTED_STATEMENT_ONLY
+                for s in run.sources
+            ),
+            fixed_labels=(
+                SUPPORTED_PROCEDURE_STAGE_LABEL,
+                EFFECT_STATUS_LABEL,
+                CONTACT_PLACEHOLDER,
+                RELEASE_DATE_PLACEHOLDER,
+                INTERNET_NOTICE,
+                run.basis_date.isoformat(),
+                *[
+                    p.text
+                    for p in candidate.paragraphs
+                    if p.paragraph_id.startswith("HS-")
+                ],
+            ),
+        )
+
+    def review_facts(self, run_id: str, reviews: list[FactReview]) -> Run:
+        """사람이 사실을 확인한 결과를 받는다 (`M1`·`K1`).
+
+        확인이 곧 보호다. "맞다"를 누른 보호 후보만 `protected=true`가 된다.
+        AI는 이 판정에 끼어들지 못한다 (README §4.3).
+        """
+        run = self.store.get(run_id)
+        if run is None:
+            raise KeyError(run_id)
+        if run.fact_ledger is None:
+            raise ValueError("아직 사실이 정리되지 않았습니다.")
+        merged = {r.fact_id: r for r in run.fact_reviews}
+        known = {f.fact_id for f in run.fact_ledger.facts}
+        for review in reviews:
+            if review.fact_id not in known:
+                raise ValueError(f"자료에 없는 사실입니다: {review.fact_id}")
+            merged[review.fact_id] = review
+        run.fact_reviews = list(merged.values())
+        run.fact_ledger = apply_reviews(run.fact_ledger, run.fact_reviews)
+        run.last_user_action_at = _now()
+        run.updated_at = run.last_user_action_at
+        return run
+
+    def finalize(self, run_id: str) -> Run:
+        """확인을 마친 초안을 완료로 옮긴다 (`M1`).
+
+        **하나라도 안 본 사실이 있으면 거부한다.** 확인 절차가 있는데 건너뛸
+        수 있으면 없는 것과 같다.
+        """
+        run = self.store.get(run_id)
+        if run is None:
+            raise KeyError(run_id)
+        if run.draft is None:
+            raise ValueError("아직 초안이 없습니다.")
+        left = unreviewed_fact_ids(run.fact_ledger, run.fact_reviews)
+        if left:
+            raise ValueError(
+                f"아직 확인하지 않은 사실이 {len(left)}건 있습니다. "
+                "모두 확인해야 내려받을 수 있습니다."
+            )
+        self._transition(run, RunState.DRAFT_READY)
+        run.finished_at = run.updated_at
+        run.last_user_action_at = run.updated_at
+        return run
+
+    async def revise(
+        self, run_id: str, *, client_request_id: str, instruction: str
+    ) -> Run:
+        """사람이 부탁한 대로 초안을 고친다.
+
+        **고치는 데 실패해도 이전 초안을 그대로 둔다** (`K4`). 사람은 고쳐
+        달라고 했을 뿐인데 있던 것까지 없어지면 프로그램을 믿을 수 없다.
+        """
+        run = self.store.get(run_id)
+        if run is None:
+            raise KeyError(run_id)
+        if run.draft is None:
+            raise ValueError("아직 초안이 없습니다.")
+
+        # 같은 키로 두 번 오면 한 번만 처리한다 (`N2`).
+        # 사용자가 버튼을 두 번 누르는 일은 늘 일어난다.
+        for attempt in run.revision_attempts:
+            if attempt.client_request_id == client_request_id:
+                return run
+
+        previous = run.draft
+        self._transition(run, RunState.REVISING)
+        call = await self.gateway.call(
+            ModelCallRequest(
+                agent_name=REVISION_AGENT_NAME,
+                prompt_version=REVISION_PROMPT_VERSION,
+                payload={
+                    "draft": json.loads(previous.model_dump_json()),
+                    "instruction": instruction,
+                },
+                max_output_tokens=REVISION_MAX_OUTPUT_TOKENS,
+            )
+        )
+        if not call.is_fake:
+            run.actual_model_calls += 1
+            run.estimated_cost_usd += call.estimated_cost_usd
+        self._transition(run, RunState.CHECKING_REVISION)
+
+        blocked: list = []
+        try:
+            revised = DraftCandidate.model_validate(
+                (call.result or {}).get("result") or {}
+            )
+        except ValidationError:
+            revised = None
+            blocked = [
+                ValidationFinding(
+                    finding_id="RV-000",
+                    rule_id="REVISION_SCHEMA_INVALID",
+                    rule_document="README §2.10",
+                    affected_part="수정본",
+                    severity=ValidationSeverity.BLOCKING,
+                    message="고친 결과가 정해진 양식과 맞지 않습니다.",
+                )
+            ]
+
+        if revised is not None:
+            findings = [
+                *check_revision(
+                    previous=previous,
+                    revised=revised,
+                    ledger=run.fact_ledger,
+                    fact_reviews=run.fact_reviews,
+                ),
+                *self._check_candidate(run, revised),
+            ]
+            blocked = blocking(findings)
+
+        now = _now()
+        if blocked:
+            # **이전 초안을 건드리지 않는다.** 무엇이 막았는지만 남긴다.
+            run.revision_attempts.append(
+                RevisionAttempt(
+                    attempt_id=f"RA-{len(run.revision_attempts) + 1:03d}",
+                    client_request_id=client_request_id,
+                    instruction=instruction,
+                    outcome=RevisionOutcome.REJECTED,
+                    blocking_rule_ids=sorted({f.rule_id for f in blocked}),
+                    attempted_at=now,
+                )
+            )
+        else:
+            run.draft_history.append(previous)
+            run.draft = revised
+            run.draft_version = previous.version + 1
+            run.revision_attempts.append(
+                RevisionAttempt(
+                    attempt_id=f"RA-{len(run.revision_attempts) + 1:03d}",
+                    client_request_id=client_request_id,
+                    instruction=instruction,
+                    outcome=RevisionOutcome.APPLIED,
+                    resulting_version=run.draft_version,
+                    attempted_at=now,
+                )
+            )
+        self._transition(run, RunState.REVIEW_READY)
+        run.last_user_action_at = now
+        return run
 
     async def _needs_input(self, run_id: str, issues: list[Issue]) -> None:
         """초안 없이 사람에게 묻고 멈춘다."""

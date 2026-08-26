@@ -18,6 +18,7 @@ from app.harness.fact_contracts import (
     FACT_RESULT_SCHEMA_VERSION,
 )
 from app.infrastructure.fake_draft import fake_draft_writing
+from app.infrastructure.fake_revision import fake_revision
 
 #: 본회의 사건에만 해당하는 사실 종류.
 #: 위원회 심사에도 표결 수와 처리일이 적히므로, 어느 회의 것인지 확인하지 않으면
@@ -269,6 +270,7 @@ def fake_fact_extraction(payload: dict[str, Any]) -> dict[str, Any]:
 FAKE_RESPONDERS = {
     "FactExtractionAgent": fake_fact_extraction,
     "DraftWritingAgent": fake_draft_writing,
+    "RevisionAgent": fake_revision,
 }
 
 
