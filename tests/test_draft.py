@@ -2608,3 +2608,70 @@ def test_낱말_목록을_글의_id로_기억하지_않는다() -> None:
             f"글의 id를 열쇠로 씁니다: {type(key).__name__}. "
             "버려진 문자열의 id가 다시 쓰이면 다른 글의 답이 나옵니다."
         )
+
+
+# ---------------------------------------------------------------------------
+# 발언 낱말 검사가 멀쩡한 문장을 막지 않는가
+# ---------------------------------------------------------------------------
+#
+# `ATTRIBUTION`은 띄어쓰기를 지운 글에서 낱말을 찾는다. 그래서 `고전`이라는
+# 두 글자가 `…방지하고 전문예술법인…` 한가운데서도 걸렸다. 국회 자료의
+# 제안이유 문단이 통째로 막혔고, 진짜 인용은 하나도 아니었다.
+#
+# 좁힐 때 **진짜 인용을 놓치면 안 된다.** 그래서 두 가지를 함께 잰다.
+# 아래가 하나라도 통과하면 좁히기가 지나친 것이다.
+
+
+def test_발언_낱말은_평범한_문장을_막지_않는다() -> None:
+    """`…고 전문…` `…고 전국…`처럼 이어지는 말은 인용이 아니다."""
+    from app.gates.draft_gate import ATTRIBUTION, _squeeze
+
+    멀쩡한_문장 = (
+        "혼선을 방지하고 전문예술법인ㆍ단체의 재정여건 개선에 기여하려는 것임",
+        "모집하고 전국의 단체가 접수한다",
+        "심사를 마치고 전원위원회로 넘어간 사항",
+    )
+    for 문장 in 멀쩡한_문장:
+        찾음 = ATTRIBUTION.search(_squeeze(문장))
+        assert 찾음 is None, (
+            f"멀쩡한 문장을 발언으로 봤습니다: ‘{찾음.group(0)}’ ← {문장}"
+        )
+
+
+def test_고_전했다는_여전히_막는다() -> None:
+    """좁히면서 진짜 인용을 놓치면 좁히기가 지나친 것이다."""
+    from app.gates.draft_gate import ATTRIBUTION, _squeeze
+
+    발언_문장 = (
+        "의원실은 원안가결이라고 전했다",
+        "위원회는 처리 결과를 전한다고 전하는 중이다",
+        "관계자가 그렇게 전했다고 전한 사실",
+    )
+    for 문장 in 발언_문장:
+        assert ATTRIBUTION.search(_squeeze(문장)) is not None, (
+            f"남의 말을 옮긴 문장을 놓쳤습니다: {문장}"
+        )
+
+
+def test_이름표를_늘려도_사실은_못_늘린다(good_draft) -> None:
+    """`의안번호`를 쓸 수 있게 해도 **번호를 지어낼 수는 없어야** 한다.
+
+    허용 낱말을 늘리는 것은 늘 위험하다. 이 시험은 늘린 이름표가 값까지
+    풀어 주지 않았는지 본다. `의안번호`를 말한 문장은 원장의 번호를 함께
+    적어야 하고, 다른 번호를 적으면 막혀야 한다.
+    """
+    from app.gates.draft_vocabulary import SAFE_WORDS
+
+    assert "의안번호" in SAFE_WORDS, "이름표가 목록에서 사라졌습니다."
+
+    run = asyncio.run(
+        _run(
+            canned_draft=_spoil(
+                good_draft,
+                lambda d: _point(d, "의안번호 9999999은(는) 원안가결로 처리되었다."),
+            )
+        )
+    )
+    assert run.draft_version == 0, "지어낸 의안번호가 통과했습니다."
+    rules = {f.rule_id for f in run.validation_findings}
+    assert rules & {"TOPIC_VALUE_MISMATCH", "NUMBER_NOT_IN_LEDGER", "WORD_NOT_IN_LEDGER"}, rules

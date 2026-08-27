@@ -25,7 +25,11 @@ from app.harness.contract_loader import load_writing_contract
 from app.harness.orchestrator import Orchestrator
 from app.harness.runtime import HarnessRuntime
 from app.infrastructure.model_gateway import FakeModelGateway
-from app.infrastructure.openai_gateway import OpenAIModelGateway, live_enabled
+from app.infrastructure.openai_gateway import (
+    OpenAIModelGateway,
+    live_enabled,
+    load_env_file,
+)
 from app.infrastructure.run_store import RunStore
 
 #: 빌드된 React 결과물 위치.
@@ -41,6 +45,9 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     app.state.writing_contract = load_writing_contract()
 
     app.state.store = RunStore()
+    # `.env`의 값을 환경에 올린다. 이것이 없으면 사람이 안내대로 `.env`에 열쇠를
+    # 넣어도 서버가 찾지 못한다. 명령줄에서 준 값이 파일보다 세다.
+    load_env_file()
     # **기본은 가짜다.** 진짜 AI는 사람이 `POLICY_AGENT_LIVE=1`을 넣어야 켜진다.
     # 켜 두면 시험을 돌릴 때마다 자료가 인터넷으로 나가고 돈이 든다.
     if live_enabled():

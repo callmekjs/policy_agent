@@ -73,6 +73,8 @@ async function toConsent(user: ReturnType<typeof userEvent.setup>) {
   await user.click(await screen.findByRole('button', { name: '네, 공개 자료입니다' }))
   const sameDay = await screen.findByRole('button', { name: /네, 오늘/ })
   await user.click(sameDay)
+  // 발표 주체는 **사람이 말한 값만** 쓴다. 묻지 않으면 초안이 막힌다.
+  await paste(user, '조계원 의원실')
 }
 
 describe('대화 화면', () => {
@@ -167,10 +169,15 @@ describe('대화 화면', () => {
     await user.click(input)
     await user.paste('2025-10-26')
     await user.click(screen.getByRole('button', { name: '보내기' }))
+    // 발표 주체까지 답해야 초안 만들기 물음이 나온다.
+    await paste(user, '조계원 의원실')
     await user.click(await screen.findByRole('button', { name: '네, 만들어 주세요' }))
 
     await waitFor(() => expect(sent).not.toBeNull())
-    expect((sent as unknown as { basis_date: string }).basis_date).toBe('2025-10-26')
+    const 보낸 = sent as unknown as { basis_date: string; announcement_subject: string }
+    expect(보낸.basis_date).toBe('2025-10-26')
+    // 발표 주체도 **사람이 말한 그대로** 간다. 비면 초안이 막힌다.
+    expect(보낸.announcement_subject).toBe('조계원 의원실')
   })
 
   it('자료 없이 끝내겠다고 하면 초안을 만들지 않는다', async () => {
@@ -258,5 +265,99 @@ describe('대화 화면', () => {
     // 첫 줄은 자료가 아니라 **무엇을 알리는지**로 쓴다.
     expect(body.purpose).toContain('본회의를 통과')
     expect(body.sources.some((s) => s.text.includes('본회의를 통과'))).toBe(false)
+  })
+
+  it('사람 확인을 눌러도 방금 고른 역할을 잃지 않는다', async () => {
+    // 역할을 고른 뒤 확인 버튼을 누르면 서버에 **새 작업**을 만든다. 그때
+    // 역할을 함께 보내지 않으면 새 작업이 역할을 모른 채 시작해, 방금 고른
+    // 것을 처음부터 다시 묻는다. 화면에서는 초안까지 갈 수 없었다.
+    const user = userEvent.setup()
+    const 보낸_것: { sources: { role: string }[]; final_text_completeness_confirmations?: unknown }[] = []
+    let 단계 = 0
+    mockFetch((url, init) => {
+      if (url === '/api/runs' && init?.body) {
+        보낸_것.push(JSON.parse(String(init.body)))
+        단계 += 1
+        return { run_id: `RUN-${단계}`, state: 'EXTRACTING_FACTS', status_label: 'AI 처리 중' }
+      }
+      if (url.startsWith('/api/runs/RUN-')) {
+        const 자료 = [
+          { source_id: 'SRC-01', display_name: '자료 1', role: 'UNKNOWN' },
+          { source_id: 'SRC-02', display_name: '자료 2', role: 'INTRODUCED_TEXT' },
+        ]
+        if (단계 === 1) {
+          // 1단계: 자료 1의 역할을 사람에게 묻는다. 후보를 둘 준다.
+          return {
+            run_id: 'RUN-1',
+            state: 'NEEDS_INPUT',
+            status_label: '확인이 필요합니다',
+            sources: 자료,
+            role_choices: [
+              {
+                source_id: 'SRC-01',
+                role: 'BILL_INFORMATION',
+                role_label: '의안정보',
+                evidence_quote: '의안번호 2207285',
+              },
+              {
+                source_id: 'SRC-01',
+                role: 'OFFICIAL_REASON',
+                role_label: '공식 제안·개정이유',
+                evidence_quote: '제안이유 및 주요내용',
+              },
+            ],
+            issues: [
+              {
+                issue_id: 'ISS-001',
+                code: 'SOURCE_ROLE_CONTENT_MISMATCH',
+                subject: 'SOURCE_ROLE:SRC-01',
+                message: '자료 1이 어떤 자료인지 확인해 주세요.',
+                source_ids: ['SRC-01'],
+              },
+            ],
+          }
+        }
+        // 2단계: 역할이 정해졌고 이제 사람 확인만 남았다.
+        return {
+          run_id: 'RUN-2',
+          state: 'NEEDS_INPUT',
+          status_label: '확인이 필요합니다',
+          sources: [{ ...자료[0], role: 'BILL_INFORMATION' }, 자료[1]],
+          issues: [
+            {
+              issue_id: 'ISS-002',
+              code: 'REQUIRED_INPUT_MISSING',
+              subject: 'FINAL_TEXT_COMPLETENESS_CONFIRMATION_REQUIRED',
+              message: '개정문과 부칙이 끝까지 들어 있는지 봐 주세요.',
+              source_ids: ['SRC-02'],
+            },
+          ],
+        }
+      }
+      return BOOTSTRAP
+    })
+    render(<App />)
+    await toConsent(user)
+    await user.click(await screen.findByRole('button', { name: '네, 만들어 주세요' }))
+
+    // 서버 상태는 1.5초마다 따라간다. 기본 대기(1초)로는 못 본다.
+    const 역할 = await screen.findByRole('button', { name: '의안정보' }, { timeout: 5000 })
+    await user.click(역할)
+
+    const 확인 = await screen.findByRole(
+      'button',
+      { name: '네, 끝까지 들어 있습니다' },
+      { timeout: 5000 },
+    )
+    await user.click(확인)
+
+    await waitFor(() => expect(보낸_것.length).toBe(3))
+    const 마지막 = 보낸_것[2]
+    // 확인값은 그대로 가야 한다.
+    expect(마지막.final_text_completeness_confirmations).toEqual([
+      { source_id: 'SRC-02', confirmed: true },
+    ])
+    // 그리고 **방금 고른 역할도 함께** 가야 한다.
+    expect(마지막.sources[0].role).toBe('BILL_INFORMATION')
   })
 })

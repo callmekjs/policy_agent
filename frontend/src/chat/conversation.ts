@@ -17,6 +17,7 @@ export type Stage =
   | 'ASK_SOURCES'
   | 'ASK_DISCLOSURE'
   | 'ASK_BASIS_DATE'
+  | 'ASK_SUBJECT'
   | 'ASK_CONSENT'
   | 'WORKING'
   | 'ASK_QUESTION'
@@ -115,14 +116,45 @@ export function askBasisDate(today: string): Prompt {
   }
 }
 
-export function askConsent(count: number): Prompt {
+/**
+ * 누가 내는 자료인지 묻는다.
+ *
+ * **이 값은 AI가 정하지 않는다.** 자료에 적힌 이름을 가져다 쓰면, 그 자료를
+ * 낸 곳과 보도자료를 내는 곳이 다를 때 남의 이름으로 나간다. 사람이 직접
+ * 말한 값만 쓴다(README §4.3).
+ *
+ * 묻지 않으면 초안이 `ANNOUNCEMENT_SUBJECT_REQUIRED`로 막힌다. 화면에만
+ * 이 단계가 없어서, 끝까지 눌러도 초안이 나오지 않았다.
+ */
+export const ASK_SUBJECT: Prompt = {
+  stage: 'ASK_SUBJECT',
+  say: [
+    '이 보도자료를 **누구 이름으로** 내시나요?',
+    '',
+    '초안 머리에 그대로 실립니다. 예: `조계원 의원실`',
+  ].join('\n'),
+  placeholder: '예: 조계원 의원실',
+  canType: true,
+}
+
+/**
+ * 초안을 만들지 묻는 자리.
+ *
+ * 여기서 "가짜"인지 "진짜"인지는 **서버가 알려 준 값**으로만 적는다. 예전에는
+ * 이 글이 늘 "연습용 가짜 AI"라고 적혀 있었다. 서버를 진짜 AI로 켜면 화면이
+ * 거짓말을 했고, 사람은 자료가 인터넷으로 나가는 줄 모른 채 "네"를 눌렀다.
+ * 이 물음이 바로 **바깥으로 보내도 되냐고 묻는 자리**라서 더 그렇다.
+ */
+export function askConsent(count: number, gateway: 'fake' | 'live' | null): Prompt {
+  const 어느_AI =
+    gateway === 'live'
+      ? '지금은 **진짜 AI**입니다. 누르면 위 자료가 인터넷으로 나가고 비용이 듭니다.'
+      : gateway === 'fake'
+        ? '지금은 **연습용 가짜 AI**라 인터넷으로 나가지 않고 비용도 0원입니다.'
+        : '어느 AI를 쓰는지 아직 확인하지 못했습니다. 화면을 새로 고쳐 주세요.'
   return {
     stage: 'ASK_CONSENT',
-    say: [
-      `자료 ${count}건으로 읽었습니다. 초안을 만들까요?`,
-      '',
-      '지금은 **연습용 가짜 AI**라 인터넷으로 나가지 않고 비용도 0원입니다.',
-    ].join('\n'),
+    say: [`자료 ${count}건으로 읽었습니다. 초안을 만들까요?`, '', 어느_AI].join('\n'),
     placeholder: '',
     canType: false,
     choices: [

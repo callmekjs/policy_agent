@@ -292,8 +292,8 @@
       "properties": {
         "event_id": { "$ref": "#/$defs/id" },
         "bill_id": { "$ref": "#/$defs/id" },
-        "procedure_stage": { "$ref": "#/$defs/text" },
-        "disposition": { "$ref": "#/$defs/text" },
+        "procedure_stage": { "type": "string", "enum": ["INTRODUCED", "COMMITTEE_DECIDED", "PLENARY_DECIDED", "SENT_TO_GOVERNMENT", "PROMULGATED"] },
+        "disposition": { "type": "string", "enum": ["PENDING", "ORIGINAL_PASSED", "MODIFIED_PASSED", "SUBSTITUTE_ADOPTED", "REJECTED", "WITHDRAWN", "COMMITTEE_DISCARDED", "TERM_EXPIRED", "ALTERNATIVE_REFLECTED_DISCARDED", "RECONSIDERATION_REQUESTED", "RECONSIDERED"] },
         "occurred_on": { "type": "string", "format": "date", "maxLength": 10 },
         "source_id": { "$ref": "#/$defs/id" },
         "evidence_id": { "$ref": "#/$defs/id" },

@@ -1,0 +1,1014 @@
+{
+ "gate_id": "DEMO-DAY1-GATE",
+ "run_id": "day4-gate15-20260827-193753",
+ "readme_version": "0.24.0-draft",
+ "started_at": "2026-08-27T19:08:00+09:00",
+ "completed_at": "2026-08-27T19:37:53+09:00",
+ "verifier": {
+  "context": "구현 담당자와 다른 새 문맥의 DayGateVerifier 15차. 검토 대상 커밋 fc3181f, 작업 폴더는 M README.md 하나. README는 읽기만 했다.",
+  "is_separate_from_implementer": true
+ },
+ "source_snapshot": {
+  "file_count": 130,
+  "combined_sha256": "3effcdea305b9741cb389821ba7f33ae2a2707ce901b8c8663b374e88fbfdd84",
+  "files": [
+   {
+    "path": "backend/.env.example",
+    "sha256": "db38b9cc05ed99867ee98198ea408f5a1b04d79a0c63c9773b6bccb626ad802c"
+   },
+   {
+    "path": "backend/app/__init__.py",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+   },
+   {
+    "path": "backend/app/agents/__init__.py",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+   },
+   {
+    "path": "backend/app/agents/draft_writing.py",
+    "sha256": "646b8e3310a57d3086079e9b3b868c0dac6c4bf7aec88a31d01082977d17b77b"
+   },
+   {
+    "path": "backend/app/agents/fact_extraction.py",
+    "sha256": "b542781f5afbc6598ec2953a2fb4cf9dae5be60149802f90463ce4bc8caf9118"
+   },
+   {
+    "path": "backend/app/api/__init__.py",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+   },
+   {
+    "path": "backend/app/api/runs.py",
+    "sha256": "bf898478beb3a0897ad4a0295d6339cbc12fd806634c7bb2a0fab010119780ae"
+   },
+   {
+    "path": "backend/app/gates/__init__.py",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+   },
+   {
+    "path": "backend/app/gates/conflict_gate.py",
+    "sha256": "d9e249f718d50c41073cf92d602aae62142917c3a070228ad01974904c192f01"
+   },
+   {
+    "path": "backend/app/gates/draft_charset.py",
+    "sha256": "9649f29573d45751dc16863468b3e0aa52a19374fbd68cba40f7ad9250b56b12"
+   },
+   {
+    "path": "backend/app/gates/draft_export.py",
+    "sha256": "7022ce3f574ce2becbfc3a3b10320e48239627a94f263218328d3afe8f0a5f2a"
+   },
+   {
+    "path": "backend/app/gates/draft_gate.py",
+    "sha256": "70daa53545ec8b69b0ba367078ce3158b78a9dc1f2671e1e6771f70477fae407"
+   },
+   {
+    "path": "backend/app/gates/draft_normalizer.py",
+    "sha256": "396e2ff5094cb0a558e5d71d27a8178ab283c59414084c8302c93f06ad8c9da3"
+   },
+   {
+    "path": "backend/app/gates/draft_sections.py",
+    "sha256": "27dab6f296b1e99c81a0689bd35b49c3995bedfe9a778de8b735341056b0f625"
+   },
+   {
+    "path": "backend/app/gates/draft_template.py",
+    "sha256": "a8e848edadcc4fd4c9efbe734883a75bc8a59c55a17d2f17bba5b21e15e4055b"
+   },
+   {
+    "path": "backend/app/gates/draft_vocabulary.py",
+    "sha256": "f01ef01f5f97a3f2d1326469fab60928e9a7f1c37257dfe4af5924264051d652"
+   },
+   {
+    "path": "backend/app/gates/evidence_gate.py",
+    "sha256": "12cd2a7385e02beb39ebb42c3b296d918c5e85dc1f0c8648a914adb960b896b1"
+   },
+   {
+    "path": "backend/app/gates/final_text_gate.py",
+    "sha256": "793323e8bede216e0d27903e8776607acef3696f3024fe6d9c36c766ec4ef544"
+   },
+   {
+    "path": "backend/app/gates/input_gate.py",
+    "sha256": "69faf53ee7f63da367c6c510f85549b0edf181f0237f59ada7ed9cf06e3f824e"
+   },
+   {
+    "path": "backend/app/gates/numeral_reader.py",
+    "sha256": "58c36b25e7cad3bb2d554b1908439ef8b0b4c35b33f0470eb02f7a92aa0ae4d2"
+   },
+   {
+    "path": "backend/app/gates/protection.py",
+    "sha256": "a4e6975d82db3ce8db816e4e31bcf74583ad9590617bebbe02d650b5717338aa"
+   },
+   {
+    "path": "backend/app/gates/revision_gate.py",
+    "sha256": "7f9416120b8e2bdb12e902ce0217318f14d686754ee533ab97d845b4ae41d6fb"
+   },
+   {
+    "path": "backend/app/gates/source_role_gate.py",
+    "sha256": "36cd3c0c0d14119fa42b04ca73c6e39a7cd9271ee560b142019b975ceecbe8b8"
+   },
+   {
+    "path": "backend/app/harness/__init__.py",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+   },
+   {
+    "path": "backend/app/harness/article_parser.py",
+    "sha256": "1aec6e64b7495eb902bb4801cf4e6653c018003d4c79aea6d7c218aad6266d1e"
+   },
+   {
+    "path": "backend/app/harness/contract_loader.py",
+    "sha256": "a49a8ed1b9d204d4fdfdef91fab4d914f0ececca971bdd5630cbfa9a8d33383a"
+   },
+   {
+    "path": "backend/app/harness/contracts.py",
+    "sha256": "02bbddf2c47f55003126f058ce9d9a242191b8eb338d9a4895f995f9648662f2"
+   },
+   {
+    "path": "backend/app/harness/draft_contracts.py",
+    "sha256": "80d4db00fc6ace89a352cf5bbeba3fee7e3c14d6957a98b3f34ccf0153ec3c64"
+   },
+   {
+    "path": "backend/app/harness/fact_contracts.py",
+    "sha256": "21c9e191ec8cf65ac29d6ff08a202f1f4308ec71a7560565a0dd4bf722b411ae"
+   },
+   {
+    "path": "backend/app/harness/legal_contracts.py",
+    "sha256": "907626b58a7c0e40ee611c36e332cc878a32d243da868b6c79a6a2bfcb1ad930"
+   },
+   {
+    "path": "backend/app/harness/orchestrator.py",
+    "sha256": "13d690f669596fcd5e95c96d5213e0e376c10ea82ded0c381b81ba18f53f39dd"
+   },
+   {
+    "path": "backend/app/harness/review_contracts.py",
+    "sha256": "158fb1224984499e6cf76dd1ce007b9355b1f760d9fe6f4e323cb0254285d28f"
+   },
+   {
+    "path": "backend/app/harness/runtime.py",
+    "sha256": "adb8394f5c16e73ad4969e14f62940d7a82c6177fb7f328422e1cbd417a24b2c"
+   },
+   {
+    "path": "backend/app/harness/source_normalizer.py",
+    "sha256": "dd1d9513b6598f94fd7f8430283c38270211b5341c4143898069869839f9713d"
+   },
+   {
+    "path": "backend/app/harness/states.py",
+    "sha256": "a75afd52f696b966b507326ba31e1dc42976986ec50b1dfb015cd2c428adad03"
+   },
+   {
+    "path": "backend/app/infrastructure/__init__.py",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+   },
+   {
+    "path": "backend/app/infrastructure/fake_agents.py",
+    "sha256": "39f5f56c50095ec3b4e00ad63c50ff22ec503705c3f8f78a6f87c4200673c355"
+   },
+   {
+    "path": "backend/app/infrastructure/fake_draft.py",
+    "sha256": "04fe02b11f89c704872ceec7ca5fd924ed96c9a19f905fb3488454735e7f67ff"
+   },
+   {
+    "path": "backend/app/infrastructure/fake_revision.py",
+    "sha256": "9f49e814b809967970f9a902fa7df118f51021658fc4a9f517e783991c527d46"
+   },
+   {
+    "path": "backend/app/infrastructure/model_gateway.py",
+    "sha256": "ec8804f1b6949a0a6dc53b04cbb279946140535fd8728737eb4791f128eace1e"
+   },
+   {
+    "path": "backend/app/infrastructure/run_store.py",
+    "sha256": "518fea31c2af082ca83333c03bcf6ae4563131135dda07455d67cc337fac984a"
+   },
+   {
+    "path": "backend/app/main.py",
+    "sha256": "e5b6bb9719b1acc89f337e4d7c569fd2d836d95c3c9049c598d1ccf408ce6c76"
+   },
+   {
+    "path": "backend/app/writing_contracts/assembly_law_amendment_v1/contract.yaml",
+    "sha256": "9065fa6d7d3f31d8d487517ef43c770a1003aec034d099ab21eadf579a5af6bc"
+   },
+   {
+    "path": "backend/app/writing_contracts/assembly_law_amendment_v1/profile.yaml",
+    "sha256": "29c13548a7504677bf12dd80016c989071d8fb1b37cd557527b812f5237a507c"
+   },
+   {
+    "path": "backend/app/writing_contracts/assembly_law_amendment_v1/style.yaml",
+    "sha256": "13434349ee3564b2fd389889eb4e1cd286ca4d618466435ceef4fc57dd7cb9ba"
+   },
+   {
+    "path": "backend/app/writing_contracts/assembly_law_amendment_v1/template.yaml",
+    "sha256": "0fe4f17dd0d01e1cb6255fd4e541a102ccedde6891f9a6933749b7e5e980c7ef"
+   },
+   {
+    "path": "backend/app/writing_contracts/assembly_law_amendment_v1/validation.yaml",
+    "sha256": "fa672e462157407ab4edb70965cbbf34ce69febdc4e87a2c079419fb0b2246bf"
+   },
+   {
+    "path": "backend/pyproject.toml",
+    "sha256": "c68ce8bca861b20f51d72c0a9aa7128bd400661cba47051b2e464036f87e4c3b"
+   },
+   {
+    "path": "frontend/src/api/client.ts",
+    "sha256": "3c0e7b620dd2f1b01e537b84e1fa08a0fc5a044f67888628f2eb8289c0da5d24"
+   },
+   {
+    "path": "frontend/src/App.test.tsx",
+    "sha256": "91dfd06cfc515166d41e9b318febd93a998588e50e08e925ead6e11fbc7af786"
+   },
+   {
+    "path": "frontend/src/App.tsx",
+    "sha256": "4b85d966b3723802629bbbbb710b08aaac1951952d504743c60cbe69ff887383"
+   },
+   {
+    "path": "frontend/src/chat/conversation.ts",
+    "sha256": "c2db631986f7f4bf711a5915de7f46d4d65d7784dcc690b36a81ad5a1a536f96"
+   },
+   {
+    "path": "frontend/src/chat/split.ts",
+    "sha256": "3f043cf79bab578b291711748cf6b5ea8559e368f41fae5cdbe75003c4c2771c"
+   },
+   {
+    "path": "frontend/src/main.tsx",
+    "sha256": "8070aefba6d43f5300a919f02adb3071318bee89f10cffe07c64df74e85a1635"
+   },
+   {
+    "path": "frontend/src/screens/ChatScreen.tsx",
+    "sha256": "407cb7f4145e6c85f733416cb6e683fbfc90459da6d532d4bfd548030b75a62e"
+   },
+   {
+    "path": "frontend/src/screens/DraftPanel.test.tsx",
+    "sha256": "1896547f5772b21643bf2005499e7e6e14e3f8a208c41091f962fd08df4949bc"
+   },
+   {
+    "path": "frontend/src/screens/DraftPanel.tsx",
+    "sha256": "d4f7f590eff6f3fff4d8c1e4fc519d59fc0684f24488daffe209505d16387f46"
+   },
+   {
+    "path": "frontend/src/styles.css",
+    "sha256": "fedbd9fa8702cd6f1de71a5062cfa5aa64f53ba9289c8f9bf07983b39dd17c93"
+   },
+   {
+    "path": "frontend/src/test-setup.ts",
+    "sha256": "977afde26bba6a51325908cd7713cbfdc87d18f06b78b237c8f364c44864b7de"
+   },
+   {
+    "path": "frontend/src/types.ts",
+    "sha256": "0b762482e4d15cdea283ea66e82e8c4ce78388b836a72b1961a161c08571cba7"
+   },
+   {
+    "path": "tests/test_day1_gate.py",
+    "sha256": "bd7b2b75f4485f113c6a84ec86de6421c8985c06fdc8538187c60e5189aeeeb5"
+   },
+   {
+    "path": "tests/test_draft.py",
+    "sha256": "dc32dafbbae21e201160bf2ff05da743ebf6ec75c3efd1159d84bc35e670ea1e"
+   },
+   {
+    "path": "tests/test_fact_extraction.py",
+    "sha256": "92db0858571712903a8b278a8d44cb4532e01620961c5848ba3273d5f4b814d3"
+   },
+   {
+    "path": "tests/test_harness_flow.py",
+    "sha256": "2e8482fbdd3a7e2871c54221acb9578bda92a43f553533f5fa015ef842af53cd"
+   },
+   {
+    "path": "tests/test_review_api.py",
+    "sha256": "a20e29703da9fb1d9ebdb1c9a699cf0ea46a96e28dfc0381853649f5a4729919"
+   },
+   {
+    "path": "tests/test_revision.py",
+    "sha256": "d27efc4ba404147c688bdae7bdd408825dbaa99b2377336c5f822e454d9810ed"
+   },
+   {
+    "path": "scripts/verify-day1.ps1",
+    "sha256": "43052aa77675dea40d1a449c037a140d6c22c67e29b1768c74e3ee6e61ca7706"
+   },
+   {
+    "path": "test_sets/ACTUAL-BLOCK-002/manifest.json",
+    "sha256": "70603a1e966361ebe6ded9e469e2d1260b133d67693be670d44c5c699989c174"
+   },
+   {
+    "path": "test_sets/ACTUAL-BLOCK-002/oracle.md",
+    "sha256": "400cef96b5d463cac7cc04c97affe058923c3a5e0fccfb63b8a41723ffda4fa0"
+   },
+   {
+    "path": "test_sets/ACTUAL-BLOCK-002/sources/01_press_statement.md",
+    "sha256": "994c5423fe1a49d693125ea629a9fd41d0ab587ad266e674e37c426a800dfd5d"
+   },
+   {
+    "path": "test_sets/ACTUAL-BLOCK-002/sources/02_original_bill.md",
+    "sha256": "a942dc70d417ddfaf143c6c77c503adc2a728def486a4c932864aa57f4674d68"
+   },
+   {
+    "path": "test_sets/ACTUAL-BLOCK-002/sources/03_alternative_relation.md",
+    "sha256": "8cd17673fba7eac36476f06d09da3af7867cedc0ea64c7f66d78b46eaf8299ac"
+   },
+   {
+    "path": "test_sets/ACTUAL-BLOCK-002/sources/04_plenary_vote.md",
+    "sha256": "863ec28ceddb298a76dae1a17289eef1c68323da739b7948087757e0a40e7e3c"
+   },
+   {
+    "path": "test_sets/ACTUAL-BLOCK-002/sources/05_current_law.md",
+    "sha256": "45548d0226a56f664125261129684e1d8ed30795b05c7eb7a843658b43b8957b"
+   },
+   {
+    "path": "test_sets/ACTUAL-BLOCK-002/sources/06_alternative_final_text.md",
+    "sha256": "909308a5a5dc07adc878d6179cc85928ac4432bfb8cec56772341790bab1d645"
+   },
+   {
+    "path": "test_sets/ACTUAL-PASS-001/manifest.json",
+    "sha256": "33366e835697777e1c7d0b095d2ed27e2dd228a4fed6a595f9c582609ca819a1"
+   },
+   {
+    "path": "test_sets/ACTUAL-PASS-001/oracle.md",
+    "sha256": "060e81d858bde2c03d15d6520d5e3cd74d2b735e21f871ca8b7e6e14fefb9c2f"
+   },
+   {
+    "path": "test_sets/ACTUAL-PASS-001/sources/01_bill_information.md",
+    "sha256": "43606a635d1463fd195d652fc40cdfc5df3443f85c9388764fb59a19c589b7d1"
+   },
+   {
+    "path": "test_sets/ACTUAL-PASS-001/sources/02_current_provision.md",
+    "sha256": "20b259754e6c765b1b9e51752dc9f70e5e9c95cc31ca1e7d29ac174f5a1220bc"
+   },
+   {
+    "path": "test_sets/ACTUAL-PASS-001/sources/03_plenary_vote_result.md",
+    "sha256": "a0b4421236c77312a06ebb7dca555608fe691184729fe61a502d418f7970b3f6"
+   },
+   {
+    "path": "test_sets/ACTUAL-PASS-001/sources/04_introduced_text.md",
+    "sha256": "7ad623ccc620fdc834af94d2ea2515f145fbe7174d64336f85d1f6ab2c9a97dd"
+   },
+   {
+    "path": "test_sets/catalog.json",
+    "sha256": "c0a75d8d0281399287d88bf30fde18e2afde25333d28b8e7b2d3150f6b5f919a"
+   },
+   {
+    "path": "test_sets/CHECKSUMS.sha256",
+    "sha256": "34e30c211be2c160a441aa9698f624863dffcd10e769b941caf3c6f8e9cf1d4f"
+   },
+   {
+    "path": "test_sets/draft_candidate.schema.json",
+    "sha256": "5bc21d6126ce2028570298620f02304cdea101aa9f9565d60f766bd9fc24d641"
+   },
+   {
+    "path": "test_sets/fact_extraction_result.schema.json",
+    "sha256": "50632cdfae2a7a2a9d5f68df2b2dd2abcbe404d5c65c33900a6189b71e0c1d8d"
+   },
+   {
+    "path": "test_sets/fixture.schema.json",
+    "sha256": "de4c0096442622c90d1b41bd02bd00ee6b8023c9078e6c9fcd6b04959f2f5ead"
+   },
+   {
+    "path": "test_sets/mutation.schema.json",
+    "sha256": "630c76a3ca3d47ff9ea5da1c0cdc2afa8ac521400b339939c1c32562265bc2bd"
+   },
+   {
+    "path": "test_sets/README.md",
+    "sha256": "f70d7e7dd93f0ce3cc1bc00de53d1be022d26318b7e11d1aced7a056eebe4f47"
+   },
+   {
+    "path": "test_sets/SYN-RISK-001/manifest.json",
+    "sha256": "253105a8978654a3598e15d64fae35c1c6d993c5243d601f73a9cc21b743c0e0"
+   },
+   {
+    "path": "test_sets/SYN-RISK-001/mutations/count_conflict.json",
+    "sha256": "ef2d6c3bf7acb9dae833facf8b066a5391d7b31f40f1b35641d42c40213e7069"
+   },
+   {
+    "path": "test_sets/SYN-RISK-001/mutations/date_conflict.json",
+    "sha256": "3750bd59f735c6b2ceffe554ebc9e6bc7e2ac237352cf0c7b8eacae16856bac8"
+   },
+   {
+    "path": "test_sets/SYN-RISK-001/mutations/weekday_mismatch.json",
+    "sha256": "89b48b660761389292374f4eb22565c10346fa62153f71feb3950064355fc526"
+   },
+   {
+    "path": "test_sets/SYN-RISK-001/oracle.md",
+    "sha256": "bbce2d7cde064b0ec08b65bcadb1b820ed3eff58db8d964ca73864dc39f128de"
+   },
+   {
+    "path": "test_sets/SYN-RISK-001/sources/01_bill_information.md",
+    "sha256": "c519c307a4bab6120bd3edfa869ac00f31642aed3b7b20d09694345b485446a3"
+   },
+   {
+    "path": "test_sets/SYN-RISK-001/sources/02_current_provision.md",
+    "sha256": "c4776ba6049b6a883e312ccdd0077406d2a3ed33b9d5f6842524e13fd8d9c20a"
+   },
+   {
+    "path": "test_sets/SYN-RISK-001/sources/03_plenary_vote.md",
+    "sha256": "38a64524a7063043ef635c715b045f50fcb8971c31e3c2cf99ec704279905c96"
+   },
+   {
+    "path": "test_sets/SYN-RISK-001/sources/04_final_text.md",
+    "sha256": "15c49424979b3178e870be89f39cf19ea3987c9c3f2016e9e2927665ee95d0b4"
+   },
+   {
+    "path": "test_sets/SYN-RISK-001/sources/05_independent_vote_notice.md",
+    "sha256": "9d9e8762b825e7a7dd1ed1118132185bc5ab7b95ea0b969cdf7cfe219f214948"
+   },
+   {
+    "path": "test_sets/SYN-RISK-002/manifest.json",
+    "sha256": "98a4de23e06b2339aac0294f2f97723a4895c9bda4dc30ca2ef94c0730ab84b1"
+   },
+   {
+    "path": "test_sets/SYN-RISK-002/mutations/agenda_as_final.json",
+    "sha256": "6b34700f2f23619e1cbb52fdae1b0b649948862e8415ae3db277c13becffe82b"
+   },
+   {
+    "path": "test_sets/SYN-RISK-002/mutations/speech_as_vote.json",
+    "sha256": "6bd0eee8064d9825ab214bbf2cdc8f43e7a6fd1d430a331ebd776a2a964bfdd4"
+   },
+   {
+    "path": "test_sets/SYN-RISK-002/oracle.md",
+    "sha256": "9b4ee5f3cee42e542b54134f6bcda66cd83349c7eb1ee7cea71f847a84dbd76f"
+   },
+   {
+    "path": "test_sets/SYN-RISK-002/sources/01_bill_information_pending.md",
+    "sha256": "04860828abfb9e39b727e132d0315738e25e01652ac1b3a3e5879a4dfc17859f"
+   },
+   {
+    "path": "test_sets/SYN-RISK-002/sources/02_current_provision.md",
+    "sha256": "2db8764f3029a3f34f2c945c15f41d412014674ebc1db41f117b01f72165e825"
+   },
+   {
+    "path": "test_sets/SYN-RISK-002/sources/03_plenary_speech.md",
+    "sha256": "39916ab06caa15eab6632f3b4ca78e906326a09b6a8c699aba8352f6a0023f8d"
+   },
+   {
+    "path": "test_sets/SYN-RISK-002/sources/04_vote_result.md",
+    "sha256": "aa23615460563a9121482e5b8dae0cb45569496793375cc377dcec25cfe0ebb9"
+   },
+   {
+    "path": "test_sets/SYN-RISK-002/sources/05_agenda_text.md",
+    "sha256": "c20b693f90e3c72ba307827e2b8dc339de56c85f9ac1137b973baaa7e7e6f01f"
+   },
+   {
+    "path": "test_sets/SYN-RISK-002/sources/06_modified_final_text.md",
+    "sha256": "2508aa6c11c1b10d1123a2fe4fb7986cd41f04c12996712306a4319d83535523"
+   },
+   {
+    "path": "test_sets/SYN-RISK-003/candidates/baseline_draft.json",
+    "sha256": "d260ecf71f1cabd5bc2ef77ff17664e4ef32e24c81d395da661817b9cda7d776"
+   },
+   {
+    "path": "test_sets/SYN-RISK-003/candidates/baseline_fact_extraction_result.json",
+    "sha256": "91588ac2e6cd5c103ff0d87f2ea8fee49b3952d243bba81b3ea01b8e34ab3c48"
+   },
+   {
+    "path": "test_sets/SYN-RISK-003/manifest.json",
+    "sha256": "93f2f42f91dcc2a4ad25b25d681e1ed9f3f749c0249f10f6e2e0577ce2301f97"
+   },
+   {
+    "path": "test_sets/SYN-RISK-003/mutations/already_effective.json",
+    "sha256": "443887e836e9e463f6c0c1fcd27055faa1476f590e3a8d6f31b7188ee8f8f1f5"
+   },
+   {
+    "path": "test_sets/SYN-RISK-003/mutations/calculate_from_vote.json",
+    "sha256": "c6937b2c23441b5e0f2f1ff76468404f6ccfc139ae512b6f7cdcdbf08b69a5e5"
+   },
+   {
+    "path": "test_sets/SYN-RISK-003/mutations/legal_effect_hallucination.json",
+    "sha256": "176241649924898bdecdfd6901eaab3c9eac65a541b61ee0aefe2e75232d3eb2"
+   },
+   {
+    "path": "test_sets/SYN-RISK-003/mutations/merge_effective_dates.json",
+    "sha256": "3a1ae9e56894bd69f1e50a46c7f3bd4e8f74da324424fc653a596d2f874811eb"
+   },
+   {
+    "path": "test_sets/SYN-RISK-003/mutations/next_procedure_hallucination.json",
+    "sha256": "c70802f0a16dfd79ee4ab13ed61ff06bbf5f19db0e800bcf9a1daa368d40d0a7"
+   },
+   {
+    "path": "test_sets/SYN-RISK-003/mutations/omit_application.json",
+    "sha256": "43df797164147ccb92aeb16c52ae190d2fcbb6b5c61cc95c948fb6683dd35b10"
+   },
+   {
+    "path": "test_sets/SYN-RISK-003/mutations/omit_transition.json",
+    "sha256": "f190431afc76f484138509fa695d65c680806aa8b59c231b002e0ec7fd63fb15"
+   },
+   {
+    "path": "test_sets/SYN-RISK-003/mutations/original_as_passed.json",
+    "sha256": "8d21f497ba477d850dc7b7684edef4afbb570648038dcec30bac56035da8d88d"
+   },
+   {
+    "path": "test_sets/SYN-RISK-003/mutations/revision_delete_supplement.json",
+    "sha256": "6543014752e5747549c78dd3515eef12a7f2c6b23f65e72c58c8630ff295240d"
+   },
+   {
+    "path": "test_sets/SYN-RISK-003/mutations/revision_fix_effective_date.json",
+    "sha256": "fb7f3b5750ab41eb6ee9faf00189795b9d4e6d36bb75e8149140a5973a0db651"
+   },
+   {
+    "path": "test_sets/SYN-RISK-003/mutations/revision_original_as_passed.json",
+    "sha256": "dd6665d90c4a140176bc4973a9f234488463c70a02e8f7aa281d1880e7f59e9d"
+   },
+   {
+    "path": "test_sets/SYN-RISK-003/mutations/revision_remove_draft.json",
+    "sha256": "e0fce360fe72e1764d1b3de070a52d1f98b75d9545bc36dd7bde04288658093b"
+   },
+   {
+    "path": "test_sets/SYN-RISK-003/oracle.md",
+    "sha256": "6f1f0e29acfd8a118180765cae7f1cba5f3e585a837617c198f881a4aa8579bb"
+   },
+   {
+    "path": "test_sets/SYN-RISK-003/sources/01_original_bill.md",
+    "sha256": "6d96b8bfe01d5ea07b28cd0611556a462b13bb5d8b85badda5ec4e3ad802a999"
+   },
+   {
+    "path": "test_sets/SYN-RISK-003/sources/02_committee_alternative.md",
+    "sha256": "74278e48b7a31f8a56c6ed38ba715e0b8078910d1fbf4c47483ba9d6221bcd4c"
+   },
+   {
+    "path": "test_sets/SYN-RISK-003/sources/03_current_provisions.md",
+    "sha256": "4a391e8854b939f5f8024ecc0b386a7fdd0b84b91484cd3da4e3974cb2788bb8"
+   },
+   {
+    "path": "test_sets/SYN-RISK-003/sources/04_plenary_vote.md",
+    "sha256": "44d8556af25630b6aeb4c46886a5d28a5485596b9b94e8bdb464f9a33dede717"
+   },
+   {
+    "path": "test_sets/SYN-RISK-003/sources/05_plenary_final_text.md",
+    "sha256": "940e1a7b7f3a3e4764c2333f5ec7b8a506f1433060a9d40163313246125cf433"
+   },
+   {
+    "path": "test_sets/SYN-RISK-003/sources/06_alternative_relation.md",
+    "sha256": "af446a9e7cf71cc5ca2fae0187b4c76f149452ed38d232dc87c70b840e448168"
+   }
+  ]
+ },
+ "verdict": "BLOCKED",
+ "pass_bar": {
+  "file": "verification/day4-pass-bar.md",
+  "changed_by_verifier": false,
+  "rows": 18,
+  "results": [
+   {
+    "pass_bar_id": "F1",
+    "title": "초안의 수·날짜·기관명·인명이 원장에 있는가",
+    "status": "PASS",
+    "evidence": "기준 초안의 수 [6,7,10,26,2025,2207285]. 원장·부칙 밖의 수 0건(6은 개정문 원문 제7조제6항에서 옴). 없는 표결 수 COUNT_NOT_IN_LEDGER+NUMBER_NOT_IN_LEDGER, 한글 수사 NUMBER_NOT_IN_LEDGER, 없는 날짜 DATE_NOT_IN_LEDGER, 없는 기관·인명 WORD_NOT_IN_LEDGER. 5종 전부 dv=0"
+   },
+   {
+    "pass_bar_id": "F2",
+    "title": "자료에 없는 인용문을 실제 발언처럼 쓰지 않는가",
+    "status": "PASS",
+    "evidence": "지어낸 따옴표 발언 QUOTE_NOT_IN_SOURCE+STATEMENT_WITHOUT_SOURCE, 자료 낱말로 조립한 발언 QUOTE_WITHOUT_DOCUMENT, 따옴표 없는 발언 STATEMENT_WITHOUT_SOURCE. 3종 전부 dv=0"
+   },
+   {
+    "pass_bar_id": "F3",
+    "title": "충돌하는 값 중 하나를 경고 없이 고르지 않는가",
+    "status": "PASS",
+    "evidence": "SYN-RISK-001 자체 변조 파일 그대로 — date_conflict -> subject plenary_decided_on, count_conflict -> subject vote_yes_count. 둘 다 NEEDS_INPUT dv=0. 어느 값도 대신 고르지 않는다"
+   },
+   {
+    "pass_bar_id": "F4",
+    "title": "초안의 각 사실을 fact_id로 되짚을 수 있는가",
+    "status": "PASS",
+    "evidence": "기준 초안에서 근거를 되짚을 수 없는 문장 0건. F-없음을 가리키면 FACT_REFERENCE_UNKNOWN+CLAIM_WITHOUT_FACT dv=0, 근거를 딴 것으로 바꾸면 CLAIM_VALUE_NOT_ANCHORED dv=0"
+   },
+   {
+    "pass_bar_id": "G1",
+    "title": "초안에 DRAFT / 내부 검토용 표시가 있는가",
+    "status": "PASS",
+    "evidence": "draft_label='DRAFT / 내부 검토용'. 지우거나 최종본으로 바꾸면 DRAFT_LABEL_REQUIRED dv=0"
+   },
+   {
+    "pass_bar_id": "G2",
+    "title": "최종본·승인본·게시·배포 기능이 없는가",
+    "status": "PASS",
+    "evidence": "최종본·배포용·승인본 3종 모두 NO_FINAL_OR_APPROVED_LABEL dv=0"
+   },
+   {
+    "pass_bar_id": "G3",
+    "title": "필수 항목 누락인데 초안이 나오지 않는가",
+    "status": "PASS",
+    "evidence": "문의처 CONTACT_REQUIRED, 자료 기준일 BASIS_DATE_REQUIRED, 제목·리드 REQUIRED_SECTION_MISSING+REQUIRED_TEXT_EMPTY, 본문 전부 비움 REQUIRED_TEXT_EMPTY. 5종 전부 dv=0"
+   },
+   {
+    "pass_bar_id": "G4",
+    "title": "핵심 요약이 2~3개인가",
+    "status": "PASS",
+    "evidence": "기준 초안 요약 2개. 1개·4개 모두 dv=0"
+   },
+   {
+    "pass_bar_id": "H1",
+    "title": "본회의 의결을 공포·시행·법 개정 완료로 표현하지 않는가",
+    "status": "FAIL",
+    "evidence": "고정 자료 ACTUAL-PASS-001 4종을 한 글자도 바꾸지 않고 발표 주체도 그대로 둔 채, AI 자리에 '이 법은 법률이 되었다.' 한 문장을 붙이면 state=REVIEW_READY draft_version=1 BLOCKING=[] finding=[]로 나간다. 화면(_draft_view)의 리드·P-01과 내려받기 파일(to_markdown) 두 줄에 실린다. 같은 초안 HS-02에 '효력 상태: 아직 법률 아님'이 함께 있다. 같은 무리 16종. 원인: H1을 지키는 것이 EFFECT_STEMS 9개 금지 목록 하나뿐이고, 허용 낱말 FORM_WORDS의 '법률'과 PREDICATES의 '되'가 재료를 직접 준다"
+   },
+   {
+    "pass_bar_id": "H2",
+    "title": "부칙 근거 없이 시행일을 계산하지 않는가",
+    "status": "PASS",
+    "evidence": "부칙 근거 없는 시행일·일부에서 전체로는 EFFECTIVE_DATE_NEEDS_RULE, 부칙 근거를 달고 없는 날짜·다음 달 계산은 EFFECTIVE_DATE_NOT_IN_RULE. 4종 전부 dv=0"
+   },
+   {
+    "pass_bar_id": "H3",
+    "title": "최종 의결문을 근거 없이 고르지 않는가",
+    "status": "PASS",
+    "evidence": "사람 확인 없이 돌리면 state=NEEDS_INPUT dv=0, subject FINAL_TEXT_COMPLETENESS_CONFIRMATION_REQUIRED"
+   },
+   {
+    "pass_bar_id": "H4",
+    "title": "조항 계산기가 원문 근거 없는 조문 이동을 만들지 않는가",
+    "status": "PASS",
+    "evidence": "본문 8종 — 셀 수 있는 4종은 ['제7조'] 또는 ['제7조','제9조'], 셀 수 없는 4종(동조 참조·조문 범위·별표·조문 이름바꾸기)은 ArticleParseError UNSUPPORTED_SYNTAX로 멈춤. 집합 밖 조문 2종 ARTICLE_NOT_IN_CHANGED_SET dv=0, 나간 것 0건"
+   },
+   {
+    "pass_bar_id": "I1",
+    "title": "SYN-RISK-001 3종 변조의 draft_version이 모두 0인가",
+    "status": "PASS",
+    "evidence": "자료가 들고 있는 변조 파일 그대로 — date_conflict NEEDS_INPUT dv=0, count_conflict NEEDS_INPUT dv=0, weekday_mismatch NEEDS_INPUT dv=0"
+   },
+   {
+    "pass_bar_id": "I2",
+    "title": "ACTUAL-BLOCK-002가 NEEDS_INPUT이고 초안 0인가",
+    "status": "PASS",
+    "evidence": "state=NEEDS_INPUT draft_version=0 actual_model_calls=0 estimated_cost_usd=0.0 subject=UNSUPPORTED_SCOPE"
+   },
+   {
+    "pass_bar_id": "I3",
+    "title": "ACTUAL-PASS-001의 draft_version이 1 이상인가",
+    "status": "PASS",
+    "evidence": "state=REVIEW_READY draft_version=1. 조문 ['제7조'], 부칙 ['SR-01']이 화면 문단 HS-04에 나온다. 예외를 없앴는데도 정상 초안은 그대로 나온다"
+   },
+   {
+    "pass_bar_id": "J1",
+    "title": "3일차 합격선 A1~E2 전 항목이 그대로 통과하는가",
+    "status": "PASS",
+    "evidence": "verify-day1.ps1 판정 PASS. D1G-01~D1G-07 7개 전부 PASS, blockers 0건, external_api_calls 0, cost 0. D1G-03은 http://127.0.0.1:8765 화면에서 직접 확인 — 보도 목적·공식 자료(한 덩이 붙이면 2건으로 나눔)·공개 범위(버튼 둘)·자료 확인 기준일(2025-10-26을 직접 적어 그대로 받음) 넷 다 사람이 답할 수 있다. 14차에 깨졌던 것이 되살아났다"
+   },
+   {
+    "pass_bar_id": "J2",
+    "title": "검증 중 실제 외부 AI 호출이 0회·0달러인가",
+    "status": "PASS",
+    "evidence": "모든 실행에서 actual_model_calls=0, estimated_cost_usd=0.0, FakeModelGateway.is_fake=True"
+   },
+   {
+    "pass_bar_id": "J3",
+    "title": "자동 호출이 한도 7회를 넘지 않는가",
+    "status": "PASS",
+    "evidence": "가짜 AI를 가로채 세었다. 실행당 2회 — FactExtractionAgent, DraftWritingAgent. 한도 7회 초과 0건"
+   }
+  ]
+ },
+ "checks": [
+  {
+   "check_id": "G15-01",
+   "title": "기준선 — 시험 463개 통과",
+   "status": "PASS",
+   "commands": [
+    "cd backend && python -m pytest ../tests -q"
+   ],
+   "evidence": "463 passed, 3 warnings in 15.44s"
+  },
+  {
+   "check_id": "G15-02",
+   "title": "기준선 — 프런트 14개 통과·typecheck·build",
+   "status": "PASS",
+   "commands": [
+    "cd frontend && npx tsc --noEmit",
+    "cd frontend && npm test -- --run",
+    "cd frontend && npm run build"
+   ],
+   "evidence": "tsc exit=0 / Test Files 2 passed (2), Tests 14 passed (14), vitest exit=0 / build exit 0 (verify-day1.ps1 D1G-06)"
+  },
+  {
+   "check_id": "G15-03",
+   "title": "14차 재현 입력 11종",
+   "status": "PASS",
+   "commands": [
+    "python scratchpad/repro14.py"
+   ],
+   "evidence": "B1·B4·B5·B6a·O2·목록 밖 어미 5종·창 밖 3종 전부 draft_version=0. 뚫린 것 0건. 원장 값에 효력 어간을 심으면 기준 초안 자체가 FAILED DRAFT_BLOCKED로 안 나온다"
+  },
+  {
+   "check_id": "G15-04",
+   "title": "새 우회 A — 효력 어간 숨기기 20종",
+   "status": "PASS",
+   "commands": [
+    "python scratchpad/sweep15.py"
+   ],
+   "evidence": "한자 3종 CHARACTER_NOT_ALLOWED, 전각·호환자모·초중종성 분해·보이지 않는 문자·결합 문자·한글 채움 문자는 sanitize가 NFKC/NFC로 되돌려 PREMATURE_EFFECT_CLAIM, 로마자 섞기 WORD_NOT_IN_LEDGER, 공백·점·가운뎃점·따옴표·괄호·숫자·줄바꿈·탭 끼우기 전부 막힘. 20종 전부 dv=0"
+  },
+  {
+   "check_id": "G15-05",
+   "title": "새 우회 B — AI 자리 밖으로 빠져나가기 19종",
+   "status": "PASS",
+   "commands": [
+    "python scratchpad/sweepB.py"
+   ],
+   "evidence": "HS- 이름표 흉내·section_kind 조작은 Harness가 문단을 걷어내 초안에 글이 안 실림(실림=False). 소문자·공백 변형은 IDENTIFIER_SHAPE_INVALID / SECTION_KIND_UNKNOWN. 제목·리드·요약·주장·인용문·붙임·빈칸·문의처·기준일 전부 dv=0. generated_at·validation_finding_ids·next_procedure_fact_ids 세 칸만 검사를 안 받지만 _draft_view와 to_markdown이 내보내지 않아 사람에게 닿지 않는다(남은 일)"
+  },
+  {
+   "check_id": "G15-06",
+   "title": "새 우회 C·D — 효력 어간 9개를 안 쓰고 앞지르기",
+   "status": "FAIL",
+   "commands": [
+    "python scratchpad/sweepC.py",
+    "python scratchpad/sweepD.py",
+    "python scratchpad/h1_proof.py"
+   ],
+   "evidence": "16종이 dv=1 BLOCKING=[]로 나갔다. 대표: '이 법은 법률이 되었다.' 반대로 공표·반포·공고·발령·성립·실시·집행·유효·개시·입법 완료·법제화·관보는 WORD_NOT_IN_LEDGER로, 발효일·시행령은 어간을 품어 PREMATURE_EFFECT_CLAIM으로 막힌다"
+  },
+  {
+   "check_id": "G15-07",
+   "title": "예외를 없앤 대가 — I3와 거짓 차단",
+   "status": "PASS",
+   "commands": [
+    "python scratchpad/i3_cost.py",
+    "python scratchpad/fixtures.py"
+   ],
+   "evidence": "ACTUAL-PASS-001 dv=1로 살아 있다. 다른 고정 자료 넷은 초안 만들기 전에 멈춘다(원래 그렇다). 다만 개정문 본문이 '…로 개정한다'이면 본문 P-02가 PREMATURE_EFFECT_CLAIM으로 막히고, 발표 주체에 의안 이름이 들어가도 리드가 막힌다 — 거짓 차단이라 차단이 아니고 남은 일(상)"
+  },
+  {
+   "check_id": "G15-08",
+   "title": "J1 — verify-day1.ps1",
+   "status": "PASS",
+   "commands": [
+    "powershell -ExecutionPolicy Bypass -File C:\\policy_agent\\scripts\\verify-day1.ps1"
+   ],
+   "evidence": "판정 PASS. D1G-01 필수 파일 29개·모듈 로드 exit 0 / D1G-05 파일 5개·contract 읽음 / D1G-06 pytest·typecheck·vitest·build 전부 exit 0 / D1G-02 health 200·자기 프로세스만 종료 / D1G-03 네 입력 존재·빈 입력 NEEDS_INPUT 초안 0·쿠키 없는 요청 403·경로 탈출 6종 차단 / D1G-04 가짜 게이트웨이·Run ID 형식·멱등 / D1G-07 API 키 0건·.env 접근 0건·wildcard CORS 0건. 보고서 day1-20260827-193234.json/.md 생성. 남긴 서버 0개"
+  },
+  {
+   "check_id": "G15-09",
+   "title": "D1G-03 화면에서 실제 확인",
+   "status": "PASS",
+   "commands": [
+    "http://127.0.0.1:8765 에서 대화를 끝까지 진행"
+   ],
+   "evidence": "보도 목적(첫 줄로 받음)·공식 자료(한 덩이를 붙이면 '자료 2건으로 읽었습니다')·공개 범위(버튼 '네, 공개 자료입니다'/'내부·엠바고 자료예요')·자료 확인 기준일('2025-10-26'을 직접 적어 그대로 받음) 넷 다 사람이 실제로 답할 수 있다. 자료가 모자라자 지어내지 않고 '최종 의결문을 확정할 공식 자료가 부족합니다'로 멈췄다"
+  },
+  {
+   "check_id": "G15-10",
+   "title": "시험 수가 흔들리지 않는가 — 12번 연속",
+   "status": "PASS",
+   "commands": [
+    "cd backend && (12회) python -m pytest ../tests -q"
+   ],
+   "evidence": "run1~run12 모두 463 passed. 서로 다른 수 0개. 원인이던 _PHRASE_CACHE는 글 자체를 열쇠로 쓰고(draft_gate.py:439 key = haystack), id로 되돌리면 시험 1개가 죽는다(T19)"
+  },
+  {
+   "check_id": "G15-11",
+   "title": "회귀 — 10~14차까지 막은 25종",
+   "status": "PASS",
+   "commands": [
+    "python scratchpad/regress.py"
+   ],
+   "evidence": "되살아난 구멍 0건. 25종 전부 dv=0"
+  },
+  {
+   "check_id": "G15-12",
+   "title": "아무것도 지키지 못하는 시험",
+   "status": "FAIL",
+   "commands": [
+    "python scratchpad/make_benign.py",
+    "python scratchpad/vacuous.py"
+   ],
+   "evidence": "대조군 306 passed, 공격을 멀쩡한 문장으로 바꾼 복사본 118 failed 188 passed. 공격 표 원소 205개 중 안지킴 87 · 지킴 118. 14차와 같은 87개다"
+  },
+  {
+   "check_id": "G15-13",
+   "title": "변조 시험 26곳",
+   "status": "FAIL",
+   "commands": [
+    "python scratchpad/mutate.py",
+    "python scratchpad/mutate2.py"
+   ],
+   "evidence": "무보호 6곳 — T26 SAFE_WORDS 넓히기 / T5 REQUIRED_TEXT_EMPTY(14차 지킴 시험이 이번 커밋에서 지워짐) / T15 EFFECTIVE_DATE_NEEDS_RULE / T16 REQUIRED_MARK_MISSING / T18 _letters / T3 fact.value만 보는 좁은 예외. 26회 모두 SHA-256으로 원복 확인, git checkout·restore 안 씀"
+  }
+ ],
+ "blockers": [
+  {
+   "pass_bar_id": "H1",
+   "title": "효력 어간 9개를 한 글자도 안 쓰고 '이미 법이 되었다'고 쓸 수 있다",
+   "where": "backend/app/gates/draft_gate.py EFFECT_STEMS(70행)와 H1 검사(1374~1388행). 재료는 backend/app/gates/draft_vocabulary.py FORM_WORDS의 '법률'과 PREDICATES의 '되'",
+   "why": "예외를 없앤 것은 옳았고 예외 우회는 완전히 닫혔다. 그러나 예외를 없애자 H1을 지키는 것이 효력 어간 9개짜리 금지 목록 하나만 남았다. 공포·시행·개정·확정·효력·통과·제정·발효·적용 아홉 낱말을 한 글자도 쓰지 않고 '이 법은 법률이 되었다'라고 쓰면 차단도 경고도 없다. 허용 낱말 목록이 '법률'과 '되'를 자료와 무관하게 언제나 쓸 수 있게 열어 두어 재료까지 직접 준다. draft_vocabulary.py 머리말이 '금지 목록 방식은 졌다'고 적어 두었는데 H1은 지금 금지 목록 하나로만 서 있다. README §2.16.1 표가 본회의 의결 단계에서 쓰면 안 되는 말로 적은 것이 바로 이것이다",
+   "reproduce": "scratchpad/harness.py + scratchpad/h1_proof.py. test_sets/ACTUAL-PASS-001 4종을 한 글자도 바꾸지 않고 발표 주체도 '조계원 의원실' 그대로 둔 채, 기준 초안의 리드와 첫 AI 문단 뒤에 '이 법은 법률이 되었다.' 한 문장을 이어 붙인다",
+   "observed": [
+    {
+     "name": "리드와 본문에 붙이기",
+     "sentence": "이 법은 법률이 되었다.",
+     "draft_version": 1,
+     "state": "REVIEW_READY",
+     "blocking": [],
+     "carried_to": "_draft_view 리드·P-01, to_markdown 2줄",
+     "note": "같은 초안 HS-02에 '효력 상태: 아직 법률 아님'이 함께 있다"
+    },
+    {
+     "name": "제목 칸",
+     "sentence": "이 법은 법률이 되었다.",
+     "draft_version": 1,
+     "state": "REVIEW_READY",
+     "blocking": [],
+     "carried_to": "제목: 의안번호 2207285 본회의 의결 결과: 원안가결 이 법은 법률이 되었다."
+    },
+    {
+     "name": "본회의 의결로 법률이 되었다",
+     "sentence": "본회의 의결로 법률이 되었다.",
+     "draft_version": 1,
+     "state": "REVIEW_READY",
+     "blocking": []
+    },
+    {
+     "name": "원안가결로 법률이 되었다",
+     "sentence": "원안가결로 법률이 되었다.",
+     "draft_version": 1,
+     "state": "REVIEW_READY",
+     "blocking": []
+    },
+    {
+     "name": "의안번호가 법률이 되었다",
+     "sentence": "의안번호 2207285은(는) 법률이 되었다.",
+     "draft_version": 1,
+     "state": "REVIEW_READY",
+     "blocking": []
+    },
+    {
+     "name": "이미 접수할 수 있다",
+     "sentence": "전문예술법인ㆍ단체는 기부금품을 접수할 수 있다.",
+     "draft_version": 1,
+     "state": "REVIEW_READY",
+     "blocking": [],
+     "note": "현행 조문은 '모집할 수 있다'이고 '접수'는 이번 개정안이 넣으려는 것이다"
+    },
+    {
+     "name": "모집·접수 가능해졌다",
+     "sentence": "전문예술법인ㆍ단체는 기부금품을 모집ㆍ접수할 수 있게 되었다.",
+     "draft_version": 1,
+     "state": "REVIEW_READY",
+     "blocking": []
+    },
+    {
+     "name": "규정되었다",
+     "sentence": "전문예술법인ㆍ단체의 기부금품 접수가 규정되었다.",
+     "draft_version": 1,
+     "state": "REVIEW_READY",
+     "blocking": []
+    }
+   ],
+   "total_variants": 16
+  }
+ ],
+ "warnings": [
+  {
+   "severity": "상",
+   "day": 5,
+   "title": "개정문 본문이 '…로 개정한다'이면 초안이 통째로 막힌다. 자료를 그대로 옮긴 문단인데도 막힌다. 발표 주체에 의안 이름이 들어가도 막힌다. 부칙처럼 Harness가 넣는 자리가 필요하다 (거짓 차단이라 차단은 아님)"
+  },
+  {
+   "severity": "상",
+   "day": 5,
+   "title": "허용 낱말 FORM_WORDS에 '법률'이, PREDICATES에 '되'가 있어 '법률이 되었다'를 자료 없이도 언제나 쓸 수 있다. H1 뚫림의 재료다"
+  },
+  {
+   "severity": "상",
+   "day": 5,
+   "title": "회귀 — 14차가 넣은 REQUIRED_TEXT_EMPTY 지킴 시험이 이번 커밋 05baa34에서 지워졌다. 껐는데 463개가 그대로 통과한다. grep -rn REQUIRED_TEXT_EMPTY tests/ 결과 0건. 13차·14차·15차 세 번째로 같은 자리다"
+  },
+  {
+   "severity": "상",
+   "day": 5,
+   "title": "EFFECTIVE_DATE_NEEDS_RULE을 지켜 주는 시험이 0개다 (14차 지적, 안 고쳐짐)"
+  },
+  {
+   "severity": "상",
+   "day": 5,
+   "title": "아무것도 지키지 못하는 시험 87개. 14차와 같은 수이고 원인도 같다: _rule_paragraph · _with_body/P-09 · CONNECTIVE · _set_* · HIDDEN_SEPARATORS"
+  },
+  {
+   "severity": "상",
+   "day": 5,
+   "title": "SAFE_WORDS를 넓혀도(공포되었다 추가) 시험이 하나도 안 죽는다"
+  },
+  {
+   "severity": "중",
+   "day": 5,
+   "title": "generated_at · validation_finding_ids · next_procedure_fact_ids 세 칸이 draft_text_parts에 없어 아무 검사도 안 받는다. 지금은 _draft_view와 to_markdown이 내보내지 않아 사람에게 닿지 않지만, 뒤 일차에서 화면에 붙이면 그날 열린다"
+  },
+  {
+   "severity": "중",
+   "day": 5,
+   "title": "REQUIRED_MARK_MISSING을 지켜 주는 시험이 0개다"
+  },
+  {
+   "severity": "중",
+   "day": 5,
+   "title": "_letters를 꺼도 시험이 안 죽는다"
+  },
+  {
+   "severity": "중",
+   "day": 5,
+   "title": "fact.value만 보는 좁은 예외를 되살려도 시험이 안 죽는다. 예외를 통째로 되살리면(T21) 17개가 죽으므로 예외 제거가 부분적으로만 지켜진다"
+  },
+  {
+   "severity": "중",
+   "day": 5,
+   "title": "_PHRASE_CACHE가 글 전체를 열쇠로 들고 한 번도 비우지 않는다. 결과는 바르지만 오래 도는 서버에서 메모리가 계속 는다"
+  },
+  {
+   "severity": "중",
+   "day": 5,
+   "title": "App.tsx:197이 s.role_label ?? auto[s.source_id]를 쓴다. role_label은 바꾸기 전 값이라 화면이 '자료가 무엇인지 알아냈습니다 · 자료 1 → 잘 모르겠음'이라고 말한다"
+  },
+  {
+   "severity": "하",
+   "day": 5,
+   "title": "conversation.ts 머리말 8~10행이 아직 '공개 범위는 … 자료 기준일은 오늘이며 … 사람에게 고르라고 할 이유가 없다'고 적혀 있다. 코드는 이제 둘 다 묻는다"
+  },
+  {
+   "severity": "중",
+   "day": 5,
+   "title": "발표 주체(announcement_subject)에 길이·모양 검사가 없다 (13·14차 지적, 그대로)"
+  },
+  {
+   "severity": "상",
+   "day": 5,
+   "title": "test_도우미는_멀쩡한_문장을_막지_않는다가 도우미 5개만 덮는다 (13·14차 지적, 그대로)"
+  },
+  {
+   "severity": "중",
+   "day": 5,
+   "title": "11차가 뚫었던 로마자 공격 입력 3개가 시험 목록에서 사라졌다 (13·14차 지적. 동작은 그대로 막힌다)"
+  },
+  {
+   "severity": "중",
+   "day": 5,
+   "title": "ATTACKS_V4의 제목 비움·리드 비움·공백만 채운 제목이 규칙 이름을 안 본다 (13·14차 지적, 그대로)"
+  },
+  {
+   "severity": "중",
+   "day": 5,
+   "title": "Harness 부칙 틀이 자료에게 뚫린다 (12차 3-3 E05, 그대로)"
+  },
+  {
+   "severity": "중",
+   "day": 5,
+   "title": "LEDGER_VALUE_NEGATED 거리 우회 (10차 지적, 그대로)"
+  },
+  {
+   "severity": "중",
+   "day": 5,
+   "title": "TOPIC_VALUE_MISMATCH의 결과 신호 우회 (10차 지적, 그대로)"
+  },
+  {
+   "severity": "중",
+   "day": 5,
+   "title": "조항 계산기가 '제7조 및 제9조'의 둘째 조문을 버린다 (그대로)"
+  },
+  {
+   "severity": "중",
+   "day": 5,
+   "title": "따옴표 앞 화자 검사(SPEAKER_NEARBY)를 규칙 이름으로 가릴 수 없다 (14차 지적)"
+  },
+  {
+   "severity": "하",
+   "day": 5,
+   "title": "절차 단계 표시 '본회의 의결 결과'와 계약 '본회의 의결'이 다르다"
+  },
+  {
+   "severity": "하",
+   "day": 5,
+   "title": "발표 주체에 출처 표시 없음"
+  },
+  {
+   "severity": "중",
+   "day": 6,
+   "title": "핵심 요약 개수 위반이 schema 층에서 먼저 막혀 rule_id가 안 남는다"
+  },
+  {
+   "severity": "중",
+   "day": 6,
+   "title": "가짜 추출기가 「」 안을 무엇이든 BILL_TITLE로 뽑는다"
+  },
+  {
+   "severity": "하",
+   "day": 7,
+   "title": "day-gate-result.schema.json이 1일차 전용"
+  },
+  {
+   "severity": "하",
+   "day": 5,
+   "title": "NEXT.md가 합격선을 '14개'라고 적었는데 표는 18줄이다 (12·13·14차 지적, 그대로)"
+  }
+ ],
+ "external_api_calls": 0,
+ "estimated_cost_usd": 0.0,
+ "env_file_access": 0,
+ "next_md_gate": "3번 — H1을 어겼으므로 멈추고 고친다. 예외 제거는 성공했고 J1도 되살아났다. 남은 것은 H1 하나이며, NEXT.md 4번(규칙을 더 만들지 않고 그 자리를 AI가 자유롭게 쓰지 못하게 바꾼다)을 절차·효력 문장 전체에 적용하는 것이 답이다. 지금 자유 문장은 P-01·P-02 둘뿐이고 하는 말은 '누가 언제 무엇을 어떻게 처리했다'와 '바뀐 조문은 무엇이다' 두 가지라 틀에 값만 꽂을 수 있는 크기다.",
+ "verifier_constraints": {
+  "product_source_modified": false,
+  "tests_modified": false,
+  "readme_modified": false,
+  "tamper_sites": 26,
+  "tamper_all_restored_sha256_verified": true,
+  "used_git_checkout_or_restore": false,
+  "packages_installed": 0,
+  "lock_files_changed": 0,
+  "internet_or_openai_calls": 0,
+  "servers_left_running": 0,
+  "git_status_short": [
+   " M README.md",
+   "?? verification/reports/day1-to-day2/day1-20260827-193234.json",
+   "?? verification/reports/day1-to-day2/day1-20260827-193234.md"
+  ]
+ }
+}

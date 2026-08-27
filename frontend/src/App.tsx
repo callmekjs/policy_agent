@@ -17,6 +17,7 @@ import { ApiCallError, api } from './api/client'
 import {
   ASK_DISCLOSURE,
   ASK_SOURCES,
+  ASK_SUBJECT,
   DISCLOSURE_BLOCKED,
   FIRST_PROMPT,
   askBasisDate,
@@ -77,6 +78,9 @@ export function App() {
   // 자료 상태를 확인한 날. **오늘로 넣어 버리지 않는다.** 초안에 그대로
   // 실리므로 사람이 직접 말한 날짜여야 한다.
   const [basisDate, setBasisDate] = useState('')
+  // 이 보도자료를 내는 주체. **사람이 말한 값만 쓴다.** 자료에서 가져오면
+  // 자료를 낸 곳과 보도자료를 내는 곳이 다를 때 남의 이름으로 나간다.
+  const [subject, setSubject] = useState('')
   // PDF에서 뽑아 입력칸에 올려 줄 글. **자동으로 보내지 않는다.**
   const [pickedText, setPickedText] = useState('')
   const [working, setWorking] = useState(false)
@@ -150,7 +154,7 @@ export function App() {
             role: roles?.[`SRC-${String(i + 1).padStart(2, '0')}`] ?? 'UNKNOWN',
             // 서버는 넣은 순서대로 SRC-01, SRC-02… 로 이름을 붙인다.
           })),
-          announcement_subject: null,
+          announcement_subject: subject.trim() || null,
           external_ai_policy_version: bootstrap.external_ai.policy_version,
           external_ai_transfer_confirmed: true,
           ...(confirmations ? { final_text_completeness_confirmations: confirmations } : {}),
@@ -182,7 +186,7 @@ export function App() {
         setWorking(false)
       }
     },
-    [basisDate, bootstrap, purpose],
+    [basisDate, bootstrap, purpose, subject],
   )
 
   // AI가 자료 역할을 하나로 짚었으면 **묻지 않고 그대로 쓴다.**
@@ -195,9 +199,18 @@ export function App() {
     if (found.every((id) => roles[id] === auto[id])) return
     const merged = { ...roles, ...auto }
     setRoles(merged)
+    // **알아낸 역할의 이름**을 보여 준다. `s.role_label`은 아직 바뀌기 전
+    // 값(`잘 모르겠음`)이라, 그것을 쓰면 "알아냈습니다 → 잘 모르겠음"이라는
+    // 앞뒤가 안 맞는 말이 나온다.
+    const labelOf = new Map(
+      (run.role_choices ?? []).map((c) => [`${c.source_id}:${c.role}`, c.role_label]),
+    )
     const named = (run.sources ?? [])
       .filter((s) => auto[s.source_id] !== undefined)
-      .map((s) => `· ${s.display_name} → ${s.role_label ?? auto[s.source_id]}`)
+      .map((s) => {
+        const role = auto[s.source_id]
+        return `· ${s.display_name} → ${labelOf.get(`${s.source_id}:${role}`) ?? role}`
+      })
     void (async () => {
       setTurns((old) => [
         ...old,
@@ -316,7 +329,18 @@ export function App() {
           return
         }
         setBasisDate(day)
-        say(askConsent(sources.length))
+        say(ASK_SUBJECT)
+        return
+      }
+
+      if (prompt.stage === 'ASK_SUBJECT') {
+        const name = text.trim()
+        if (name.length === 0) {
+          say({ ...ASK_SUBJECT, say: '이름을 적어 주세요. 예: `조계원 의원실`' })
+          return
+        }
+        setSubject(name)
+        say(askConsent(sources.length, bootstrap?.model_gateway ?? null))
         return
       }
 
@@ -374,7 +398,14 @@ export function App() {
           placeholder: '',
           canType: false,
         })
-        await createRun(sources, sourceId ? [{ source_id: sourceId, confirmed: true }] : undefined)
+        // 역할을 함께 넘긴다. 빠뜨리면 새 작업이 역할을 모르는 채로 시작해
+        // 방금 고른 것을 처음부터 다시 묻는다. 실제로 그랬고, 화면에서는
+        // 초안까지 갈 수 없었다.
+        await createRun(
+          sources,
+          sourceId ? [{ source_id: sourceId, confirmed: true }] : undefined,
+          roles,
+        )
         return
       }
       if (value.startsWith('ROLE:') || value.startsWith('DROP:')) {
@@ -412,7 +443,7 @@ export function App() {
       }
       if (value.startsWith('BASIS:')) {
         setBasisDate(value.slice('BASIS:'.length))
-        say(askConsent(sources.length))
+        say(ASK_SUBJECT)
         return
       }
       if (value === 'CLEAR_AND_RETRY') {

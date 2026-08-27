@@ -215,7 +215,16 @@ def fake_draft_writing(payload: dict[str, Any]) -> dict[str, Any]:
             "contact_text": payload.get("contact_text") or "[문의처 확인 필요]",
             "quote": None,
             "attachments": [],
-            "six_w_status": {"who": "OK", "what": "OK", "when": "OK"},
+            # 여섯 칸을 모두 적는다. 빠뜨리면 "확인 안 함"과 "해당 없음"을
+            # 구분할 수 없고, AI에게 보내는 형식도 여섯 칸을 모두 요구한다.
+            "six_w_status": {
+                "who": "OK",
+                "what": "OK",
+                "when": "OK",
+                "where": "NOT_APPLICABLE",
+                "why": "NEEDS_CONFIRMATION",
+                "how": "NEEDS_CONFIRMATION",
+            },
             "claims": claims,
             "validation_finding_ids": [],
             "placeholders": ["[보도일 확인 필요]"],
