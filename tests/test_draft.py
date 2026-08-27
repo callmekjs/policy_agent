@@ -2578,3 +2578,54 @@ def test_빈_칸은_이유를_남기고_막는다(good_draft) -> None:
     assert run.draft_version == 0
     rules = {f.rule_id for f in run.validation_findings}
     assert "REQUIRED_TEXT_EMPTY" in rules, rules
+
+
+#: 13차 검토가 뚫은 자리 — 값 뒤에 이어 붙이기.
+#:
+#: 경계가 "값의 끝"에서 "값의 한가운데"로 옮겨졌을 뿐, **값 뒤에 어미를
+#: 붙이는 길은 그대로였다.** 어간 뒤에 글자 한두 개만 더 채우면 어간이
+#: 한가운데가 되고, 그 값 **바깥**에 `되었다`를 붙이면 된다.
+#:
+#: `…전부개정`이 막히니 `…전부개정법률`로 쓰면 됐다. 글자 두 개다.
+VALUE_TAIL_ATTACKS = [
+    ("값 뒤에 되었다", "기부금품법전부개정법률", "기부금품법전부개정법률이 되었다."),
+    ("값 뒤에 했다", "의안본회의통과절차", "의안본회의통과절차를 했다."),
+    ("값 뒤에 이다", "내용확정단계", "내용확정단계이다."),
+]
+
+
+@pytest.mark.parametrize(
+    ("name", "value", "sentence"),
+    VALUE_TAIL_ATTACKS,
+    ids=[a[0] for a in VALUE_TAIL_ATTACKS],
+)
+def test_값_뒤에_어미를_이어_붙일_수_없다(name, value, sentence) -> None:
+    """`_covered_by_value`만 겨눈다.
+
+    어간이 값 한가운데 있어도, **값이 끝난 자리 뒤에** 주장을 이어 붙이면
+    그것은 자료가 말한 것이 아니라 새로 만든 말이다.
+    """
+    from app.gates.draft_gate import EFFECT_STEM, _covered_by_value, _letters, _squeeze
+
+    letters = _letters(_squeeze(sentence))
+    packed_value = _letters(_squeeze(value))
+    found = next(EFFECT_STEM.finditer(letters))
+    assert _covered_by_value(letters, found.start(), found.end(), [packed_value]) is False, (
+        f"{name}: 값 뒤에 이어 붙인 주장을 자료가 말한 것으로 봤습니다."
+    )
+
+
+def test_값_안에_있는_이름은_그대로_쓸_수_있다() -> None:
+    """대조군. 이것까지 막으면 법 이름을 아예 못 쓴다.
+
+    이 시험이 없으면 위 시험은 `언제나 False`를 돌려줘도 통과한다 —
+    아무것도 지키지 못하는 시험이 된다.
+    """
+    from app.gates.draft_gate import EFFECT_STEM, _covered_by_value, _letters, _squeeze
+
+    letters = _letters(_squeeze("문화예술진흥법 일부개정법률안을 알린다."))
+    value = _letters(_squeeze("문화예술진흥법 일부개정법률안"))
+    found = next(EFFECT_STEM.finditer(letters))
+    assert _covered_by_value(letters, found.start(), found.end(), [value]) is True, (
+        "자료가 말한 법 이름 안의 낱말까지 막았습니다."
+    )
