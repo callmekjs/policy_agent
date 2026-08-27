@@ -1,7 +1,7 @@
 // FastAPI 호출만 담당한다. 화면 로직과 AI 공급자는 여기 들어오지 않는다.
 // 브라우저는 외부 AI를 직접 부르지 않는다.
 
-import type { ApiError, Bootstrap, RunView } from '../types'
+import type { ApiError, Bootstrap, ExtractedDocument, RunView } from '../types'
 
 export class ApiCallError extends Error {
   readonly detail: ApiError
@@ -97,4 +97,33 @@ export const api = {
     request<RunView>(`/api/runs/${runId}/complete`, { method: 'POST' }),
   /** 내려받기 주소. 확인을 안 마쳤으면 서버가 거부한다. */
   draftDownloadUrl: (runId: string) => `/api/runs/${runId}/draft.md`,
+  /** PDF에서 글자를 뽑는다. **자료로 쓰지는 않는다** — 사람이 보고 넘겨야 한다. */
+  readDocument: async (file: File): Promise<ExtractedDocument> => {
+    const body = new FormData()
+    body.append('file', file)
+    let response: Response
+    try {
+      // FormData를 보낼 때는 Content-Type을 직접 넣지 않는다. 경계 문자열을
+      // 브라우저가 붙여야 서버가 읽을 수 있다.
+      response = await fetch('/api/documents/text', {
+        method: 'POST',
+        credentials: 'same-origin',
+        body,
+      })
+    } catch {
+      throw new ApiCallError(FALLBACK_ERROR)
+    }
+    const payload = (await response.json().catch(() => null)) as
+      | (Partial<ApiError> & Partial<ExtractedDocument>)
+      | null
+    if (!response.ok) {
+      throw new ApiCallError({
+        error_code: payload?.error_code ?? `HTTP_${response.status}`,
+        message: payload?.message ?? '파일을 읽지 못했습니다.',
+        next_action: payload?.next_action ?? '본문을 복사해 붙여 넣어 주세요.',
+        run_id: null,
+      })
+    }
+    return payload as ExtractedDocument
+  },
 }

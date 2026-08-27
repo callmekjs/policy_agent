@@ -14,7 +14,7 @@ from urllib.parse import quote
 from datetime import UTC, datetime
 from typing import Any
 
-from fastapi import APIRouter, Request, Response
+from fastapi import APIRouter, File, Request, Response, UploadFile
 from fastapi.responses import JSONResponse
 
 from app.harness.contracts import (
@@ -31,6 +31,7 @@ from app.harness.contracts import (
     CreateRunRequest,
     Run,
 )
+from app.gates.document_text import DocumentReadError, extract_pdf_text
 from app.gates.draft_export import file_name, to_markdown
 from app.gates.protection import (
     is_protected_candidate,
@@ -371,6 +372,36 @@ async def bootstrap(request: Request, response: Response) -> dict[str, Any]:
             for role, label in SOURCE_ROLE_LABELS.items()
         ],
         "model_gateway": "fake" if request.app.state.gateway.is_fake else "live",
+    }
+
+
+@router.post("/documents/text")
+async def read_document(request: Request, file: UploadFile = File(...)) -> Any:
+    """올린 PDF에서 글자를 뽑아 **돌려주기만** 한다.
+
+    작업을 만들지 않는다. 자료로 쓰지도 않는다. 사람이 화면에서 보고
+    이상한 곳을 고친 **그 글**이 자료가 된다.
+
+    프로그램이 원문을 몰래 바꾸지 않는다는 규칙을 여기서 지킨다. PDF는 줄을
+    바꾸면서 낱말을 쪼갠다. 그것을 프로그램이 알아서 붙이면 진짜로 띄어 쓴
+    곳까지 붙고, 자료에 없는 낱말이 만들어진다.
+    """
+    guard = guard_state_change(request)
+    if guard is not None:
+        return guard
+
+    data = await file.read()
+    try:
+        got = extract_pdf_text(data, file.filename or "")
+    except DocumentReadError as exc:
+        return error_response(400, exc.code, exc.message, exc.next_action, None)
+
+    return {
+        "file_name": got.file_name,
+        "page_count": got.page_count,
+        "text": got.text,
+        # 사람이 눈여겨볼 자리. 고쳐 놓은 것이 아니라 **짚어 준 것**이다.
+        "warnings": got.warnings,
     }
 
 

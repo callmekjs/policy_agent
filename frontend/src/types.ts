@@ -207,6 +207,15 @@ export interface RevisionAttemptView {
   resulting_version: number
 }
 
+/** PDF에서 뽑은 글. **아직 자료가 아니다** — 사람이 보고 넘겨야 자료가 된다. */
+export interface ExtractedDocument {
+  file_name: string
+  page_count: number
+  text: string
+  /** 사람이 눈여겨볼 자리. 고쳐 놓은 것이 아니라 짚어 준 것이다. */
+  warnings: string[]
+}
+
 export interface ApiError {
   error_code: string
   message: string

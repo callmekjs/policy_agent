@@ -44,8 +44,12 @@ interface Props {
   /** 지금 글을 받을 수 있는지. 처리 중에는 잠근다. */
   canType: boolean
   busy: boolean
+  /** 입력칸에 미리 채워 줄 글. PDF에서 뽑은 글이 여기로 온다. */
+  draftText: string
   onSend: (text: string) => void
   onChoose: (value: string) => void
+  /** PDF를 올렸을 때. 뽑은 글을 입력칸에 넣어 준다. */
+  onPickFile: (file: File) => void
   /** 초안이 나왔으면 함께 보여 준다. */
   run: RunView | null
   onNewRun: () => void
@@ -56,13 +60,22 @@ export function ChatScreen({
   placeholder,
   canType,
   busy,
+  draftText,
   onSend,
   onChoose,
+  onPickFile,
   run,
   onNewRun,
 }: Props) {
   const [text, setText] = useState('')
   const endRef = useRef<HTMLDivElement | null>(null)
+  const fileRef = useRef<HTMLInputElement | null>(null)
+
+  // 밖에서 넣어 준 글(PDF에서 뽑은 것)을 입력칸에 올린다. **보내지는
+  // 않는다.** 사람이 보고 고쳐야 한다.
+  useEffect(() => {
+    if (draftText.length > 0) setText(draftText)
+  }, [draftText])
 
   // 새 말이 올라오면 아래로 따라간다. 사람이 스스로 내려야 하면 놓친다.
   //
@@ -143,7 +156,30 @@ export function ChatScreen({
           }}
         />
         <div className="composer-row">
-          <p className="hint">Ctrl+Enter로도 보낼 수 있습니다.</p>
+          <p className="hint">
+            Ctrl+Enter로도 보낼 수 있습니다.
+            <br />
+            <button
+              type="button"
+              className="link"
+              disabled={!canType || busy}
+              onClick={() => fileRef.current?.click()}
+            >
+              PDF에서 글자 가져오기
+            </button>
+          </p>
+          <input
+            ref={fileRef}
+            type="file"
+            accept="application/pdf,.pdf"
+            className="visually-hidden"
+            onChange={(event) => {
+              const picked = event.target.files?.[0]
+              // 같은 파일을 다시 골라도 동작하도록 값을 비운다.
+              event.target.value = ''
+              if (picked) onPickFile(picked)
+            }}
+          />
           <button type="button" disabled={!canType || busy || text.trim().length === 0} onClick={send}>
             보내기
           </button>

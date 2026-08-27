@@ -77,6 +77,8 @@ export function App() {
   // 자료 상태를 확인한 날. **오늘로 넣어 버리지 않는다.** 초안에 그대로
   // 실리므로 사람이 직접 말한 날짜여야 한다.
   const [basisDate, setBasisDate] = useState('')
+  // PDF에서 뽑아 입력칸에 올려 줄 글. **자동으로 보내지 않는다.**
+  const [pickedText, setPickedText] = useState('')
   const [working, setWorking] = useState(false)
   const requestIdRef = useRef(0)
   // 서버가 물어본 것에 이미 답했는지. 같은 질문을 두 번 띄우지 않는다.
@@ -213,8 +215,56 @@ export function App() {
     })()
   }, [createRun, roles, run, sources])
 
+  const handlePickFile = useCallback(
+    async (file: File) => {
+      setWorking(true)
+      try {
+        const got = await api.readDocument(file)
+        if (got.text.trim().length === 0) {
+          setTurns((old) => [
+            ...old,
+            turn(
+              'agent',
+              [
+                `${got.file_name}에서 글자를 하나도 뽑지 못했습니다.`,
+                '',
+                '그림으로 된 PDF일 수 있습니다. 본문을 복사해 붙여 넣어 주세요.',
+              ].join('\n'),
+            ),
+          ])
+          return
+        }
+        // 뽑은 글을 **입력칸에 올려만 준다.** 보내는 것은 사람이 한다.
+        setPickedText(got.text)
+        setTurns((old) => [
+          ...old,
+          turn(
+            'agent',
+            [
+              `${got.file_name} ${got.page_count}쪽에서 글자를 가져왔습니다.`,
+              '아래 칸에 넣어 두었습니다. **보시고 이상한 곳은 고친 뒤** 보내 주세요.',
+              ...(got.warnings.length > 0 ? ['', ...got.warnings.map((w) => `· ${w}`)] : []),
+              '',
+              '고치지 않고 그대로 보내셔도 됩니다. 값이 어긋나면 초안 전에 멈춥니다.',
+            ].join('\n'),
+          ),
+        ])
+      } catch (error: unknown) {
+        const detail =
+          error instanceof ApiCallError
+            ? `${error.detail.message} ${error.detail.next_action}`
+            : '파일을 읽지 못했습니다.'
+        setTurns((old) => [...old, turn('agent', detail)])
+      } finally {
+        setWorking(false)
+      }
+    },
+    [],
+  )
+
   const handleSend = useCallback(
     async (text: string) => {
+      setPickedText('')
       setTurns((old) => [...old, turn('user', text)])
 
       if (prompt.stage === 'ASK_SOURCES') {
@@ -450,8 +500,10 @@ export function App() {
               placeholder={prompt.placeholder}
               canType={prompt.canType}
               busy={working || (run !== null && BUSY_STATES.has(run.state))}
+              draftText={pickedText}
               onSend={handleSend}
               onChoose={handleChoose}
+              onPickFile={handlePickFile}
               run={run}
               onNewRun={() => handleChoose('RESTART')}
             />
