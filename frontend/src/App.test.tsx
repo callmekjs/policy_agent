@@ -67,6 +67,14 @@ async function paste(user: ReturnType<typeof userEvent.setup>, text = PASTE) {
   return input
 }
 
+/** 자료를 넣고 **공개 범위·자료 기준일**까지 답해 초안 만들기 직전까지 간다. */
+async function toConsent(user: ReturnType<typeof userEvent.setup>) {
+  await paste(user)
+  await user.click(await screen.findByRole('button', { name: '네, 공개 자료입니다' }))
+  const sameDay = await screen.findByRole('button', { name: /네, 오늘/ })
+  await user.click(sameDay)
+}
+
 describe('대화 화면', () => {
   beforeEach(() => {
     vi.restoreAllMocks()
@@ -101,9 +109,68 @@ describe('대화 화면', () => {
   it('한 덩이로 붙여 넣으면 자료를 알아서 나눈다', async () => {
     const user = userEvent.setup()
     render(<App />)
-    await paste(user)
+    await toConsent(user)
     // 붙여 넣기 **한 번**으로 확인 단계까지 간다. 네 번 보내지 않는다.
     expect(await screen.findByText(/자료 2건으로 읽었습니다/)).toBeInTheDocument()
+  })
+
+  it('공개 자료인지 반드시 묻는다', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+    await paste(user)
+    // 묻지 않고 공개로 넣으면 내부 문서를 붙였을 때 아무도 못 막는다.
+    // 고를 수 있는 **버튼**이 있어야 막을 수 있다.
+    expect(
+      await screen.findByRole('button', { name: '네, 공개 자료입니다' }),
+    ).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '내부·엠바고 자료예요' })).toBeInTheDocument()
+  })
+
+  it('내부·엠바고를 고르면 진행되지 않는다', async () => {
+    const user = userEvent.setup()
+    const calls: string[] = []
+    mockFetch((url) => {
+      calls.push(url)
+      return BOOTSTRAP
+    })
+    render(<App />)
+    await paste(user)
+    await user.click(await screen.findByRole('button', { name: '내부·엠바고 자료예요' }))
+
+    expect(await screen.findByText(/이 버전이 다루지 않습니다/)).toBeInTheDocument()
+    expect(calls.filter((u) => u === '/api/runs')).toHaveLength(0)
+  })
+
+  it('자료 기준일을 오늘로 넣어 버리지 않고 묻는다', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+    await paste(user)
+    await user.click(await screen.findByRole('button', { name: '네, 공개 자료입니다' }))
+    // 이 날짜는 초안에 그대로 실린다. 사람이 하지 않은 주장이 되면 안 된다.
+    expect(await screen.findByText(/이 날짜는 초안에 그대로 실립니다/)).toBeInTheDocument()
+  })
+
+  it('사람이 적은 자료 기준일을 그대로 보낸다', async () => {
+    const user = userEvent.setup()
+    let sent: Record<string, unknown> | null = null
+    mockFetch((url, init) => {
+      if (url === '/api/runs' && init?.body) {
+        sent = JSON.parse(String(init.body))
+        return { run_id: 'RUN-1', state: 'EXTRACTING_FACTS', status_label: 'AI 처리 중' }
+      }
+      return BOOTSTRAP
+    })
+    render(<App />)
+    await paste(user)
+    await user.click(await screen.findByRole('button', { name: '네, 공개 자료입니다' }))
+    const input = await screen.findByLabelText('할 말 적기')
+    await user.click(input)
+    await user.paste('2025-10-26')
+    await user.click(screen.getByRole('button', { name: '보내기' }))
+    await user.click(await screen.findByRole('button', { name: '네, 만들어 주세요' }))
+
+    await waitFor(() => expect(sent).not.toBeNull())
+    expect((sent as unknown as { basis_date: string }).basis_date).toBe('2025-10-26')
   })
 
   it('자료 없이 끝내겠다고 하면 초안을 만들지 않는다', async () => {
@@ -127,7 +194,7 @@ describe('대화 화면', () => {
       return BOOTSTRAP
     })
     render(<App />)
-    await paste(user)
+    await toConsent(user)
 
     await screen.findByText(/초안을 만들까요/)
     expect(calls.filter((u) => u === '/api/runs')).toHaveLength(0)
@@ -155,7 +222,7 @@ describe('대화 화면', () => {
       }),
     )
     render(<App />)
-    await paste(user)
+    await toConsent(user)
     await user.click(await screen.findByRole('button', { name: '네, 만들어 주세요' }))
 
     // 오류만 보여 주고 버튼이 없으면 사람은 화면을 새로 고치는 수밖에 없고,
@@ -177,7 +244,7 @@ describe('대화 화면', () => {
       return BOOTSTRAP
     })
     render(<App />)
-    await paste(user)
+    await toConsent(user)
     await user.click(await screen.findByRole('button', { name: '네, 만들어 주세요' }))
 
     await waitFor(() => expect(sent).not.toBeNull())

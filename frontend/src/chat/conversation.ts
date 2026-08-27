@@ -15,6 +15,8 @@ import type { RunView } from '../types'
 export type Stage =
   | 'ASK_PURPOSE'
   | 'ASK_SOURCES'
+  | 'ASK_DISCLOSURE'
+  | 'ASK_BASIS_DATE'
   | 'ASK_CONSENT'
   | 'WORKING'
   | 'ASK_QUESTION'
@@ -40,7 +42,8 @@ export const FIRST_PROMPT: Prompt = {
   say: [
     '안녕하세요. 국회 법률 개정·개선 보도자료 초안을 만들어 드립니다.',
     '',
-    '**무엇을 알리는지 한 줄 쓰고, 공식 자료를 그 아래 붙여 넣어 주세요.**',
+    '**보도 목적을 한 줄 쓰고, 공식 자료를 그 아래 붙여 넣어 주세요.**',
+    '무엇을 알리는 보도자료인지 적어 주시면 됩니다.',
     '여러 문서를 한꺼번에 붙이셔도 됩니다. 제가 알아서 나눕니다.',
     '',
     '자료에 없는 값은 초안에 쓰지 않습니다. 표결 수도 시행일도 자료에서 찾아 씁니다.',
@@ -57,6 +60,59 @@ export const ASK_SOURCES: Prompt = {
   say: '자료를 붙여 넣어 주세요.',
   placeholder: '자료를 붙여 넣으세요…',
   canType: true,
+}
+
+/** 공개 범위를 묻는다.
+ *
+ * 이 버전은 `공개`만 지원한다. 그래도 **묻는다.** 묻지 않고 공개로 넣으면
+ * 사용자가 내부 문서를 붙였을 때 아무도 못 막는다. 고르게 해야 막을 수 있다.
+ */
+export const ASK_DISCLOSURE: Prompt = {
+  stage: 'ASK_DISCLOSURE',
+  say: [
+    '붙여 넣으신 자료가 **공개 자료**인가요?',
+    '',
+    '이 버전은 공개 자료만 다룹니다. 내부 문서나 엠바고 자료는 처리하지 않습니다.',
+  ].join('\n'),
+  placeholder: '',
+  canType: false,
+  choices: [
+    { label: '네, 공개 자료입니다', value: 'PUBLIC' },
+    { label: '내부·엠바고 자료예요', value: 'NOT_PUBLIC' },
+  ],
+}
+
+export const DISCLOSURE_BLOCKED: Prompt = {
+  stage: 'FAILED',
+  say: [
+    '내부·엠바고 자료는 이 버전이 다루지 않습니다.',
+    '',
+    '공개로 확인된 자료만 넣어 주세요.',
+  ].join('\n'),
+  placeholder: '',
+  canType: false,
+  choices: [{ label: '처음부터 다시 하기', value: 'RESTART' }],
+}
+
+/** 자료 기준일을 묻는다.
+ *
+ * **오늘로 넣어 버리면 안 된다.** 자료 기준일은 "이 자료의 상태를 직접
+ * 확인한 날"이고 초안에 그대로 실린다. 사용자가 지난주에 받은 자료를
+ * 오늘 넣었는데 오늘 날짜가 찍히면, 사람이 하지 않은 주장이 초안에 들어간다.
+ */
+export function askBasisDate(today: string): Prompt {
+  return {
+    stage: 'ASK_BASIS_DATE',
+    say: [
+      `**자료 확인 기준일**이 오늘(${today})이 맞나요?`,
+      '자료 상태를 직접 확인하신 날입니다.',
+      '',
+      '이 날짜는 초안에 그대로 실립니다. 며칠 전에 받은 자료라면 그날로 적어 주세요.',
+    ].join('\n'),
+    placeholder: '예: 2025-10-26',
+    canType: true,
+    choices: [{ label: `네, 오늘(${today})입니다`, value: `BASIS:${today}` }],
+  }
 }
 
 export function askConsent(count: number): Prompt {

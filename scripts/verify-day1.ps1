@@ -98,8 +98,9 @@ $required = @(
     "frontend\package.json", "frontend\vite.config.ts", "frontend\index.html",
     "frontend\src\main.tsx", "frontend\src\App.tsx", "frontend\src\types.ts",
     "frontend\src\api\client.ts",
-    "frontend\src\screens\NewRunScreen.tsx",
-    "frontend\src\screens\RunStatusScreen.tsx",
+    "frontend\src\screens\ChatScreen.tsx",
+    "frontend\src\screens\DraftPanel.tsx",
+    "frontend\src\chat\conversation.ts",
     "tests\test_harness_flow.py", "tests\test_day1_gate.py"
 )
 $missing = @()
@@ -293,7 +294,10 @@ if ($listener) {
 
         # 화면 소스에 네 입력이 있는지
         # UTF-8로 읽어야 한글 라벨이 깨지지 않는다.
-        $newRunSrc = Get-Content (Join-Path $Frontend "src\screens\NewRunScreen.tsx") -Raw -Encoding UTF8
+        #
+        # 화면이 양식에서 대화로 바뀌었다. 묻는 **방법**은 바뀌었지만 네 가지를
+        # 다 물어야 한다는 것은 그대로다. 그래서 대화 흐름을 정하는 파일을 본다.
+        $newRunSrc = Get-Content (Join-Path $Frontend "src\chat\conversation.ts") -Raw -Encoding UTF8
         $uiLabels = @("보도 목적", "공식 자료", "공개 범위", "자료 확인 기준일")
         $missingUi = @()
         foreach ($label in $uiLabels) { if ($newRunSrc -notmatch [regex]::Escape($label)) { $missingUi += $label } }

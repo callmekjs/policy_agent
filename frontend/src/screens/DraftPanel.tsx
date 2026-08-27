@@ -25,7 +25,9 @@ export function DraftPanel({ run, working, onReviewAll, onReviewOne, downloadUrl
   const protectedIds = new Set(run.protected_candidate_fact_ids ?? [])
   const verdictOf = new Map(reviews.map((r) => [r.fact_id, r.verdict]))
   const attempts = run.revision_attempts ?? []
-  const draft = run.draft
+  // `null`뿐 아니라 `undefined`도 본다. 서버가 아직 안 보낸 상태에서
+  // `draft !== null`만 보면 화면이 통째로 터진다.
+  const draft = run.draft ?? null
   // 사람이 "다릅니다"를 눌렀는데 초안이 아직 쓰고 있는 사실. 서버가 센 값을
   // 그대로 쓴다. 화면이 따로 세면 두 벌이 어긋난다.
   const wrongInUse = run.wrong_fact_ids_in_use ?? []

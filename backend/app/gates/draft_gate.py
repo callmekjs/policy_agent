@@ -70,23 +70,6 @@ EFFECT_STEMS = (
     "공포", "시행", "개정", "확정", "효력", "통과", "제정", "발효", "적용",
 )
 
-#: 값 뒤에 붙어 **주장을 완성하는** 어미.
-#:
-#: `draft_vocabulary.SUFFIXES`를 전수로 훑어 골랐다. 초안은 허용 조사·어미만
-#: 쓸 수 있으므로 값 뒤에 올 수 있는 어미는 유한하다.
-#:
-#: 이 목록은 **더 엄격하게 만드는 쪽으로만** 쓴다. 여기 없는 어미가 오면
-#: 값 예외가 그대로 서므로 빠뜨려도 정상 문장이 막히지 않는다. 대신 빠뜨린
-#: 만큼 뚫린다. 그래서 `SUFFIXES`가 늘면 이 목록도 다시 훑어야 한다.
-EFFECT_COMPLETIONS = (
-    "되었다", "되어", "되고", "되며", "된다", "됐다", "됨", "된",
-    "하였다", "하여", "하고", "하며", "한다", "했다", "함", "한",
-    "이다", "이었다", "입니다", "습니다", "이며", "이고",
-)
-
-#: 값이 끝난 뒤 몇 글자까지 주장을 찾을지. 조사 한둘과 어미 하나가 들어간다.
-TAIL_WINDOW = 6
-
 #: 효력 어간을 **어미와 상관없이** 찾는다. 어미를 보지 않으므로 어미를 바꿔
 #: 빠져나갈 수 없다.
 EFFECT_STEM = re.compile("(" + "|".join(EFFECT_STEMS) + ")")
@@ -444,58 +427,18 @@ def _word_phrases(haystack: str) -> frozenset[str]:
 
 
 #: 자료마다 한 번만 만든다. 같은 자료로 여러 번 검사하므로 다시 세지 않는다.
-_PHRASE_CACHE: dict[int, frozenset[str]] = {}
+#: 낱말 목록을 글마다 한 번만 만든다.
+#:
+#: **글 자체를 열쇠로 쓴다.** 전에는 `id(글)`을 썼다. 파이썬은 버려진
+#: 문자열의 `id`를 새 문자열에 다시 쓰므로, 앞서 본 글이 사라지면 그 자리에
+#: 온 다른 글이 **앞 글의 낱말 목록**을 받는다.
+#:
+#: 이 함수는 원장 대조(`F1`)에도 쓰인다. 목록이 섞이면 지어낸 값이 자료에
+#: 있는 것처럼 보일 수 있다. 시험 전체를 돌릴 때만 가끔 드러나서 오래
+#: 못 찾았다(14차 검토가 지목).
+_PHRASE_CACHE: dict[str, frozenset[str]] = {}
 
 
-
-
-def _covered_by_value(
-    letters: str, start: int, end: int, values: list[str]
-) -> bool:
-    """이 효력 어간이 자료가 말한 **값의 한가운데**에 있는가.
-
-    값 안에 있기만 하면 안 된다. **가장자리에 있으면 안 된다.**
-
-    12차 검토가 여기를 뚫었다. 값 안에 있는지만 보고 값 **뒤에 붙는 어미**를
-    보지 않았다. 값이 `…일부개정`처럼 어간으로 끝나면 그 뒤에 `되었다`를 붙여
-    없는 사실을 만들 수 있었다. 발표 주체가 `개정`이면 `이 법률은 개정되었다`가
-    그대로 나갔다.
-
-    어간이 값의 **한가운데**에 있으면 앞뒤가 값 자신의 글자로 막혀 있어
-    주장을 만들 수 없다. `문화예술진흥법 일부개정법률안`의 `개정`이 그렇다.
-
-    검사하는 글은 공백을 지운 뒤라 낱말 경계가 없다. 그래서 낱말 경계 대신
-    **값 안에서의 자리**로 판정한다.
-
-    13차 검토가 여기를 또 뚫었다. 경계를 "값의 끝"에서 "값의 한가운데"로
-    옮겼을 뿐, **값 뒤에 어미를 붙이는 길은 그대로였다.** 어간 뒤에 글자
-    한두 개만 더 채우면 어간이 한가운데가 되고, 그 값 **바깥**에 `되었다`를
-    붙이면 됐다. `…전부개정`이 막히니 `…전부개정법률`로 쓰면 된다. 글자 두 개다.
-
-    그래서 **값이 끝난 뒤도 본다.** 자료가 말한 이름을 그대로 쓰는 것과, 그
-    이름 뒤에 "그렇게 되었다"를 이어 붙이는 것은 다른 일이다.
-
-        문화예술진흥법 일부개정법률안**을 알린다**   → 이름을 말한 것. 통과
-        기부금품법 전부개정법률**이 되었다**        → 주장을 만든 것. 막힘
-    """
-    for value in values:
-        if len(value) < 2:
-            continue
-        at = -1
-        while True:
-            at = letters.find(value, at + 1)
-            if at < 0:
-                break
-            stop = at + len(value)
-            # 어간이 이 값 안에 들어 있고, 값의 양 끝에 닿지 않아야 한다.
-            if not (at < start and end < stop):
-                continue
-            # 값 뒤에 주장을 이어 붙였으면 그것은 자료가 말한 것이 아니다.
-            tail = letters[stop : stop + TAIL_WINDOW]
-            if any(mark in tail for mark in EFFECT_COMPLETIONS):
-                continue
-            return True
-    return False
 
 
 def _opens_a_word(piece: str, haystack: str) -> bool:
@@ -520,7 +463,7 @@ def _starts_a_word(piece: str, haystack: str) -> bool:
     앞뒤 어느 쪽으로도 자를 수 없다. `조계원 의원실`에서 `조계`도 `계원`도
     나오지 않는다.
     """
-    key = id(haystack)
+    key = haystack
     phrases = _PHRASE_CACHE.get(key)
     if phrases is None:
         phrases = _word_phrases(haystack)
@@ -1411,32 +1354,27 @@ def check_draft(
     # Harness가 자료에서 그대로 만든다(`draft_sections.py`). AI가 쓰는 자리에
     # 효력 낱말이 나오면 막는다.
     #
-    # 넘어가는 것은 하나뿐이다 — 그 낱말이 **원장 사실 값 안에** 들어 있을
-    # 때다. 의안 이름 `문화예술진흥법 일부개정법률안`의 `개정`이 그렇다. 값은
-    # 자료가 말한 것이므로 지어낼 수 없고, 값을 벗어난 자리는 전부 막힌다.
+    # **넘어가는 길은 없다.** 예외를 두지 않는다.
+    #
+    # 예외는 있었다 — "그 낱말이 원장 값 안에 들어 있으면 넘어간다". 의안
+    # 이름 `문화예술진흥법 일부개정법률안`의 `개정`을 쓰게 하려던 것이다.
+    #
+    # 그 예외를 **네 번 고쳤고 네 번 다 뚫렸다**(11~14차 검토). 값의 끝을
+    # 막으면 한가운데로, 한가운데를 막으면 값 뒤로, 값 뒤를 막으면 목록 밖
+    # 어미로 돌아왔다. 경계를 어디에 긋든 거짓말은 그 바깥에 섰다.
+    #
+    # 그래서 경계를 옮기는 대신 **예외를 없앴다.** 예외가 없으면 우회할 곳도
+    # 없다. 부칙에서 같은 방법이 통했다 — 자리를 Harness가 가져오니 가릴 일
+    # 자체가 없어졌다.
+    #
+    # 대가가 있다. **AI가 의안 이름을 못 쓴다.** `일부개정법률안`에 `개정`이
+    # 들어 있기 때문이다. 지금 고정 자료의 정상 초안은 의안 이름 대신
+    # 의안번호를 쓰므로 초안은 그대로 나온다. 이름이 필요해지면 부칙처럼
+    # **Harness가 넣는 자리**를 만든다. `남은 일`로 적어 두었다.
     if candidate.effect_status == "NOT_A_LAW":
-        safe_values = [
-            _letters(_squeeze(sanitize(v)))
-            for v in (
-                *(f.value for f in ledger.facts),
-                *(item for f in ledger.facts for item in f.value_items),
-                *fixed_labels,
-                announcement_subject,
-                DRAFT_LABEL,
-                candidate.draft_label,
-                # 개정문 본문. 원장이 근거와 함께 정한 값이고, **통째로**
-                # 나올 때만 맞는다. 조각을 이어 붙여 없는 뜻을 만들 수 없다.
-                final_text.body_text if final_text else "",
-            )
-            if v
-        ]
         for part, text in agent_parts:
             letters = _letters(_squeeze(text))
             for found in EFFECT_STEM.finditer(letters):
-                if _covered_by_value(
-                    letters, found.start(), found.end(), safe_values
-                ):
-                    continue
                 add(
                     "PREMATURE_EFFECT_CLAIM",
                     "2.16.1",

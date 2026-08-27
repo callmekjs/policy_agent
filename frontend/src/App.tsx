@@ -15,8 +15,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { ApiCallError, api } from './api/client'
 import {
+  ASK_DISCLOSURE,
   ASK_SOURCES,
+  DISCLOSURE_BLOCKED,
   FIRST_PROMPT,
+  askBasisDate,
   askConsent,
   autoRoles,
   promptFor,
@@ -49,6 +52,11 @@ function looksLikeDone(text: string): boolean {
   return /(다\s*넣었|다\s*됐|끝|완료|없어요|없습니다|시작|그만|이제)/.test(text)
 }
 
+/** 오늘 날짜. 기본값으로 **보여 주기만** 하고, 넣는 것은 사람이 정한다. */
+function today(): string {
+  return new Date().toISOString().slice(0, 10)
+}
+
 let turnSeq = 0
 function turn(who: 'agent' | 'user', text: string, choices?: Turn['choices']): Turn {
   turnSeq += 1
@@ -66,6 +74,9 @@ export function App() {
   // 사람이 고른 자료 역할. 서버는 한 번에 한 건만 처리하므로, 고를 때마다
   // 지금까지 고른 것을 모두 붙여 다시 만든다.
   const [roles, setRoles] = useState<Record<string, string>>({})
+  // 자료 상태를 확인한 날. **오늘로 넣어 버리지 않는다.** 초안에 그대로
+  // 실리므로 사람이 직접 말한 날짜여야 한다.
+  const [basisDate, setBasisDate] = useState('')
   const [working, setWorking] = useState(false)
   const requestIdRef = useRef(0)
   // 서버가 물어본 것에 이미 답했는지. 같은 질문을 두 번 띄우지 않는다.
@@ -126,7 +137,8 @@ export function App() {
           purpose,
           // 이 버전은 공개 자료만 다룬다. 그래서 고르라고 하지 않는다.
           disclosure: 'PUBLIC',
-          basis_date: new Date().toISOString().slice(0, 10),
+          // 사람이 말한 날. 오늘로 넣어 버리지 않는다.
+          basis_date: basisDate || today(),
           // **역할을 고르라고 하지 않는다.** AI가 근거와 함께 제안한다 (§0.3).
           sources: texts.map((text, i) => ({
             display_name: `자료 ${i + 1}`,
@@ -168,7 +180,7 @@ export function App() {
         setWorking(false)
       }
     },
-    [bootstrap, purpose],
+    [basisDate, bootstrap, purpose],
   )
 
   // AI가 자료 역할을 하나로 짚었으면 **묻지 않고 그대로 쓴다.**
@@ -214,7 +226,7 @@ export function App() {
             })
             return
           }
-          say(askConsent(sources.length))
+          say(ASK_DISCLOSURE)
           return
         }
 
@@ -239,7 +251,22 @@ export function App() {
         }
         const next = [...sources, ...pieces]
         setSources(next)
-        say(askConsent(next.length))
+        say(ASK_DISCLOSURE)
+        return
+      }
+
+      if (prompt.stage === 'ASK_BASIS_DATE') {
+        // `2025-10-26` 모양만 받는다. 아무 글이나 받으면 초안에 그대로 실린다.
+        const day = text.trim()
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) {
+          say({
+            ...askBasisDate(today()),
+            say: '날짜를 `2025-10-26` 처럼 적어 주세요.',
+          })
+          return
+        }
+        setBasisDate(day)
+        say(askConsent(sources.length))
         return
       }
 
@@ -325,6 +352,19 @@ export function App() {
         await createRun(sources, undefined, nextRoles)
         return
       }
+      if (value === 'PUBLIC') {
+        say(askBasisDate(today()))
+        return
+      }
+      if (value === 'NOT_PUBLIC') {
+        say(DISCLOSURE_BLOCKED)
+        return
+      }
+      if (value.startsWith('BASIS:')) {
+        setBasisDate(value.slice('BASIS:'.length))
+        say(askConsent(sources.length))
+        return
+      }
       if (value === 'CLEAR_AND_RETRY') {
         const stuck = stuckRef.current
         if (stuck !== null) {
@@ -350,6 +390,7 @@ export function App() {
         setRun(null)
         setSources([])
         setRoles({})
+        setBasisDate('')
         setPurpose('')
         answeredRef.current = ''
         turnSeq = 0

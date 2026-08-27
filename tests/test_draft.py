@@ -2536,96 +2536,75 @@ def test_새_구조를_때려_본_공격도_막힌다(good_draft, name, sentence
     )
 
 
-def test_사실_값에_붙은_어미까지_본다(good_draft) -> None:
-    """12차 검토가 뚫은 자리.
+def test_AI는_효력_낱말을_어떤_모양으로도_못_쓴다(good_draft) -> None:
+    """11~14차 검토가 네 번 뚫은 자리. **예외를 없애서** 닫았다.
 
-    효력 낱말이 원장 사실 값 **안에** 있으면 넘어간다. 그런데 값 **뒤에 붙는
-    어미를 보지 않았다.** 값이 효력 어간으로 끝나면 그 뒤에 무엇이 붙어도
-    지나갔다 — `…일부개정` + `되었다`.
+    예외는 "그 낱말이 원장 값 안에 있으면 넘어간다"였다. 의안 이름
+    `문화예술진흥법 일부개정법률안`의 `개정`을 쓰게 하려던 것이다.
 
-    값이 **낱말 끝까지 덮을 때만** 넘어가야 한다. 값이 끝난 자리 다음 글자가
-    한글이면 그 낱말은 값이 아니라 새로 만든 말이다.
+    네 번 고쳤고 네 번 다 뚫렸다. 값의 끝을 막으면 한가운데로, 한가운데를
+    막으면 값 뒤로, 값 뒤를 막으면 목록 밖 어미로 돌아왔다. **경계를 어디에
+    긋든 거짓말은 그 바깥에 섯다.**
+
+    아래는 열네 라운드가 뚫었던 모양을 모은 것이다. 예외가 없으면
+    이것들이 **한 규칙으로** 다 막힌다.
     """
-    from app.gates.draft_gate import _covered_by_value
+    for sentence in (
+        # 12차 — 값이 어간으로 끝남
+        "기부금품법 전부개정되었다.",
+        # 13차 B1 — 주장이 값 안에 통째로
+        "이 법률은 개정되었다.",
+        # 13차 B5 — 값이 문장을 가로지름
+        "이 법률은 개정 되었다.",
+        # 14차 — 목록 밖 어미
+        "이 법률은 개정임.",
+        "이 법률은 개정이므로 그렇다.",
+        # 14차 — 창 밖으로 밀어내기
+        "기부금품법 전부개정법률은 이번에 모두 되었다.",
+    ):
+        run = asyncio.run(
+            _run(canned_draft=_spoil(good_draft, lambda d, s=sentence: _rule_paragraph(d, s)))
+        )
+        assert run.draft_version == 0, f"`{sentence}` 가 그대로 나갔습니다."
+        rules = {f.rule_id for f in run.validation_findings}
+        assert "PREMATURE_EFFECT_CLAIM" in rules, f"{sentence}: {rules}"
 
-    # 어간이 값의 **한가운데**에 있다 → 앞뒤가 값 자신의 글자로 막혀 있다.
-    assert _covered_by_value("일부개정법률안", 2, 4, ["일부개정법률안"])
-    # 어간이 값의 **끝**에 있다 → 뒤에 어미를 붙일 수 있다.
-    assert not _covered_by_value("일부개정되었다", 2, 4, ["일부개정"])
-    # 값이 어간 그 자체다 → 무엇이든 붙일 수 있다.
-    assert not _covered_by_value("개정되었다", 0, 2, ["개정"])
-    # 어간이 값의 **앞**에 있다 → 앞에 말을 붙일 수 있다.
-    assert not _covered_by_value("개정문구", 0, 2, ["개정문구"])
-    # 값이 없으면 넘어가지 않는다.
-    assert not _covered_by_value("개정되었다", 0, 2, [])
 
+def test_정상_초안은_예외_없이도_나온다() -> None:
+    """대조군. 예외를 없앨 대가를 재는 시험이다.
 
-def test_빈_칸은_이유를_남기고_막는다(good_draft) -> None:
-    """`REQUIRED_TEXT_EMPTY`만 겨눈다.
+    예외를 없애면 **AI가 의안 이름을 못 쓴다.** `일부개정법률안`에
+    `개정`이 들어 있기 때문이다. 그래도 초안은 나와야 한다(`I3`).
 
-    이 규칙은 한 번 조용히 사라진 적이 있다. 검토 agent가 방어를 꺼 보는
-    중에 멈춰서 `pass`가 남았고, 그대로 커밋됐다(13차 검토가 찾음).
-    지워도 되살려도 시험 437개가 그대로 통과했다 — **어느 시험도 두 방향
-    모두에서 보지 않았다.**
-
-    다른 규칙이 다 받아내서 빈 글이 나가지는 않았다. 그래도 **왜 막혔는지**를
-    사람에게 알려 주는 규칙이 사라진 것은 사라진 것이다. 이유가 없으면
-    사용자는 무엇을 고쳐야 할지 알 수 없다.
+    지금 고정 자료의 정상 초안은 의안 이름 대신 의안번호를 쓴다.
+    이름이 필요해지면 부칙처럼 **Harness가 넣는 자리**를 만든다.
     """
-    run = asyncio.run(
-        _run(canned_draft=_spoil(good_draft, lambda d: _set_lead(d, "   ")))
-    )
-    assert run.draft_version == 0
-    rules = {f.rule_id for f in run.validation_findings}
-    assert "REQUIRED_TEXT_EMPTY" in rules, rules
+    run = asyncio.run(_run())
+    assert run.draft_version >= 1, "예외를 없애자 정상 초안까지 막혔습니다."
+    assert run.state == "REVIEW_READY"
 
 
-#: 13차 검토가 뚫은 자리 — 값 뒤에 이어 붙이기.
-#:
-#: 경계가 "값의 끝"에서 "값의 한가운데"로 옮겨졌을 뿐, **값 뒤에 어미를
-#: 붙이는 길은 그대로였다.** 어간 뒤에 글자 한두 개만 더 채우면 어간이
-#: 한가운데가 되고, 그 값 **바깥**에 `되었다`를 붙이면 된다.
-#:
-#: `…전부개정`이 막히니 `…전부개정법률`로 쓰면 됐다. 글자 두 개다.
-VALUE_TAIL_ATTACKS = [
-    ("값 뒤에 되었다", "기부금품법전부개정법률", "기부금품법전부개정법률이 되었다."),
-    ("값 뒤에 했다", "의안본회의통과절차", "의안본회의통과절차를 했다."),
-    ("값 뒤에 이다", "내용확정단계", "내용확정단계이다."),
-]
 
 
-@pytest.mark.parametrize(
-    ("name", "value", "sentence"),
-    VALUE_TAIL_ATTACKS,
-    ids=[a[0] for a in VALUE_TAIL_ATTACKS],
-)
-def test_값_뒤에_어미를_이어_붙일_수_없다(name, value, sentence) -> None:
-    """`_covered_by_value`만 겨눈다.
+def test_낱말_목록을_글의_id로_기억하지_않는다() -> None:
+    """`_PHRASE_CACHE`만 겨눈다.
 
-    어간이 값 한가운데 있어도, **값이 끝난 자리 뒤에** 주장을 이어 붙이면
-    그것은 자료가 말한 것이 아니라 새로 만든 말이다.
+    파이썬은 **버려진 문자열의 `id`를 새 문자열에 다시 쓴다.** 그래서 글의
+    `id`를 열쇠로 쓰면, 앞서 본 글이 사라진 자리에 온 다른 글이 앞 글의
+    낱말 목록을 받는다.
+
+    `_starts_a_word`는 원장 대조(`F1`)에도 쓰인다. 목록이 섞이면 지어낸 값이
+    자료에 있는 것처럼 보일 수 있다.
+
+    운에 기대지 않고 **열쇠의 모양**을 본다. `id` 재사용은 언제 일어날지
+    알 수 없어서 시험 전체를 돌릴 때만 가끔 드러났다.
     """
-    from app.gates.draft_gate import EFFECT_STEM, _covered_by_value, _letters, _squeeze
+    from app.gates.draft_gate import _PHRASE_CACHE, _starts_a_word
 
-    letters = _letters(_squeeze(sentence))
-    packed_value = _letters(_squeeze(value))
-    found = next(EFFECT_STEM.finditer(letters))
-    assert _covered_by_value(letters, found.start(), found.end(), [packed_value]) is False, (
-        f"{name}: 값 뒤에 이어 붙인 주장을 자료가 말한 것으로 봤습니다."
-    )
-
-
-def test_값_안에_있는_이름은_그대로_쓸_수_있다() -> None:
-    """대조군. 이것까지 막으면 법 이름을 아예 못 쓴다.
-
-    이 시험이 없으면 위 시험은 `언제나 False`를 돌려줘도 통과한다 —
-    아무것도 지키지 못하는 시험이 된다.
-    """
-    from app.gates.draft_gate import EFFECT_STEM, _covered_by_value, _letters, _squeeze
-
-    letters = _letters(_squeeze("문화예술진흥법 일부개정법률안을 알린다."))
-    value = _letters(_squeeze("문화예술진흥법 일부개정법률안"))
-    found = next(EFFECT_STEM.finditer(letters))
-    assert _covered_by_value(letters, found.start(), found.end(), [value]) is True, (
-        "자료가 말한 법 이름 안의 낱말까지 막았습니다."
-    )
+    _starts_a_word("조계원", "조계원 의원 등 16인")
+    assert _PHRASE_CACHE, "낱말 목록을 기억하지 않습니다."
+    for key in _PHRASE_CACHE:
+        assert isinstance(key, str), (
+            f"글의 id를 열쇠로 씁니다: {type(key).__name__}. "
+            "버려진 문자열의 id가 다시 쓰이면 다른 글의 답이 나옵니다."
+        )
