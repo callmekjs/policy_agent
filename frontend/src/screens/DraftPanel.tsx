@@ -26,6 +26,9 @@ export function DraftPanel({ run, working, onReviewAll, onReviewOne, downloadUrl
   const verdictOf = new Map(reviews.map((r) => [r.fact_id, r.verdict]))
   const attempts = run.revision_attempts ?? []
   const draft = run.draft
+  // 사람이 "다릅니다"를 눌렀는데 초안이 아직 쓰고 있는 사실. 서버가 센 값을
+  // 그대로 쓴다. 화면이 따로 세면 두 벌이 어긋난다.
+  const wrongInUse = run.wrong_fact_ids_in_use ?? []
 
   return (
     <aside className="panel">
@@ -140,6 +143,26 @@ export function DraftPanel({ run, working, onReviewAll, onReviewOne, downloadUrl
           <p className="hint">
             내려받은 파일에도 <strong>DRAFT / 내부 검토용</strong> 표시가 남습니다. 그대로 배포하지 마세요.
           </p>
+        </section>
+      )}
+
+      {/*
+        칸이 그냥 사라지면 사람은 버튼을 왜 잃었는지 모른다. 막는 것과
+        **왜 막혔는지 말하는 것**은 따로 해야 한다 (`M4`).
+      */}
+      {!run.can_download && wrongInUse.length > 0 && (
+        <section className="panel-block">
+          <h4>내려받기</h4>
+          <div className="blocked">
+            <p>
+              <strong>다르다고 표시하신 사실 {wrongInUse.length}건</strong>을 초안이 아직 쓰고
+              있어서 내려받을 수 없습니다.
+            </p>
+            <p className="hint">
+              위 대화창에 <strong>고쳐 달라고</strong> 적어 주세요. 그 값이 초안에서 빠지면
+              내려받을 수 있습니다.
+            </p>
+          </div>
         </section>
       )}
     </aside>

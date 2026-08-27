@@ -106,6 +106,24 @@ def test_다_확인하면_내려받을_수_있다(client: TestClient) -> None:
     assert after["draft"]["title"]["text"] in text
 
 
+def test_전부_틀렸다고_해도_내려받히면_안_된다(client: TestClient) -> None:
+    """`M4`. 체크리스트에서 **모든 사실에 "틀렸다"**를 눌렀다.
+
+    그런데도 파일이 200으로 나가면 확인 절차가 아무 뜻이 없다. 사람이 틀렸다고
+    말한 값이 그대로 밖으로 나간다.
+    """
+    run = _ready(client)
+    after = _confirm_all(client, run, verdict="WRONG")
+    assert after["unreviewed_fact_ids"] == [], "확인 자체는 끝난 상태여야 합니다."
+    assert after["can_download"] is False, (
+        "틀렸다고 한 사실이 남아 있는데 화면이 내려받기를 열어 줍니다."
+    )
+
+    response = client.get(f"/api/runs/{run['run_id']}/draft.md")
+    assert response.status_code == 409, response.status_code
+    assert response.json()["error_code"] == "WRONG_FACT_STILL_USED"
+
+
 def test_확인이_보호를_만든다(client: TestClient) -> None:
     """README §4.3 — Agent는 보호 여부를 정하지 않는다."""
     run = _ready(client)

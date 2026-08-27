@@ -17,6 +17,7 @@
 from __future__ import annotations
 
 from app.gates.draft_gate import _letters, _squeeze
+from app.gates.protection import used_fact_ids
 from app.harness.draft_contracts import (
     DraftCandidate,
     ValidationFinding,
@@ -53,12 +54,12 @@ def _all_text(candidate: DraftCandidate) -> str:
 
 
 def _all_fact_ids(candidate: DraftCandidate) -> set[str]:
-    used: set[str] = set()
-    for holder in (candidate.title, candidate.lead, *candidate.key_points):
-        used.update(holder.fact_ids)
-    for paragraph in candidate.paragraphs:
-        used.update(paragraph.fact_ids)
-    return used
+    """`protection`과 **같은 정의**를 쓴다.
+
+    "초안이 어느 사실을 쓰고 있는가"를 두 벌로 적으면 한쪽만 고쳐지고 어긋난다.
+    `L1`이 정확히 그렇게 났다.
+    """
+    return used_fact_ids(candidate)
 
 
 def _all_rule_ids(candidate: DraftCandidate) -> set[str]:
@@ -126,15 +127,35 @@ def check_revision(
     #
     # 부칙은 시행일·적용례·경과조치·특례다. 빠지면 읽는 사람이 **언제부터
     # 적용되는지** 모른다. §2.16.4가 중대한 실패로 정한 자리다.
-    dropped_rules = _all_rule_ids(previous) - _all_rule_ids(revised)
-    for rule_id in sorted(dropped_rules):
-        add(
-            "REVISION_DROPPED_RULE",
-            "2.16.4",
-            "부칙",
-            f"고치는 과정에서 부칙 `{rule_id}`이(가) 빠졌습니다. "
-            "부칙은 고칠 수 없습니다.",
-        )
+    # **번호가 아니라 글을 견준다.** 읽는 사람은 `SR-01`이라는 번호를 보지
+    # 않는다. 시행일이 적힌 **문장**을 읽는다. 번호만 견주면 문장을 통째로
+    # 다른 말로 바꿔도 검사가 아무것도 못 본다 (5일차 검토 `K2`).
+    after_rules = _all_rule_ids(revised)
+    for rule_id in sorted(_all_rule_ids(previous)):
+        if rule_id not in after_rules:
+            add(
+                "REVISION_DROPPED_RULE",
+                "2.16.4",
+                "부칙",
+                f"고치는 과정에서 부칙 `{rule_id}`이(가) 빠졌습니다. "
+                "부칙은 고칠 수 없습니다.",
+            )
+            continue
+        # 번호는 붙어 있는데 글이 사라졌다. 빠지는 것보다 위험하다 — 되짚어
+        # 보면 "부칙이 있다"고 나오는데 정작 언제부터 적용되는지는 알 수 없다.
+        for paragraph in previous.paragraphs:
+            if rule_id not in paragraph.supplementary_rule_ids:
+                continue
+            kept = _letters(_squeeze(paragraph.text))
+            if kept and kept not in after_text:
+                add(
+                    "REVISION_DROPPED_RULE",
+                    "2.16.4",
+                    "부칙",
+                    f"고치는 과정에서 부칙 `{rule_id}`의 글이 사라졌습니다. "
+                    "부칙은 자료에 적힌 그대로여야 합니다.",
+                )
+                break
 
     # --- K3. 발표 주체는 고칠 수 없다 ---------------------------------------
     #

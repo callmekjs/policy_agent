@@ -32,7 +32,11 @@ from app.harness.contracts import (
     Run,
 )
 from app.gates.draft_export import file_name, to_markdown
-from app.gates.protection import is_protected_candidate, unreviewed_fact_ids
+from app.gates.protection import (
+    is_protected_candidate,
+    unreviewed_fact_ids,
+    wrong_fact_ids_in_use,
+)
 from app.harness.orchestrator import payload_hash
 from app.harness.review_contracts import FactReview, FactVerdict
 from app.harness.runtime import BusyError
@@ -274,11 +278,16 @@ def run_view(run: Run) -> dict[str, Any]:
             for a in run.revision_attempts
         ],
         "previous_versions": [d.version for d in run.draft_history],
+        # 안 본 사실이 남아 있어도, **틀렸다고 한 사실을 아직 쓰고 있어도**
+        # 열어 주지 않는다. 화면이 열어 주고 서버가 막으면 사람은 이유를
+        # 모른 채 버튼만 누르게 된다 (`M1`·`M4`).
         "can_download": (
             run.draft is not None
             and run.fact_ledger is not None
             and not unreviewed_fact_ids(run.fact_ledger, run.fact_reviews)
+            and not wrong_fact_ids_in_use(run.draft, run.fact_reviews)
         ),
+        "wrong_fact_ids_in_use": wrong_fact_ids_in_use(run.draft, run.fact_reviews),
         "draft": _draft_view(run.draft) if run.draft else None,
         "validation_findings": [
             {
@@ -618,6 +627,15 @@ async def download_draft(request: Request, run_id: str) -> Any:
                 "REVIEW_NOT_FINISHED",
                 f"아직 확인하지 않은 사실이 {len(left)}건 있습니다.",
                 "사실 목록에서 남은 항목을 모두 확인해 주세요.",
+                run_id,
+            )
+        wrong = wrong_fact_ids_in_use(run.draft, run.fact_reviews)
+        if wrong:
+            return error_response(
+                409,
+                "WRONG_FACT_STILL_USED",
+                f"틀렸다고 표시한 사실이 초안에 {len(wrong)}건 남아 있습니다.",
+                "고쳐 달라고 요청해 그 값을 걷어낸 뒤에 내려받아 주세요.",
                 run_id,
             )
         text = to_markdown(run.draft)

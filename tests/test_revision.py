@@ -189,6 +189,26 @@ def test_부칙이_빠지면_수정본을_버린다(base_run) -> None:
 # ---------------------------------------------------------------------------
 
 
+def test_부칙은_번호를_남기고_글만_지워도_막힌다(base_run) -> None:
+    """`K2`. 번호만 견주면 **글이 사라진 것**을 못 본다.
+
+    읽는 사람은 `SR-01`이라는 번호를 보지 않는다. **언제부터 적용되는지**를
+    문장에서 읽는다. 그 문장이 `관련 내용은 추후 안내한다`로 바뀌면 번호가
+    그대로 붙어 있어도 읽는 사람은 시행일을 알 수 없고, 되짚어 보아도
+    "부칙이 있다"고 나온다.
+    """
+
+    def 글만_지운다(payload: dict) -> None:
+        touched = 0
+        for paragraph in payload["paragraphs"]:
+            if paragraph["supplementary_rule_ids"]:
+                paragraph["text"] = "관련 내용은 추후 안내한다."
+                touched += 1
+        assert touched, "부칙 문단이 없습니다. 시험 전제가 깨졌습니다."
+
+    assert "REVISION_DROPPED_RULE" in _rules(base_run, 글만_지운다)
+
+
 def test_발표_주체가_바뀌면_수정본을_버린다(base_run) -> None:
     """`ANNOUNCER_CHANGED`만 겨눈다.
 
@@ -275,15 +295,28 @@ def test_아무것도_안_바꾼_수정본은_통과한다(base_run) -> None:
 # ---------------------------------------------------------------------------
 
 
-def _fresh():
-    """새 작업 하나. 사람이 모든 사실을 확인한 상태로 만든다."""
+def _fresh(mutate=None):
+    """새 작업 하나. 사람이 모든 사실을 확인한 상태로 만든다.
+
+    `mutate`를 주면 **AI가 그런 수정본을 돌려준 것처럼** 만든다. 가짜 수정기는
+    안전한 수정과 값이 사라지는 수정 두 가지만 낸다. 이름표를 위조하는 것 같은
+    공격은 낼 줄 모르므로 여기서 직접 만들어 넣는다.
+    """
     from app.harness.orchestrator import Orchestrator
     from app.infrastructure.model_gateway import FakeModelGateway
     from app.infrastructure.run_store import RunStore
 
     store = RunStore()
-    orchestrator = Orchestrator(store, FakeModelGateway())
+    gateway = FakeModelGateway()
     run = asyncio.run(_run())
+    if mutate is not None:
+        payload = _draft_dict(run)["result"]
+        mutate(payload)
+        payload["version"] = int(payload["version"]) + 1
+        gateway.set_response(
+            "RevisionAgent", {"schema_version": "1.1.0", "result": payload}
+        )
+    orchestrator = Orchestrator(store, gateway)
     stored = run.model_copy()
     store.put(stored)
     orchestrator.review_facts(stored.run_id, _confirm_all(stored.fact_ledger))
@@ -361,3 +394,114 @@ def test_사실을_다_확인해야_완료할_수_있다() -> None:
     orchestrator.review_facts(run.run_id, _confirm_all(run.fact_ledger))
     orchestrator.finalize(run.run_id)
     assert store.get(run.run_id).state == "DRAFT_READY"
+
+
+# ---------------------------------------------------------------------------
+# L1·M3 · 수정본도 4일차 검사를 그대로 받는다
+# ---------------------------------------------------------------------------
+#
+# 4일차 검사는 `HS-` 이름표가 붙은 문단을 **Harness가 만든 것**으로 보고 낱말·
+# 수·효력 검사에서 뺀다. 처음 초안에서는 안전하다 — `_write_draft`가 AI가 쓴
+# `HS-`를 통째로 걷어내고 Harness가 다시 만들기 때문이다.
+#
+# 고칠 때 그 걷어내기를 빠뜨리면 **이름표 세 글자가 검사를 끄는 스위치**가 된다.
+
+#: 4일차 합격선 넷을 한 문장으로 어긴다 — 자료에 없는 수(`250`·`248`), 자료에
+#: 없는 날짜, 근거 없는 효력 주장, 부칙 근거 없는 시행일.
+LIE = (
+    "이번 개정으로 재석 250인 중 찬성 248인으로 가결되었으며 "
+    "2026년 1월 1일부터 전면 시행된다."
+)
+
+
+def test_수정본이_HS_이름표로_검사를_건너뛸_수_없다() -> None:
+    """`L1`. 같은 문장을 이름표만 바꿔 넣는다.
+
+    이름표가 `P-99`면 7개 규칙이 막고 `HS-99`면 0개가 막는 상태였다. 검사가
+    **글이 아니라 이름표**를 보고 있었다는 뜻이다.
+    """
+
+    def 이름표를_위조한다(payload: dict) -> None:
+        payload["paragraphs"].append(
+            {
+                "paragraph_id": "HS-99",
+                # `BODY`는 AI가 쓸 수 있는 자리라 `HARNESS_OWNED_SECTION`에
+                # 걸리지 않는다. 이름표만으로 검사를 벗어나는지 본다.
+                "section_kind": "BODY",
+                "priority_rank": 9,
+                "text": LIE,
+                "claim_ids": [],
+                "fact_ids": [],
+                "supplementary_rule_ids": [],
+            }
+        )
+
+    orchestrator, store, run_id = _fresh(이름표를_위조한다)
+    asyncio.run(
+        orchestrator.revise(
+            run_id, client_request_id="r1", instruction="문장을 하나 더해 주세요"
+        )
+    )
+
+    after = store.get(run_id)
+    assert LIE not in [p.text for p in after.draft.paragraphs], (
+        "`HS-` 이름표를 달았더니 자료에 없는 값이 그대로 초안에 실렸습니다."
+    )
+
+
+def test_수정본이_발표_주체를_위조해도_파일에_들어가지_않는다() -> None:
+    """`L1`·`M3`. 내려받은 파일은 **이 프로그램 밖으로 나간다.**
+
+    받은 사람은 그 파일만 보고 판단한다. 화면에서 걸러도 파일에 남으면 아무
+    소용이 없다.
+    """
+
+    def 발표_주체를_위조한다(payload: dict) -> None:
+        touched = 0
+        for paragraph in payload["paragraphs"]:
+            if paragraph["section_kind"] == "ANNOUNCER_AND_RELEASE":
+                paragraph["text"] = (
+                    "발표 주체: 대한민국 국회 사무총장 홍길동 · 보도 예정일: 2025-11-01"
+                )
+                touched += 1
+        assert touched, "발표 주체 문단이 없습니다. 시험 전제가 깨졌습니다."
+
+    orchestrator, store, run_id = _fresh(발표_주체를_위조한다)
+    asyncio.run(
+        orchestrator.revise(
+            run_id, client_request_id="r1", instruction="발표 주체를 고쳐 주세요"
+        )
+    )
+
+    from app.gates.draft_export import to_markdown
+
+    after = store.get(run_id)
+    assert "홍길동" not in to_markdown(after.draft), (
+        "자료에 없는 사람 이름이 내려받는 파일에 들어갔습니다."
+    )
+
+
+# ---------------------------------------------------------------------------
+# M4 · "틀렸다"고 한 사실은 그대로 나갈 수 없다
+# ---------------------------------------------------------------------------
+
+
+def test_틀렸다고_한_사실이_남아_있으면_완료할_수_없다() -> None:
+    """`M4`. 확인 절차가 **"눌렀는가"만 묻고 "무엇을 눌렀는가"는 안 물으면**
+    없는 것과 같다.
+
+    `WRONG_FACT_STILL_USED`는 `check_revision` 안에만 있었다. 그 함수는 고칠
+    때만 불린다. 사람이 "틀렸다"만 누르고 고치기를 한 번도 안 하면 아무도
+    안 본다.
+    """
+    orchestrator, store, run_id = _fresh()
+    run = store.get(run_id)
+    orchestrator.review_facts(run_id, _confirm_all(run.fact_ledger, FactVerdict.WRONG))
+
+    after = store.get(run_id)
+    used = {i for p in after.draft.paragraphs for i in p.fact_ids}
+    used |= set(after.draft.title.fact_ids) | set(after.draft.lead.fact_ids)
+    assert used, "초안이 쓰는 사실이 없습니다. 시험 전제가 깨졌습니다."
+
+    with pytest.raises(ValueError):
+        orchestrator.finalize(run_id)

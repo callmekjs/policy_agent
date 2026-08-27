@@ -28,7 +28,11 @@ from app.harness.draft_contracts import (
     ValidationFinding,
     ValidationSeverity,
 )
-from app.gates.protection import apply_reviews, unreviewed_fact_ids
+from app.gates.protection import (
+    apply_reviews,
+    unreviewed_fact_ids,
+    wrong_fact_ids_in_use,
+)
 from app.gates.revision_gate import check_revision
 from app.gates.draft_sections import build_fixed_sections
 from app.gates.draft_template import (
@@ -181,6 +185,59 @@ def _rejected_fact_issues(evidence, next_index: int = 1) -> list[Issue]:
         )
         index += 1
     return issues
+
+
+def _with_harness_sections(
+    candidate: DraftCandidate,
+    *,
+    template,
+    basis_date: str,
+    announcement_subject: str,
+    supplementary_rules,
+) -> DraftCandidate:
+    """AI가 쓴 `HS-` 문단을 걷어내고 Harness가 다시 만든다.
+
+    **처음 초안과 수정본이 똑같이 이 길을 지나야 한다.** 5일차 검토가 찾은
+    `L1`이 정확히 여기서 났다 — 처음 초안은 걷어냈고 수정본은 안 걷어냈다.
+    그래서 함수 이름도 인자 이름도 같은 `check_draft` 호출이 두 자리에서
+    **믿을 수 있는지가 다른** 값을 받았다.
+
+    4일차 검사(`draft_gate`)는 `HS-` 이름표가 붙은 문단을 Harness가 만든 것으로
+    보고 낱말·수·효력 검사에서 뺀다. 그 이름표를 AI가 직접 쓸 수 있으면
+    **이름표 세 글자가 검사를 끄는 스위치**가 된다. 걷어내는 자리를 하나로
+    모아 두 번째로 빠뜨릴 자리를 없앤다.
+    """
+    return candidate.model_copy(
+        update={
+            "paragraphs": [
+                *build_fixed_sections(
+                    template,
+                    basis_date=basis_date,
+                    procedure_stage_label=SUPPORTED_PROCEDURE_STAGE_LABEL,
+                    effect_status_label=EFFECT_STATUS_LABEL,
+                    announcement_subject=announcement_subject,
+                    contact_text=template.placeholders.get(
+                        "contact", CONTACT_PLACEHOLDER
+                    ),
+                    release_date_text=template.placeholders.get(
+                        "release_date", RELEASE_DATE_PLACEHOLDER
+                    ),
+                    internet_notice=INTERNET_NOTICE,
+                    # 부칙은 자료에 적힌 그대로다. AI에게 맡기지 않는다.
+                    supplementary_rules=supplementary_rules,
+                ),
+                *[
+                    p
+                    for p in candidate.paragraphs
+                    # 값이 정해진 자리는 버린다. Harness 이름표(`HS-`)를 흉내
+                    # 낸 것도 버린다. 그러지 않으면 AI가 그 이름을 달고 검사를
+                    # 건너뛸 수 있다.
+                    if p.section_kind not in HARNESS_OWNED
+                    and not p.paragraph_id.startswith(HARNESS_ID_PREFIX)
+                ],
+            ]
+        }
+    )
 
 
 class Orchestrator:
@@ -572,36 +629,12 @@ class Orchestrator:
         try:
             candidate = parse_draft_result(call)
             # 값이 정해진 자리는 Harness가 직접 채운다. AI가 쓴 것은 버린다.
-            candidate = candidate.model_copy(
-                update={
-                    "paragraphs": [
-                        *build_fixed_sections(
-                            template,
-                            basis_date=basis_date,
-                            procedure_stage_label=SUPPORTED_PROCEDURE_STAGE_LABEL,
-                            effect_status_label=EFFECT_STATUS_LABEL,
-                            announcement_subject=announcement_subject,
-                            contact_text=template.placeholders.get(
-                                "contact", CONTACT_PLACEHOLDER
-                            ),
-                            release_date_text=template.placeholders.get(
-                                "release_date", RELEASE_DATE_PLACEHOLDER
-                            ),
-                            internet_notice=INTERNET_NOTICE,
-                            # 부칙은 자료에 적힌 그대로다. AI에게 맡기지 않는다.
-                            supplementary_rules=ledger.supplementary_rules,
-                        ),
-                        *[
-                            p
-                            for p in candidate.paragraphs
-                            # 값이 정해진 자리는 버린다. Harness 이름표(`HS-`)를
-                            # 흉내 낸 것도 버린다. 그러지 않으면 AI가 그 이름을
-                            # 달고 검사를 건너뛸 수 있다.
-                            if p.section_kind not in HARNESS_OWNED
-                            and not p.paragraph_id.startswith(HARNESS_ID_PREFIX)
-                        ],
-                    ]
-                }
+            candidate = _with_harness_sections(
+                candidate,
+                template=template,
+                basis_date=basis_date,
+                announcement_subject=announcement_subject,
+                supplementary_rules=ledger.supplementary_rules,
             )
         except DraftResultError as exc:
             async with self.store.lock:
@@ -739,10 +772,13 @@ class Orchestrator:
         return run
 
     def finalize(self, run_id: str) -> Run:
-        """확인을 마친 초안을 완료로 옮긴다 (`M1`).
+        """확인을 마친 초안을 완료로 옮긴다 (`M1`·`M4`).
 
         **하나라도 안 본 사실이 있으면 거부한다.** 확인 절차가 있는데 건너뛸
         수 있으면 없는 것과 같다.
+
+        **틀렸다고 한 사실을 아직 쓰고 있어도 거부한다.** 눌렀는지만 묻고
+        무엇을 눌렀는지 안 물으면 그것도 없는 것과 같다.
         """
         run = self.store.get(run_id)
         if run is None:
@@ -754,6 +790,12 @@ class Orchestrator:
             raise ValueError(
                 f"아직 확인하지 않은 사실이 {len(left)}건 있습니다. "
                 "모두 확인해야 내려받을 수 있습니다."
+            )
+        wrong = wrong_fact_ids_in_use(run.draft, run.fact_reviews)
+        if wrong:
+            raise ValueError(
+                f"틀렸다고 표시한 사실이 초안에 {len(wrong)}건 남아 있습니다. "
+                "고쳐 달라고 요청해 그 값을 걷어낸 뒤에 완료할 수 있습니다."
             )
         self._transition(run, RunState.DRAFT_READY)
         run.finished_at = run.updated_at
@@ -802,6 +844,16 @@ class Orchestrator:
         try:
             revised = DraftCandidate.model_validate(
                 (call.result or {}).get("result") or {}
+            )
+            # **처음 초안과 똑같이** 값이 정해진 자리를 Harness가 다시 만든다.
+            # 이 줄이 없으면 AI가 `HS-` 이름표를 달아 4일차 검사를 통째로
+            # 건너뛸 수 있다 (5일차 검토 `L1`·`M3`).
+            revised = _with_harness_sections(
+                revised,
+                template=load_template(load_writing_contract().template),
+                basis_date=run.basis_date.isoformat(),
+                announcement_subject=run.announcement_subject_input or "",
+                supplementary_rules=run.fact_ledger.supplementary_rules,
             )
         except ValidationError:
             revised = None

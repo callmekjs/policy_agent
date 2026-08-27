@@ -15,6 +15,7 @@ README가 못 박은 것이 하나 있다.
 
 from __future__ import annotations
 
+from app.harness.draft_contracts import DraftCandidate
 from app.harness.fact_contracts import FactLedger, VerifiedFact
 from app.harness.review_contracts import FactReview, FactVerdict
 
@@ -74,3 +75,31 @@ def unreviewed_fact_ids(ledger: FactLedger, reviews: list[FactReview]) -> list[s
     """
     seen = {r.fact_id for r in reviews}
     return [f.fact_id for f in ledger.facts if f.fact_id not in seen]
+
+
+def used_fact_ids(draft: DraftCandidate) -> set[str]:
+    """초안이 근거로 달고 있는 사실 전부. 제목·리드·핵심 요약·문단을 다 본다."""
+    used: set[str] = set()
+    for holder in (draft.title, draft.lead, *draft.key_points):
+        used.update(holder.fact_ids)
+    for paragraph in draft.paragraphs:
+        used.update(paragraph.fact_ids)
+    return used
+
+
+def wrong_fact_ids_in_use(
+    draft: DraftCandidate | None, reviews: list[FactReview]
+) -> list[str]:
+    """사람이 "틀렸다"고 했는데 초안이 **아직 쓰고 있는** 사실.
+
+    확인 절차가 **"눌렀는가"만 묻고 "무엇을 눌렀는가"는 안 물으면** 없는 것과
+    같다. 5일차 검토(`M4`)에서 모든 사실에 "틀렸다"를 누르고도 파일이 그대로
+    나갔다. 같은 검사가 `check_revision` 안에는 있었지만 그 함수는 **고칠 때만**
+    불려서, 고치기를 한 번도 안 하는 사람에게는 없는 것이나 마찬가지였다.
+
+    그래서 고치는 자리가 아니라 **밖으로 나가는 자리**에서도 센다.
+    """
+    if draft is None:
+        return []
+    wrong = {r.fact_id for r in reviews if r.verdict is FactVerdict.WRONG}
+    return sorted(wrong & used_fact_ids(draft))

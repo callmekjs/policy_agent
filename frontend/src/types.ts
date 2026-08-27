@@ -171,6 +171,11 @@ export interface RunView {
   protected_candidate_fact_ids: string[]
   /** 아직 사람이 안 본 사실. 하나라도 있으면 내려받을 수 없다. */
   unreviewed_fact_ids: string[]
+  /**
+   * 사람이 "다릅니다"를 눌렀는데 초안이 **아직 쓰고 있는** 사실.
+   * 하나라도 있으면 내려받을 수 없다 (`M4`).
+   */
+  wrong_fact_ids_in_use: string[]
   /** 고치기 기록. 실패한 시도도 보여 준다. */
   revision_attempts: RevisionAttemptView[]
   /** 지난 판 번호. 되짚을 수 있어야 한다. */
