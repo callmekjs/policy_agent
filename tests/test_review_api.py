@@ -196,3 +196,53 @@ def test_막힌_이유는_쉬운_말로_보인다(client: TestClient) -> None:
     assert attempt["blocking_messages"], "사람이 읽을 이유가 없습니다."
     for message in attempt["blocking_messages"]:
         assert not message.isascii(), f"영어 코드만 보입니다: {message}"
+
+
+def test_막고_있는_작업_번호를_함께_알려준다(client: TestClient) -> None:
+    """막다른 길을 만들지 않는다.
+
+    어제 화면에 "이전 작업을 지우고 다시 하기" 버튼을 넣었는데 **눌러도
+    안 됐다.** 서버가 어느 작업이 막고 있는지 안 알려 줘서 화면이 지울
+    대상을 몰랐기 때문이다.
+
+    버튼이 있는데 안 먹는 것은 버튼이 없는 것보다 나쁘다. 사람은 눌러 보고
+    "이것도 안 되는구나" 하고 포기한다.
+    """
+    first = _ready(client)
+
+    # 앞 작업이 남아 있는 채로 새 작업을 만들면 막힌다.
+    blocked = client.post(
+        "/api/runs",
+        json={
+            "client_request_id": "flow-2",
+            "purpose": "두 번째 작업을 만들어 보려 합니다.",
+            "disclosure": "PUBLIC",
+            "basis_date": TODAY.isoformat(),
+            "sources": _sources(),
+            "announcement_subject": "조계원 의원실",
+            "external_ai_policy_version": EXTERNAL_AI_POLICY_VERSION,
+            "external_ai_transfer_confirmed": True,
+        },
+    )
+    assert blocked.status_code == 409
+    body = blocked.json()
+    assert body["error_code"] == "RUN_ALREADY_EXISTS"
+    # **번호를 함께 준다.** 이것이 없으면 화면이 아무것도 못 한다.
+    assert body["run_id"] == first["run_id"], body
+
+    # 그 번호로 지우면 새 작업이 만들어진다.
+    assert client.delete(f"/api/runs/{body['run_id']}").status_code == 200
+    again = client.post(
+        "/api/runs",
+        json={
+            "client_request_id": "flow-3",
+            "purpose": "지운 뒤 다시 만들어 봅니다.",
+            "disclosure": "PUBLIC",
+            "basis_date": TODAY.isoformat(),
+            "sources": _sources(),
+            "announcement_subject": "조계원 의원실",
+            "external_ai_policy_version": EXTERNAL_AI_POLICY_VERSION,
+            "external_ai_transfer_confirmed": True,
+        },
+    )
+    assert again.status_code == 202, again.json()

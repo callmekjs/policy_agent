@@ -25,6 +25,7 @@ from app.harness.contract_loader import load_writing_contract
 from app.harness.orchestrator import Orchestrator
 from app.harness.runtime import HarnessRuntime
 from app.infrastructure.model_gateway import FakeModelGateway
+from app.infrastructure.openai_gateway import OpenAIModelGateway, live_enabled
 from app.infrastructure.run_store import RunStore
 
 #: 빌드된 React 결과물 위치.
@@ -40,7 +41,12 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     app.state.writing_contract = load_writing_contract()
 
     app.state.store = RunStore()
-    app.state.gateway = FakeModelGateway()
+    # **기본은 가짜다.** 진짜 AI는 사람이 `POLICY_AGENT_LIVE=1`을 넣어야 켜진다.
+    # 켜 두면 시험을 돌릴 때마다 자료가 인터넷으로 나가고 돈이 든다.
+    if live_enabled():
+        app.state.gateway = OpenAIModelGateway()
+    else:
+        app.state.gateway = FakeModelGateway()
     app.state.orchestrator = Orchestrator(app.state.store, app.state.gateway)
     app.state.runtime = HarnessRuntime(app.state.store)
     app.state.request_token = secrets.token_urlsafe(32)

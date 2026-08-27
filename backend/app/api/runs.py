@@ -167,6 +167,27 @@ def _draft_view(draft) -> dict[str, Any]:
     }
 
 
+def _gateway_label(request: Request) -> str:
+    """지금 어느 AI를 쓰는지 **정직하게** 알린다.
+
+    화면이 "가짜"라고 적혀 있는데 진짜로 나가고 있으면, 사람이 자료가
+    인터넷으로 나가는 줄 모른 채 넣는다.
+    """
+    return "fake" if getattr(request.app.state.gateway, "is_fake", True) else "live"
+
+
+def _external_calls(request: Request) -> int:
+    """지금까지 **실제로 인터넷으로 나간** 횟수.
+
+    가짜 게이트웨이는 부른 기록을 목록으로 들고 있지만 밖으로 나간 것은
+    하나도 없다. 그래서 언제나 0이다.
+    """
+    gateway = request.app.state.gateway
+    if getattr(gateway, "is_fake", True):
+        return 0
+    return int(getattr(gateway, "calls", 0))
+
+
 def run_view(run: Run) -> dict[str, Any]:
     """화면에 보낼 값. 원문 전체와 비밀값은 담지 않는다."""
     state = RunState(run.state)
@@ -322,8 +343,9 @@ async def health(request: Request) -> dict[str, Any]:
         "status": "ok",
         "contract_id": contract.full_id,
         "writing_contract_files": sorted(contract.source_paths.values()),
-        "model_gateway": "fake" if request.app.state.gateway.is_fake else "live",
-        "external_api_calls": 0 if request.app.state.gateway.is_fake else None,
+        "model_gateway": _gateway_label(request),
+        # 진짜 AI를 쓰면 지금까지 실제로 보낸 횟수를 그대로 보여 준다.
+        "external_api_calls": _external_calls(request),
     }
 
 
@@ -371,7 +393,7 @@ async def bootstrap(request: Request, response: Response) -> dict[str, Any]:
             {"value": role.value, "label": label}
             for role, label in SOURCE_ROLE_LABELS.items()
         ],
-        "model_gateway": "fake" if request.app.state.gateway.is_fake else "live",
+        "model_gateway": _gateway_label(request),
     }
 
 
@@ -439,12 +461,18 @@ async def create_run(request: Request, body: CreateRunRequest) -> Any:
                 "지금 작업이 끝난 뒤 새 작업을 시작해 주세요.",
             )
 
-        if store.active_runs():
+        active = store.active_runs()
+        if active:
+            # **어느 작업이 막고 있는지 함께 알려 준다.** 그래야 화면이
+            # 그것을 지우고 다시 시작할 수 있다. 번호를 안 주면 사람은
+            # 화면을 새로 고치는 수밖에 없고 넣은 자료를 다 잃는다.
+            blocking = active[0]
             return error_response(
                 409,
                 "RUN_ALREADY_EXISTS",
                 "이미 진행 중인 작업이 있습니다. 한 번에 한 건만 처리합니다.",
-                "현재 작업을 삭제한 뒤 새 작업을 시작해 주세요.",
+                "이전 작업을 지우고 다시 시작해 주세요.",
+                blocking.run_id if hasattr(blocking, "run_id") else str(blocking),
             )
 
         run = orchestrator.create_run(body)
