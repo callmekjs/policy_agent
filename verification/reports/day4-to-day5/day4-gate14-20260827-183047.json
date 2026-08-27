@@ -1,0 +1,746 @@
+{
+ "gate_id": "DEMO-DAY1-GATE",
+ "run_id": "day4-gate14-20260827-183047",
+ "readme_version": "0.24.0-draft",
+ "started_at": "2026-08-27T17:38:00+09:00",
+ "completed_at": "2026-08-27T18:30:47+09:00",
+ "verifier": {
+  "context": "구현 담당자와 다른 새 문맥의 DayGateVerifier 14차. 검토 대상 커밋 51f2feb, 작업 폴더는 M README.md 하나뿐이었다. 제품 소스·시험·Writing Contract·README 를 고치지 않았다. 변조 시험 25회(T1~T25)는 git checkout 을 쓰지 않고 바꾸기 전 바이트로 되돌렸으며 매번 SHA-256 으로 원복을 확인했다. 시험 파일은 복사본(scratchpad/benign_test_draft.py, control_test_draft.py)으로만 바꿨고 원본은 손대지 않았다. 마지막에 git status --short 가 M README.md 와 verify-day1.ps1 이 스스로 만든 보고서 2개뿐이고 시험 466개가 통과하는 것을 확인했다. 인터넷·OpenAI 호출 0회, 비용 0달러, .env 접근 0건. 다만 verify-day1.ps1 이 도중에 죽으면서 검증용 서버 두 개(PID 38264/포트 8799, PID 35540/포트 8801)가 남았고 이 환경에서 프로세스 종료 권한이 막혀 정리하지 못했다.",
+  "is_separate_from_implementer": true
+ },
+ "source_snapshot": {
+  "file_count": 65,
+  "combined_sha256": "4b042d6777719b59cc8423c52353a9df6342f37bee24d0d152156e4d0ce6e573",
+  "files": [
+   {
+    "path": "backend/app/__init__.py",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+   },
+   {
+    "path": "backend/app/agents/__init__.py",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+   },
+   {
+    "path": "backend/app/agents/draft_writing.py",
+    "sha256": "646b8e3310a57d3086079e9b3b868c0dac6c4bf7aec88a31d01082977d17b77b"
+   },
+   {
+    "path": "backend/app/agents/fact_extraction.py",
+    "sha256": "b542781f5afbc6598ec2953a2fb4cf9dae5be60149802f90463ce4bc8caf9118"
+   },
+   {
+    "path": "backend/app/api/__init__.py",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+   },
+   {
+    "path": "backend/app/api/runs.py",
+    "sha256": "bf898478beb3a0897ad4a0295d6339cbc12fd806634c7bb2a0fab010119780ae"
+   },
+   {
+    "path": "backend/app/gates/__init__.py",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+   },
+   {
+    "path": "backend/app/gates/conflict_gate.py",
+    "sha256": "d9e249f718d50c41073cf92d602aae62142917c3a070228ad01974904c192f01"
+   },
+   {
+    "path": "backend/app/gates/draft_charset.py",
+    "sha256": "9649f29573d45751dc16863468b3e0aa52a19374fbd68cba40f7ad9250b56b12"
+   },
+   {
+    "path": "backend/app/gates/draft_export.py",
+    "sha256": "7022ce3f574ce2becbfc3a3b10320e48239627a94f263218328d3afe8f0a5f2a"
+   },
+   {
+    "path": "backend/app/gates/draft_gate.py",
+    "sha256": "473b66dcf62f6458a12edbb06876a55e2febebb1fad0139258116e1b63d0099b"
+   },
+   {
+    "path": "backend/app/gates/draft_normalizer.py",
+    "sha256": "396e2ff5094cb0a558e5d71d27a8178ab283c59414084c8302c93f06ad8c9da3"
+   },
+   {
+    "path": "backend/app/gates/draft_sections.py",
+    "sha256": "27dab6f296b1e99c81a0689bd35b49c3995bedfe9a778de8b735341056b0f625"
+   },
+   {
+    "path": "backend/app/gates/draft_template.py",
+    "sha256": "a8e848edadcc4fd4c9efbe734883a75bc8a59c55a17d2f17bba5b21e15e4055b"
+   },
+   {
+    "path": "backend/app/gates/draft_vocabulary.py",
+    "sha256": "f01ef01f5f97a3f2d1326469fab60928e9a7f1c37257dfe4af5924264051d652"
+   },
+   {
+    "path": "backend/app/gates/evidence_gate.py",
+    "sha256": "12cd2a7385e02beb39ebb42c3b296d918c5e85dc1f0c8648a914adb960b896b1"
+   },
+   {
+    "path": "backend/app/gates/final_text_gate.py",
+    "sha256": "793323e8bede216e0d27903e8776607acef3696f3024fe6d9c36c766ec4ef544"
+   },
+   {
+    "path": "backend/app/gates/input_gate.py",
+    "sha256": "69faf53ee7f63da367c6c510f85549b0edf181f0237f59ada7ed9cf06e3f824e"
+   },
+   {
+    "path": "backend/app/gates/numeral_reader.py",
+    "sha256": "58c36b25e7cad3bb2d554b1908439ef8b0b4c35b33f0470eb02f7a92aa0ae4d2"
+   },
+   {
+    "path": "backend/app/gates/protection.py",
+    "sha256": "a4e6975d82db3ce8db816e4e31bcf74583ad9590617bebbe02d650b5717338aa"
+   },
+   {
+    "path": "backend/app/gates/revision_gate.py",
+    "sha256": "7f9416120b8e2bdb12e902ce0217318f14d686754ee533ab97d845b4ae41d6fb"
+   },
+   {
+    "path": "backend/app/gates/source_role_gate.py",
+    "sha256": "36cd3c0c0d14119fa42b04ca73c6e39a7cd9271ee560b142019b975ceecbe8b8"
+   },
+   {
+    "path": "backend/app/harness/__init__.py",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+   },
+   {
+    "path": "backend/app/harness/article_parser.py",
+    "sha256": "1aec6e64b7495eb902bb4801cf4e6653c018003d4c79aea6d7c218aad6266d1e"
+   },
+   {
+    "path": "backend/app/harness/contract_loader.py",
+    "sha256": "a49a8ed1b9d204d4fdfdef91fab4d914f0ececca971bdd5630cbfa9a8d33383a"
+   },
+   {
+    "path": "backend/app/harness/contracts.py",
+    "sha256": "02bbddf2c47f55003126f058ce9d9a242191b8eb338d9a4895f995f9648662f2"
+   },
+   {
+    "path": "backend/app/harness/draft_contracts.py",
+    "sha256": "80d4db00fc6ace89a352cf5bbeba3fee7e3c14d6957a98b3f34ccf0153ec3c64"
+   },
+   {
+    "path": "backend/app/harness/fact_contracts.py",
+    "sha256": "21c9e191ec8cf65ac29d6ff08a202f1f4308ec71a7560565a0dd4bf722b411ae"
+   },
+   {
+    "path": "backend/app/harness/legal_contracts.py",
+    "sha256": "907626b58a7c0e40ee611c36e332cc878a32d243da868b6c79a6a2bfcb1ad930"
+   },
+   {
+    "path": "backend/app/harness/orchestrator.py",
+    "sha256": "13d690f669596fcd5e95c96d5213e0e376c10ea82ded0c381b81ba18f53f39dd"
+   },
+   {
+    "path": "backend/app/harness/review_contracts.py",
+    "sha256": "158fb1224984499e6cf76dd1ce007b9355b1f760d9fe6f4e323cb0254285d28f"
+   },
+   {
+    "path": "backend/app/harness/runtime.py",
+    "sha256": "adb8394f5c16e73ad4969e14f62940d7a82c6177fb7f328422e1cbd417a24b2c"
+   },
+   {
+    "path": "backend/app/harness/source_normalizer.py",
+    "sha256": "dd1d9513b6598f94fd7f8430283c38270211b5341c4143898069869839f9713d"
+   },
+   {
+    "path": "backend/app/harness/states.py",
+    "sha256": "a75afd52f696b966b507326ba31e1dc42976986ec50b1dfb015cd2c428adad03"
+   },
+   {
+    "path": "backend/app/infrastructure/__init__.py",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+   },
+   {
+    "path": "backend/app/infrastructure/fake_agents.py",
+    "sha256": "39f5f56c50095ec3b4e00ad63c50ff22ec503705c3f8f78a6f87c4200673c355"
+   },
+   {
+    "path": "backend/app/infrastructure/fake_draft.py",
+    "sha256": "04fe02b11f89c704872ceec7ca5fd924ed96c9a19f905fb3488454735e7f67ff"
+   },
+   {
+    "path": "backend/app/infrastructure/fake_revision.py",
+    "sha256": "9f49e814b809967970f9a902fa7df118f51021658fc4a9f517e783991c527d46"
+   },
+   {
+    "path": "backend/app/infrastructure/model_gateway.py",
+    "sha256": "ec8804f1b6949a0a6dc53b04cbb279946140535fd8728737eb4791f128eace1e"
+   },
+   {
+    "path": "backend/app/infrastructure/run_store.py",
+    "sha256": "518fea31c2af082ca83333c03bcf6ae4563131135dda07455d67cc337fac984a"
+   },
+   {
+    "path": "backend/app/main.py",
+    "sha256": "e5b6bb9719b1acc89f337e4d7c569fd2d836d95c3c9049c598d1ccf408ce6c76"
+   },
+   {
+    "path": "backend/app/writing_contracts/assembly_law_amendment_v1/contract.yaml",
+    "sha256": "9065fa6d7d3f31d8d487517ef43c770a1003aec034d099ab21eadf579a5af6bc"
+   },
+   {
+    "path": "backend/app/writing_contracts/assembly_law_amendment_v1/profile.yaml",
+    "sha256": "29c13548a7504677bf12dd80016c989071d8fb1b37cd557527b812f5237a507c"
+   },
+   {
+    "path": "backend/app/writing_contracts/assembly_law_amendment_v1/style.yaml",
+    "sha256": "13434349ee3564b2fd389889eb4e1cd286ca4d618466435ceef4fc57dd7cb9ba"
+   },
+   {
+    "path": "backend/app/writing_contracts/assembly_law_amendment_v1/template.yaml",
+    "sha256": "0fe4f17dd0d01e1cb6255fd4e541a102ccedde6891f9a6933749b7e5e980c7ef"
+   },
+   {
+    "path": "backend/app/writing_contracts/assembly_law_amendment_v1/validation.yaml",
+    "sha256": "fa672e462157407ab4edb70965cbbf34ce69febdc4e87a2c079419fb0b2246bf"
+   },
+   {
+    "path": "frontend/src/App.test.tsx",
+    "sha256": "0e9a09829b5e48fcb092a5a9399254a1baaddaa54fedc33dffc5a7cb4cf97aae"
+   },
+   {
+    "path": "frontend/src/App.tsx",
+    "sha256": "1196425238b040e246cb741268d55fc6455eda0ca152bd4da061d2aa0c9638d3"
+   },
+   {
+    "path": "frontend/src/api/client.ts",
+    "sha256": "3c0e7b620dd2f1b01e537b84e1fa08a0fc5a044f67888628f2eb8289c0da5d24"
+   },
+   {
+    "path": "frontend/src/chat/conversation.ts",
+    "sha256": "38e98ee4b597ebb06aeb0c6b7f596652df29b1c47b35d897915e93d83b95c97b"
+   },
+   {
+    "path": "frontend/src/chat/split.ts",
+    "sha256": "3f043cf79bab578b291711748cf6b5ea8559e368f41fae5cdbe75003c4c2771c"
+   },
+   {
+    "path": "frontend/src/main.tsx",
+    "sha256": "8070aefba6d43f5300a919f02adb3071318bee89f10cffe07c64df74e85a1635"
+   },
+   {
+    "path": "frontend/src/screens/ChatScreen.tsx",
+    "sha256": "407cb7f4145e6c85f733416cb6e683fbfc90459da6d532d4bfd548030b75a62e"
+   },
+   {
+    "path": "frontend/src/screens/DraftPanel.test.tsx",
+    "sha256": "1896547f5772b21643bf2005499e7e6e14e3f8a208c41091f962fd08df4949bc"
+   },
+   {
+    "path": "frontend/src/screens/DraftPanel.tsx",
+    "sha256": "23a135967f9c3c46b9b16c86efba686640e6ffbf6128108e4ffd31f43c57f933"
+   },
+   {
+    "path": "frontend/src/styles.css",
+    "sha256": "fedbd9fa8702cd6f1de71a5062cfa5aa64f53ba9289c8f9bf07983b39dd17c93"
+   },
+   {
+    "path": "frontend/src/test-setup.ts",
+    "sha256": "977afde26bba6a51325908cd7713cbfdc87d18f06b78b237c8f364c44864b7de"
+   },
+   {
+    "path": "frontend/src/types.ts",
+    "sha256": "0b762482e4d15cdea283ea66e82e8c4ce78388b836a72b1961a161c08571cba7"
+   },
+   {
+    "path": "scripts/verify-day1.ps1",
+    "sha256": "dcc321effa7030f9f2228a0531daca1c3967548d8fcb5b220dd8a44a6b02679b"
+   },
+   {
+    "path": "tests/test_day1_gate.py",
+    "sha256": "bd7b2b75f4485f113c6a84ec86de6421c8985c06fdc8538187c60e5189aeeeb5"
+   },
+   {
+    "path": "tests/test_draft.py",
+    "sha256": "6d21f164c92b003f14dcfde75266c5317d032e04946ef60712388c1e4d842e8f"
+   },
+   {
+    "path": "tests/test_fact_extraction.py",
+    "sha256": "92db0858571712903a8b278a8d44cb4532e01620961c5848ba3273d5f4b814d3"
+   },
+   {
+    "path": "tests/test_harness_flow.py",
+    "sha256": "2e8482fbdd3a7e2871c54221acb9578bda92a43f553533f5fa015ef842af53cd"
+   },
+   {
+    "path": "tests/test_review_api.py",
+    "sha256": "a20e29703da9fb1d9ebdb1c9a699cf0ea46a96e28dfc0381853649f5a4729919"
+   },
+   {
+    "path": "tests/test_revision.py",
+    "sha256": "d27efc4ba404147c688bdae7bdd408825dbaa99b2377336c5f822e454d9810ed"
+   }
+  ]
+ },
+ "verdict": "BLOCKED",
+ "pass_bar": {
+  "file": "verification/day4-pass-bar.md",
+  "changed_by_verifier": false,
+  "rows": 18,
+  "results": [
+   {
+    "pass_bar_id": "F1",
+    "title": "초안의 수·날짜·기관명·인명이 원장에 있는가",
+    "status": "PASS",
+    "evidence": "기준 초안의 수 [6,7,10,26,2025,2207285,20251026], 초안에만 있는 수 []. 없는 표결 수/한글 수사/없는 날짜/없는 기관/없는 인명 5종 전부 dv=0. 나간 것 0건"
+   },
+   {
+    "pass_bar_id": "F2",
+    "title": "자료에 없는 인용문",
+    "status": "PASS",
+    "evidence": "지어낸 따옴표 발언 dv=0 [QUOTE_NOT_IN_SOURCE, QUOTE_WITHOUT_DOCUMENT, STATEMENT_WITHOUT_SOURCE, WORD_NOT_IN_LEDGER], 자료 낱말로 조립한 발언 dv=0, 따옴표 없는 발언 dv=0. 나간 것 0건"
+   },
+   {
+    "pass_bar_id": "F3",
+    "title": "충돌 값 중 하나를 경고 없이 고름",
+    "status": "PASS",
+    "evidence": "SYN-RISK-001 date_conflict/count_conflict 모두 NEEDS_INPUT, dv=0, FACT_CONFLICT. 메시지에 두 값·자료명·행이 다 있다"
+   },
+   {
+    "pass_bar_id": "F4",
+    "title": "초안의 사실을 fact_id 로 되짚을 수 있는가",
+    "status": "PASS",
+    "evidence": "제목·리드·요약·문단의 근거 위반 0건. F-없음 을 넣으면 FACT_REFERENCE_UNKNOWN + CLAIM_WITHOUT_FACT, dv=0"
+   },
+   {
+    "pass_bar_id": "G1",
+    "title": "DRAFT / 내부 검토용 표시",
+    "status": "PASS",
+    "evidence": "draft_label = DRAFT / 내부 검토용. 지움·최종본 둘 다 DRAFT_LABEL_REQUIRED, dv=0"
+   },
+   {
+    "pass_bar_id": "G2",
+    "title": "최종본·승인본·게시·배포 기능",
+    "status": "PASS",
+    "evidence": "최종본·배포용 둘 다 NO_FINAL_OR_APPROVED_LABEL, dv=0. 변조 T19 로 끄면 시험 1개가 죽는다"
+   },
+   {
+    "pass_bar_id": "G3",
+    "title": "필수 항목 누락인데 초안이 나옴",
+    "status": "PASS",
+    "evidence": "문의처 CONTACT_REQUIRED, 기준일 BASIS_DATE_REQUIRED, 제목·리드 REQUIRED_SECTION_MISSING + REQUIRED_TEXT_EMPTY, 본문 전부 비움 REQUIRED_TEXT_EMPTY. 13차가 지적한 REQUIRED_TEXT_EMPTY 가 커밋 3b3121f 에서 되살아났고 변조 T14 로 끄면 시험이 죽는다. 필수 표시 5개 전부 True"
+   },
+   {
+    "pass_bar_id": "G4",
+    "title": "핵심 요약 2~3개",
+    "status": "PASS",
+    "evidence": "기준 초안 요약 2개. 1개·4개 모두 dv=0 (형식 층에서 막힌다 — 남은 일)"
+   },
+   {
+    "pass_bar_id": "H1",
+    "title": "본회의 의결을 공포·시행·개정 완료로 표현",
+    "status": "FAIL",
+    "evidence": "13차 재현 입력 B1·B5 가 그대로 dv=1, state=REVIEW_READY, BLOCKING=[] 로 나간다. 새 우회 9종(C-임·C-이므로·C-이지만·C-이면·C-되·W-6자밀어내기·W-으로부터는·W-현재모두이번·O2 겹치는 값) 추가. 모두 명령 출력이 있다"
+   },
+   {
+    "pass_bar_id": "H2",
+    "title": "부칙 근거 없는 시행일",
+    "status": "PASS",
+    "evidence": "부칙 없이 시행일 계산/일부→전체/없는 시점/공포한 날 계산 4종 EFFECTIVE_DATE_NEEDS_RULE, 부칙 근거+없는 날짜는 EFFECTIVE_DATE_NOT_IN_RULE. 전부 dv=0"
+   },
+   {
+    "pass_bar_id": "H3",
+    "title": "최종 의결문을 근거 없이 고름",
+    "status": "PASS",
+    "evidence": "사람 확인 없이 돌리면 state=NEEDS_INPUT, dv=0, REQUIRED_INPUT_MISSING / subject FINAL_TEXT_COMPLETENESS_CONFIRMATION_REQUIRED"
+   },
+   {
+    "pass_bar_id": "H4",
+    "title": "조항 계산기가 근거 없는 조문 이동을 만듦",
+    "status": "PASS",
+    "evidence": "조항 계산기 8종 중 셀 수 없는 4종은 CHANGED_PROVISION_COUNT_UNDETERMINABLE. 집합 밖 조문 6종(아라비아·한자·한글수사·띄어쓰기·항·의2) 전부 dv=0, 나간 것 0건"
+   },
+   {
+    "pass_bar_id": "I1",
+    "title": "SYN-RISK-001 3종 변조의 draft_version",
+    "status": "PASS",
+    "evidence": "weekday_mismatch/date_conflict/count_conflict 모두 NEEDS_INPUT, draft_version=0"
+   },
+   {
+    "pass_bar_id": "I2",
+    "title": "ACTUAL-BLOCK-002",
+    "status": "PASS",
+    "evidence": "state=NEEDS_INPUT, draft_version=0, REQUIRED_SOURCE_MISSING, calls=0, cost=0.0"
+   },
+   {
+    "pass_bar_id": "I3",
+    "title": "정상 사례의 draft_version 1 이상",
+    "status": "PASS",
+    "evidence": "ACTUAL-PASS-001 state=REVIEW_READY, draft_version=1. 조문 [제7조] 부칙 [SR-01] 이 화면 문단 HS-04 에 나온다. 예외를 좁혔지만 정상 사례는 죽지 않았다"
+   },
+   {
+    "pass_bar_id": "J1",
+    "title": "3일차 합격선 A1~E2 전 항목",
+    "status": "FAIL",
+    "evidence": "A1~D2 는 직접 재서 전부 통과. E1 위반: verify-day1.ps1 이 D1G-01(없는 파일 NewRunScreen.tsx·RunStatusScreen.tsx)·D1G-06(프런트 vitest exit 1)에서 FAIL 하고 296행 Get-Content 에서 죽어 판정 줄도 못 낸다. E2 위반: 프런트 test exit 1 (DraftPanel.tsx:37 TypeError). 원인은 5일차 커밋 dddb361 이 화면 파일 둘을 지우고 1일차 script 를 같이 안 고친 것"
+   },
+   {
+    "pass_bar_id": "J2",
+    "title": "실제 외부 AI 호출",
+    "status": "PASS",
+    "evidence": "모든 실행에서 actual_model_calls=0, estimated_cost_usd=0.0, FakeModelGateway.is_fake=True"
+   },
+   {
+    "pass_bar_id": "J3",
+    "title": "자동 호출 한도 7회",
+    "status": "PASS",
+    "evidence": "실행당 자동 호출 2회 [FactExtractionAgent, DraftWritingAgent]. 한도 초과 0건, 되풀이 0건"
+   }
+  ]
+ },
+ "checks": [
+  {
+   "check_id": "G14-01",
+   "title": "기준선 — 시험 466개 통과",
+   "status": "PASS",
+   "commands": [
+    "cd backend && python -m pytest ../tests -q"
+   ],
+   "evidence": "466 passed, 3 warnings in 13.99s"
+  },
+  {
+   "check_id": "G14-02",
+   "title": "13차 재현 입력 B1·B4·B5·B6a",
+   "status": "FAIL",
+   "commands": [
+    "python scratchpad/repro13.py"
+   ],
+   "evidence": "B1 뚫림(dv=1, BLOCKING=[]), B4 막힘, B5 뚫림(dv=1, BLOCKING=[]), B6a 막힘. 넷 중 둘만 막혔다"
+  },
+  {
+   "check_id": "G14-03",
+   "title": "새 H1 판정 우회 찾기",
+   "status": "FAIL",
+   "commands": [
+    "python scratchpad/sweep.py",
+    "python scratchpad/sweep2.py",
+    "python scratchpad/sweep3.py"
+   ],
+   "evidence": "EFFECT_COMPLETIONS 목록 밖 어미 5종(임·이므로·이지만·이면·되), TAIL_WINDOW 6 을 넘긴 3종, 겹치는 값 1종(O2) 나감. 값이 여러 번 나오는 길과 개정문 본문 길은 막혔다"
+  },
+  {
+   "check_id": "G14-04",
+   "title": "합격선 18개 재측정",
+   "status": "FAIL",
+   "commands": [
+    "python scratchpad/bar.py"
+   ],
+   "evidence": "H1 FAIL, J1 FAIL, 나머지 16개 PASS"
+  },
+  {
+   "check_id": "G14-05",
+   "title": "I3 정상 사례가 살아 있는가",
+   "status": "PASS",
+   "commands": [
+    "python scratchpad/bar.py"
+   ],
+   "evidence": "ACTUAL-PASS-001 REVIEW_READY dv=1. 대조군 시험 test_값_안에_있는_이름은_그대로_쓸_수_있다 도 통과하고, 면제를 아주 끄면(T25) 그 시험이 죽는다"
+  },
+  {
+   "check_id": "G14-06",
+   "title": "회귀 — 10·11·12·13차까지 막은 25종",
+   "status": "PASS",
+   "commands": [
+    "python scratchpad/regress.py"
+   ],
+   "evidence": "25종 전부 dv=0. 되살아난 구멍 0건. B1·B5 는 13차부터 한 번도 안 막힌 것이므로 회귀가 아니라 H1 차단으로 센다"
+  },
+  {
+   "check_id": "G14-07",
+   "title": "아무것도 지키지 못하는 시험 세기",
+   "status": "FAIL",
+   "commands": [
+    "python scratchpad/make_benign.py benign_test_draft.py",
+    "python scratchpad/vacuous.py"
+   ],
+   "evidence": "87개. 13차가 잰 자리만 세도 80개(13차 72개). 원본 그대로 복사본 309 passed, 공격을 멀쩡한 문장으로 바꾼 복사본 121 failed / 188 passed"
+  },
+  {
+   "check_id": "G14-08",
+   "title": "변조 시험 25곳",
+   "status": "FAIL",
+   "commands": [
+    "python scratchpad/mutate.py"
+   ],
+   "evidence": "25곳 중 되돌려도 시험이 안 죽는 곳 3곳. T7 은 죽은 코드이고, 실제 무보호 방어는 T9(EFFECTIVE_DATE_NEEDS_RULE)·T24(따옴표 앞 화자 검사) 2곳. 원복은 25회 모두 SHA-256 으로 확인"
+  },
+  {
+   "check_id": "G14-09",
+   "title": "3일차 합격선 A1~E2",
+   "status": "FAIL",
+   "commands": [
+    "powershell -ExecutionPolicy Bypass -File C:\\policy_agent\\scripts\\verify-day1.ps1",
+    "cd frontend && npm run test",
+    "python scratchpad/day3.py"
+   ],
+   "evidence": "A1~D2 통과. E1·E2 위반. verify-day1.ps1 이 D1G-01·D1G-06 FAIL 뒤 296행에서 죽는다. 프런트 vitest 는 10 tests passed 이지만 처리 안 된 오류 1건으로 exit 1"
+  },
+  {
+   "check_id": "G14-10",
+   "title": "비밀·네트워크·기록",
+   "status": "PASS",
+   "commands": [
+    "python scratchpad/day3.py",
+    "python scratchpad/bar.py"
+   ],
+   "evidence": "실제 OpenAI 호출 0건, 비용 0달러, .env 접근 0건. Run 응답에 자료 원문 전문 없음, API 키 패턴 0건"
+  },
+  {
+   "check_id": "G14-11",
+   "title": "검사원이 남긴 변경",
+   "status": "PASS",
+   "commands": [
+    "git status --short",
+    "git diff --stat",
+    "cd backend && python -m pytest ../tests -q"
+   ],
+   "evidence": "git status --short 가 M README.md 와 verify-day1.ps1 이 만든 보고서 2개(??)뿐. 제품 소스·시험 변경 0건. 466 passed"
+  }
+ ],
+ "blockers": [
+  {
+   "pass_bar_id": "H1",
+   "title": "13차가 뚫은 B1·B5 가 그대로 남았고, 새 꼬리 검사도 세 갈래로 우회된다",
+   "where": "backend/app/gates/draft_gate.py _covered_by_value(452~500행), 새 상수 EFFECT_COMPLETIONS(80~91행)·TAIL_WINDOW(94행), check_draft H1 절(1416~1450행)",
+   "why": "새 판정은 값이 끝난 뒤 6글자 안에 EFFECT_COMPLETIONS 의 어미가 오는지만 본다. (1) 주장이 값 안에 통째로 들어 있으면 볼 것이 없다(B1). (2) 값이 주장을 가로질러 잘려 있으면 남는 꼬리가 었다 뿐이라 목록에 안 걸린다(B5). (3) 목록에 없는 어미(임·이므로·이지만·이면·되)로 끝맺을 수 있다. (4) 조사·연결어로 6글자를 채우면 어미가 창 밖으로 밀린다. (5) 짧은 값의 꼬리가 더러워도 같은 자리를 덮는 긴 값의 꼬리가 깨끗하면 면제된다.",
+   "reproduce": "scratchpad/repro13.py, scratchpad/sweep.py, scratchpad/sweep3.py. ACTUAL-PASS-001 의 「기부금품의 모집 및 사용에 관한 법률」을 다른 값으로 바꾸고 AI 문단 뒤에 한 문장을 잇는다. O2 는 발표 주체를 긴 값으로 준다.",
+   "observed": [
+    {
+     "name": "B1 값이 곧 거짓 문장",
+     "ledger_value": "기부금품의 모집 및 사용에 관한 법률은 개정되었다",
+     "sentence": "기부금품의 모집 및 사용에 관한 법률은 개정되었다.",
+     "draft_version": 1,
+     "state": "REVIEW_READY",
+     "blocking": []
+    },
+    {
+     "name": "B5 값이 문장을 가로지름",
+     "ledger_value": "법률은개정되",
+     "sentence": "이 법률은 개정 되었다.",
+     "draft_version": 1,
+     "state": "REVIEW_READY",
+     "blocking": []
+    },
+    {
+     "name": "C-임 목록에 없는 어미",
+     "ledger_value": "기부금품법전부개정법률",
+     "sentence": "기부금품법전부개정법률임.",
+     "draft_version": 1,
+     "state": "REVIEW_READY",
+     "blocking": []
+    },
+    {
+     "name": "C-이므로 목록에 없는 어미",
+     "ledger_value": "기부금품법전부개정법률",
+     "sentence": "기부금품법전부개정법률이므로 알린다.",
+     "draft_version": 1,
+     "state": "REVIEW_READY",
+     "blocking": []
+    },
+    {
+     "name": "C-이지만 목록에 없는 어미",
+     "ledger_value": "기부금품법전부개정법률",
+     "sentence": "기부금품법전부개정법률이지만 알린다.",
+     "draft_version": 1,
+     "state": "REVIEW_READY",
+     "blocking": []
+    },
+    {
+     "name": "C-이면 목록에 없는 어미",
+     "ledger_value": "기부금품법전부개정법률",
+     "sentence": "기부금품법전부개정법률이면 알린다.",
+     "draft_version": 1,
+     "state": "REVIEW_READY",
+     "blocking": []
+    },
+    {
+     "name": "C-되 목록에 없는 어미",
+     "ledger_value": "기부금품법전부개정법률",
+     "sentence": "기부금품법전부개정법률이 되.",
+     "draft_version": 1,
+     "state": "REVIEW_READY",
+     "blocking": []
+    },
+    {
+     "name": "W-6자밀어내기 TAIL_WINDOW 넘기기",
+     "ledger_value": "기부금품법전부개정법률",
+     "sentence": "기부금품법전부개정법률은 이번에 모두 되었다.",
+     "draft_version": 1,
+     "state": "REVIEW_READY",
+     "blocking": []
+    },
+    {
+     "name": "W-으로부터는 TAIL_WINDOW 넘기기",
+     "ledger_value": "기부금품법전부개정법률",
+     "sentence": "기부금품법전부개정법률으로부터는 되었다.",
+     "draft_version": 1,
+     "state": "REVIEW_READY",
+     "blocking": []
+    },
+    {
+     "name": "W-현재모두이번 TAIL_WINDOW 넘기기",
+     "ledger_value": "기부금품법전부개정법률",
+     "sentence": "기부금품법전부개정법률은 현재 모두 이번 되었다.",
+     "draft_version": 1,
+     "state": "REVIEW_READY",
+     "blocking": []
+    },
+    {
+     "name": "O2 겹치는 값(짧은 값은 더럽고 긴 값은 깨끗)",
+     "ledger_value": "가나개정다라 + 발표 주체 가나개정다라되었다",
+     "sentence": "가나개정다라되었다.",
+     "draft_version": 1,
+     "state": "REVIEW_READY",
+     "blocking": []
+    }
+   ]
+  },
+  {
+   "pass_bar_id": "J1",
+   "title": "verify-day1.ps1 이 FAIL 하고 스스로 죽는다. 프런트 시험도 exit 1 이다",
+   "where": "scripts/verify-day1.ps1 (296행), frontend/src/screens/DraftPanel.tsx (37행), 커밋 dddb361",
+   "why": "5일차 커밋 dddb361 이 frontend/src/screens/NewRunScreen.tsx 와 RunStatusScreen.tsx 를 지웠는데 1일차 검사 script 는 두 파일을 그대로 요구한다. D1G-01 이 FAIL 하고, 이어서 296행 Get-Content 가 없는 파일을 열다 죽어 D1G-03 이후가 아예 안 돈다. 판정 줄도 안 나온다. 따로 DraftPanel.tsx:37 이 draft !== null 만 보고 undefined 에서 터져 vitest 가 exit 1 이다. 3일차 합격선 E1(verify-day1.ps1 7개 PASS)·E2(프런트 test exit 0)를 둘 다 어긴다.",
+   "reproduce": "powershell -ExecutionPolicy Bypass -File C:\\policy_agent\\scripts\\verify-day1.ps1 ; cd frontend && npm run test",
+   "observed": [
+    {
+     "name": "D1G-01",
+     "evidence": "[FAIL] 없는 파일: frontend\\src\\screens\\NewRunScreen.tsx, frontend\\src\\screens\\RunStatusScreen.tsx"
+    },
+    {
+     "name": "D1G-06",
+     "evidence": "[FAIL] 프런트 vitest 실패 (exit 1)"
+    },
+    {
+     "name": "script 죽음",
+     "evidence": "At C:\\policy_agent\\scripts\\verify-day1.ps1:296 char:22 — Get-Content : Cannot find path ...NewRunScreen.tsx because it does not exist."
+    },
+    {
+     "name": "프런트 시험",
+     "evidence": "Test Files 2 passed (2) / Tests 10 passed (10) / Errors 1 error — TypeError: Cannot read properties of undefined (reading draft_label) at DraftPanel src/screens/DraftPanel.tsx:37:50 -> exit 1"
+    }
+   ]
+  }
+ ],
+ "warnings": [
+  {
+   "severity": "상",
+   "day": 5,
+   "title": "공격 문장을 멀쩡한 문장으로 바꿔도 통과하는 시험 87개(13차가 잰 자리만 세도 72 -> 80). 원인은 13차와 같다: _rule_paragraph 14 / _with_body·P-09 25 / CONNECTIVE 3 / _set_* 4. HIDDEN_SEPARATORS 7 이 새로 드러났다"
+  },
+  {
+   "severity": "상",
+   "day": 5,
+   "title": "EFFECTIVE_DATE_NEEDS_RULE 을 지켜 주는 시험이 0개다. 끄면 466개가 그대로 통과한다"
+  },
+  {
+   "severity": "중",
+   "day": 5,
+   "title": "따옴표 앞 화자 검사(SPEAKER_NEARBY)를 지켜 주는 시험이 0개다. 같은 규칙 이름을 다른 길이 대신 내줘서 이름만 봐서는 못 가린다"
+  },
+  {
+   "severity": "상",
+   "day": 5,
+   "title": "_PHRASE_CACHE 가 id(문자열)을 열쇠로 쓰고 비우지 않는다. 한 프로세스에서 같은 입력을 두 번 돌렸는데 결과가 달랐다. 위험한 쪽(없는 낱말이 통과)은 40회 시도에서 재현하지 못했다"
+  },
+  {
+   "severity": "중",
+   "day": 5,
+   "title": "verify-day1.ps1 이 없는 파일에서 Get-Content 로 죽어 판정 줄도 못 낸다. 화면을 바꿀 때 이 script 를 같이 고쳐야 한다"
+  },
+  {
+   "severity": "중",
+   "day": 5,
+   "title": "DraftPanel.tsx:37 이 draft !== null 만 보고 undefined 에서 터진다"
+  },
+  {
+   "severity": "중",
+   "day": 6,
+   "title": "EFFECT_COMPLETIONS 에 임·이므로·이지만·이면·되 가 없다. SUFFIXES 를 전수로 훑으면 나온다"
+  },
+  {
+   "severity": "중",
+   "day": 5,
+   "title": "새 시험 VALUE_TAIL_ATTACKS 가 값 뒤에 어미 세 가지만 덮는다. 13차가 뚫은 B1·B5 는 시험에 안 들어왔다"
+  },
+  {
+   "severity": "중",
+   "day": 5,
+   "title": "발표 주체(announcement_subject)에 길이·모양 검사가 없다. 이번 O2 우회의 통로다 (13차 지적, 그대로)"
+  },
+  {
+   "severity": "상",
+   "day": 5,
+   "title": "test_도우미는_멀쩡한_문장을_막지_않는다 가 도우미 5개만 덮는다 (13차 지적, 그대로)"
+  },
+  {
+   "severity": "중",
+   "day": 5,
+   "title": "11차가 뚫었던 로마자 공격 입력 3개가 시험 목록에서 사라졌다 (동작은 그대로 막힌다)"
+  },
+  {
+   "severity": "중",
+   "day": 5,
+   "title": "ATTACKS_V4 의 제목 비움·리드 비움·공백만 채운 제목이 규칙 이름을 안 본다 (13차 지적, 그대로)"
+  },
+  {
+   "severity": "중",
+   "day": 5,
+   "title": "Harness 부칙 틀이 자료에게 뚫린다 (12차 3-3 E05, 그대로)"
+  },
+  {
+   "severity": "중",
+   "day": 5,
+   "title": "LEDGER_VALUE_NEGATED 거리 우회 (10차 지적, 그대로)"
+  },
+  {
+   "severity": "중",
+   "day": 5,
+   "title": "TOPIC_VALUE_MISMATCH 의 결과 신호 우회 (10차 지적, 그대로)"
+  },
+  {
+   "severity": "중",
+   "day": 5,
+   "title": "조항 계산기가 제7조 및 제9조 의 둘째 조문을 버린다 (그대로)"
+  },
+  {
+   "severity": "하",
+   "day": 5,
+   "title": "_covered_by_value 의 len(value) < 2 줄은 아무 일도 하지 않는다 (13차 지적, 그대로)"
+  },
+  {
+   "severity": "하",
+   "day": 5,
+   "title": "절차 단계 표시 본회의 의결 결과 ↔ 계약 본회의 의결"
+  },
+  {
+   "severity": "하",
+   "day": 5,
+   "title": "발표 주체에 출처 표시 없음"
+  },
+  {
+   "severity": "중",
+   "day": 6,
+   "title": "핵심 요약 개수 위반이 schema 층에서 먼저 막혀 rule_id 가 안 남는다"
+  },
+  {
+   "severity": "중",
+   "day": 6,
+   "title": "가짜 추출기가 「」 안을 무엇이든 BILL_TITLE 로 뽑는다. 이번 뚫림의 원장 값을 만든 통로다"
+  },
+  {
+   "severity": "하",
+   "day": 7,
+   "title": "day-gate-result.schema.json 이 1일차 전용"
+  },
+  {
+   "severity": "하",
+   "day": 5,
+   "title": "NEXT.md 가 합격선을 14개라고 적었는데 표는 18줄이다 (12·13차 지적, 그대로)"
+  }
+ ],
+ "external_api_calls": 0,
+ "estimated_cost_usd": 0.0,
+ "next_md_gate": "3번 — H1 과 J1 을 어겼으므로 멈추고 고친다. H1 은 NEXT.md 4번(규칙을 더 만들지 않고 그 자리를 AI 에게서 거둔다)이 아직 안 끝난 자리다. 부칙 자리는 거뒀고 남은 것은 안전 값 예외 하나다. J1 은 5일차 작업이 4일차 회귀를 깬 것이라 4번과 무관하게 먼저 세워야 한다."
+}
