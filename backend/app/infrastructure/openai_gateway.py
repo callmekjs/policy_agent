@@ -23,6 +23,7 @@ import os
 from pathlib import Path
 from dataclasses import dataclass
 
+from app.audit.prompts import AUDIT_DRAFT_WRITING, AUDIT_FACT_EXTRACTION
 from app.infrastructure.model_gateway import (
     CONFIGURED_MODEL,
     CONFIGURED_PROVIDER,
@@ -268,6 +269,10 @@ INSTRUCTIONS = {
     "FactExtractionAgent": FACT_EXTRACTION,
     "DraftWritingAgent": DRAFT_WRITING,
     "RevisionAgent": REVISION,
+    # 국정감사·자료분석형(2026-08-28 새 방향). 지시문은 그 프로필 안에 둔다.
+    # 기존 본회의형 지시문과 섞이면 둘 다 흐려진다.
+    "AuditFactAgent": AUDIT_FACT_EXTRACTION,
+    "AuditDraftAgent": AUDIT_DRAFT_WRITING,
 }
 
 
@@ -483,6 +488,15 @@ class OpenAIModelGateway:
     calls: int = 0
     #: 응답이 다른 모델로 오면 여기 남기고 다음 호출을 막는다.
     mismatch: str | None = None
+    #: 한 번 기다리는 시간. `effort`를 올리면 훨씬 오래 걸린다 — `max`로
+    #: 돌렸다가 기본값에서 시간 초과가 났다. 비교 실험에서만 늘린다.
+    timeout_seconds: float = TIMEOUT_SECONDS
+
+    #: **비교 실험용 덮어쓰기.** 제품 기본값은 §7.2가 고정한 값 그대로다.
+    #: `scripts/run_audit_draft.py --model/--effort`로만 바꾼다. 화면·API가
+    #: 쓰는 경로는 이 값을 건드리지 않으므로 제품 동작은 그대로다.
+    model: str = CONFIGURED_MODEL
+    reasoning_effort: str = REASONING_EFFORT
 
     def _client(self):
         key = os.environ.get("OPENAI_API_KEY", "").strip()
@@ -494,7 +508,7 @@ class OpenAIModelGateway:
             )
         from openai import AsyncOpenAI
 
-        return AsyncOpenAI(api_key=key, timeout=TIMEOUT_SECONDS)
+        return AsyncOpenAI(api_key=key, timeout=self.timeout_seconds)
 
     async def call(self, request: ModelCallRequest) -> ModelCallResult:
         if self.mismatch is not None:
@@ -516,11 +530,11 @@ class OpenAIModelGateway:
 
         client = self._client()
         response = await client.responses.create(
-            model=CONFIGURED_MODEL,
+            model=self.model,
             service_tier=SERVICE_TIER,
             # 공급자 쪽에 응답을 남기지 않는다 (README §7.2).
             store=False,
-            reasoning={"effort": REASONING_EFFORT},
+            reasoning={"effort": self.reasoning_effort},
             max_output_tokens=request.max_output_tokens,
             # 입력이 길면 조용히 잘라내지 않고 오류로 멈춘다.
             truncation="disabled",
@@ -538,7 +552,7 @@ class OpenAIModelGateway:
         )
 
         actual_model = getattr(response, "model", "") or ""
-        if actual_model and not actual_model.startswith(CONFIGURED_MODEL):
+        if actual_model and not actual_model.startswith(self.model):
             self.mismatch = actual_model
 
         usage = getattr(response, "usage", None)
