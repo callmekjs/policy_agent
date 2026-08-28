@@ -153,6 +153,13 @@ async def main() -> int:
     )
 
     print("=" * 70)
+    # **왜 실패했는지 나중에 갈라낼 수 있게 남긴다.** terra/max가 빈 답을
+    # 냈을 때 토큰을 다 쓴 것인지 JSON이 깨진 것인지 알 수 없었다.
+    print(
+        f"[호출] 사실 뽑기 · 입력 {call.input_tokens} · 출력 {call.output_tokens}"
+        f"/{scaled(build_extraction_request(material='x')).max_output_tokens} 토큰"
+        f" · 결과 키 {list((call.result or {}).keys())}"
+    )
     print(f"확인된 사실 {len(ledger.facts)}건 · 버린 것 {len(ledger.rejected)}건")
     print("=" * 70)
     for fact in ledger.facts:
@@ -188,6 +195,11 @@ async def main() -> int:
             headline=headline,
             subheads=subheads,
             ledger=ledger,
+        )
+        print(
+            f"[호출] 본문 쓰기 · 입력 {call.input_tokens} · 출력 "
+            f"{call.output_tokens}/{scaled(request).max_output_tokens} 토큰"
+            f" · 결과 키 {list((call.result or {}).keys())}"
         )
         findings = check_draft(draft, ledger, plans)
         blocked = blocking(findings)
