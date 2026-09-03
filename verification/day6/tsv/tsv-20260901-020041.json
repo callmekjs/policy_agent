@@ -1,0 +1,233 @@
+{
+  "recorded_at": "2026-09-01T02:00:41.949058+00:00",
+  "purpose": "README §3.7 누적 6일차 하루 종료 확인 — TS-V 결과와 실행 ID",
+  "scenarios_run": [
+    "02",
+    "03",
+    "04",
+    "05"
+  ],
+  "live_01": false,
+  "total_ai_calls": 10,
+  "total_estimated_cost_usd": 0.0,
+  "all_passed": false,
+  "results": {
+    "TS-V-02": {
+      "scenario": "TS-V-02",
+      "description": "필수 자료 누락 두 가지 — 초안 없이 멈춤",
+      "gateway": "FakeModelGateway",
+      "live": false,
+      "ai_calls": 2,
+      "estimated_cost_usd": 0.0,
+      "call_detail": [
+        {
+          "agent": "FactExtractionAgent",
+          "estimated_cost_usd": 0.0
+        },
+        {
+          "agent": "FactExtractionAgent",
+          "estimated_cost_usd": 0.0
+        }
+      ],
+      "observed": {
+        "cases": {
+          "A": {
+            "run_id": "RUN-01DE67BE0245",
+            "state": "NEEDS_INPUT",
+            "failure": null,
+            "issues": [
+              {
+                "code": "REQUIRED_SOURCE_MISSING",
+                "subject": "FINAL_TEXT_DERIVATION_UNSAFE",
+                "severity": "BLOCKING"
+              }
+            ],
+            "draft_version": 0,
+            "fact_count": 7,
+            "ai_calls_during_case": 1,
+            "dropped_role": "PLENARY_VOTE_RESULT",
+            "expect_subject": "PLENARY_VOTE_RESULT",
+            "expected_pair_present": false,
+            "only_expected_blocking": false,
+            "passed": false
+          },
+          "B": {
+            "run_id": "RUN-70D121D72BC1",
+            "state": "NEEDS_INPUT",
+            "failure": null,
+            "issues": [
+              {
+                "code": "REQUIRED_SOURCE_MISSING",
+                "subject": "FINAL_TEXT_DERIVATION_UNSAFE",
+                "severity": "BLOCKING"
+              }
+            ],
+            "draft_version": 0,
+            "fact_count": 8,
+            "ai_calls_during_case": 1,
+            "dropped_role": "INTRODUCED_TEXT",
+            "expect_subject": "PLENARY_FINAL_TEXT",
+            "expected_pair_present": false,
+            "only_expected_blocking": false,
+            "passed": false
+          }
+        },
+        "passed": false
+      },
+      "error": null,
+      "passed": false
+    },
+    "TS-V-03": {
+      "scenario": "TS-V-03",
+      "description": "의결일 충돌 — 고르라고 멈춤",
+      "gateway": "FakeModelGateway",
+      "live": false,
+      "ai_calls": 1,
+      "estimated_cost_usd": 0.0,
+      "call_detail": [
+        {
+          "agent": "FactExtractionAgent",
+          "estimated_cost_usd": 0.0
+        }
+      ],
+      "observed": {
+        "run_id": "RUN-AA5FB4618D1D",
+        "state": "NEEDS_INPUT",
+        "failure": null,
+        "issues": [
+          {
+            "code": "FACT_CONFLICT",
+            "subject": "plenary_decided_on",
+            "severity": "BLOCKING"
+          }
+        ],
+        "draft_version": 0,
+        "fact_count": 15,
+        "expected_pair_present": true,
+        "passed": true
+      },
+      "error": null,
+      "passed": true
+    },
+    "TS-V-04": {
+      "scenario": "TS-V-04",
+      "description": "보호값 변경 요청 거부 — 이전 초안 보존",
+      "gateway": "FakeModelGateway",
+      "live": false,
+      "ai_calls": 4,
+      "estimated_cost_usd": 0.0,
+      "call_detail": [
+        {
+          "agent": "FactExtractionAgent",
+          "estimated_cost_usd": 0.0
+        },
+        {
+          "agent": "DraftWritingAgent",
+          "estimated_cost_usd": 0.0
+        },
+        {
+          "agent": "RevisionAgent",
+          "estimated_cost_usd": 0.0
+        },
+        {
+          "agent": "RevisionAgent",
+          "estimated_cost_usd": 0.0
+        }
+      ],
+      "observed": {
+        "run_id": "RUN-9FF3D67392D6",
+        "before": {
+          "run_id": "RUN-9FF3D67392D6",
+          "state": "REVIEW_READY",
+          "failure": null,
+          "issues": [],
+          "draft_version": 1,
+          "fact_count": 10
+        },
+        "attempts": [
+          {
+            "target": "의결일",
+            "instruction": "의결일을 2025년 12월 25일로 바꿔 주세요.",
+            "http_status": 200,
+            "state": "REVIEW_READY",
+            "draft_version": 2,
+            "draft_unchanged": true
+          },
+          {
+            "target": "의안번호",
+            "instruction": "의안번호를 2209999로 바꿔 주세요.",
+            "http_status": 200,
+            "state": "REVIEW_READY",
+            "draft_version": 3,
+            "draft_unchanged": true
+          }
+        ],
+        "passed": true
+      },
+      "error": null,
+      "passed": true
+    },
+    "TS-V-05": {
+      "scenario": "TS-V-05",
+      "description": "같은 멱등 키 두 번 — 한 번만 처리",
+      "gateway": "FakeModelGateway",
+      "live": false,
+      "ai_calls": 2,
+      "estimated_cost_usd": 0.0,
+      "call_detail": [
+        {
+          "agent": "FactExtractionAgent",
+          "estimated_cost_usd": 0.0
+        },
+        {
+          "agent": "DraftWritingAgent",
+          "estimated_cost_usd": 0.0
+        }
+      ],
+      "observed": {
+        "run_id": "RUN-F04ABC05D5D3",
+        "state": "REVIEW_READY",
+        "failure": null,
+        "issues": [],
+        "draft_version": 1,
+        "fact_count": 10,
+        "ai_calls_first_process": 2,
+        "ai_calls_after_duplicate": 2,
+        "second_status": 202,
+        "second_run_id": "RUN-F04ABC05D5D3",
+        "created_second_run": false,
+        "passed": true
+      },
+      "error": null,
+      "passed": true
+    },
+    "TS-V-05B": {
+      "scenario": "TS-V-05B",
+      "description": "형식이 틀린 답 반복 — 거짓 성공 없이 실패",
+      "gateway": "BrokenSchemaGateway",
+      "live": false,
+      "ai_calls": 1,
+      "estimated_cost_usd": 0.0,
+      "call_detail": [],
+      "observed": {
+        "run_id": "RUN-D4E2049D81FA",
+        "state": "FAILED",
+        "failure": {
+          "kind": "TECHNICAL",
+          "code": "TypeError",
+          "message": "처리 중 문제가 생겼습니다.",
+          "next_action": "잠시 뒤 새 작업으로 다시 시도해 주세요."
+        },
+        "issues": [],
+        "draft_version": 0,
+        "fact_count": 10,
+        "broken_calls": 1,
+        "ai_calls": 1,
+        "failure_kind": "TECHNICAL",
+        "passed": false
+      },
+      "error": null,
+      "passed": false
+    }
+  }
+}

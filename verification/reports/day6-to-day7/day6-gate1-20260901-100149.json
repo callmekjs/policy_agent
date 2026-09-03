@@ -1,0 +1,685 @@
+{
+  "gate_id": "DEMO-DAY1-GATE",
+  "run_id": "day6-gate1-20260901-100149",
+  "readme_version": "0.23.0-draft (커밋 c936a2f) / 작업트리 미커밋본 0.25.0-draft",
+  "started_at": "2026-09-01T00:49:00Z",
+  "completed_at": "2026-09-01T01:20:00Z",
+  "verifier": {
+    "context": "구현 담당자와 다른 새 문맥의 DayGateVerifier. 누적 6일차 관문 1차 검토. schema가 gate_id를 DEMO-DAY1-GATE 상수로 고정해 두어 그 값을 쓰지만 실제 검토 대상은 누적 6일차이며 run_id와 동명 .md 보고서가 대상을 가리킨다.",
+    "is_separate_from_implementer": true
+  },
+  "source_snapshot": {
+    "file_count": 95,
+    "combined_sha256": "a34612c8f1dda283570ec8d0c6b3905a3c3a4b7b37281a9079962513a7cfefad",
+    "files": [
+      {
+        "path": "backend/app/__init__.py",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "backend/app/agents/__init__.py",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "backend/app/agents/draft_writing.py",
+        "sha256": "646b8e3310a57d3086079e9b3b868c0dac6c4bf7aec88a31d01082977d17b77b"
+      },
+      {
+        "path": "backend/app/agents/fact_extraction.py",
+        "sha256": "b542781f5afbc6598ec2953a2fb4cf9dae5be60149802f90463ce4bc8caf9118"
+      },
+      {
+        "path": "backend/app/api/__init__.py",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "backend/app/api/runs.py",
+        "sha256": "af21cef1f15dc67b91aff541028779a21b4e9bdab446e9897654c1c572f659fd"
+      },
+      {
+        "path": "backend/app/audit/__init__.py",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "backend/app/audit/compare.py",
+        "sha256": "57878263a5375a72902753fc87dd4f559f6a0074174d5290cf5cf3743d3fafeb"
+      },
+      {
+        "path": "backend/app/audit/contracts.py",
+        "sha256": "6e2aadcfb829cdd7ca385f371daa4ba73c8b9f7436e4862236f21539e4a94c77"
+      },
+      {
+        "path": "backend/app/audit/drafting.py",
+        "sha256": "89b5541c867c513e3f8d54470eaf62be642d943b6e1af4740d74a520406dbfac"
+      },
+      {
+        "path": "backend/app/audit/export.py",
+        "sha256": "c545271e7decd787bd53f3aaf2880f0f2ff71d1db77a45f8226e3fffb675481f"
+      },
+      {
+        "path": "backend/app/audit/extraction.py",
+        "sha256": "31275bf5f662577407c368cb530eb7bdc8aeabd9d4ffd4a1083b10462c78ff95"
+      },
+      {
+        "path": "backend/app/audit/gate.py",
+        "sha256": "20588138f77604f08c0ad0018124960abb8f3d700545af5da59e45a692894a39"
+      },
+      {
+        "path": "backend/app/audit/material.py",
+        "sha256": "3c2bf5eef2927278fa3b1640d852a8950dec7e0139cbb7866a5375a9bf10e8ee"
+      },
+      {
+        "path": "backend/app/audit/prompts.py",
+        "sha256": "1c2f5e57cee9bbde61ceb4290e92bfa10791e48b37aa64ef7607eb2ad7e5943d"
+      },
+      {
+        "path": "backend/app/audit/slots.py",
+        "sha256": "6437f5eb723cc2e4d2a27860dff33b22b3216bcd8b323f4fe2c2b8789077cb4e"
+      },
+      {
+        "path": "backend/app/gates/__init__.py",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "backend/app/gates/conflict_gate.py",
+        "sha256": "d9e249f718d50c41073cf92d602aae62142917c3a070228ad01974904c192f01"
+      },
+      {
+        "path": "backend/app/gates/document_text.py",
+        "sha256": "9617e5df47307304e8d1826dc62efc39ed5217fa6f1b9a35e1e74964deff6c2f"
+      },
+      {
+        "path": "backend/app/gates/draft_charset.py",
+        "sha256": "9649f29573d45751dc16863468b3e0aa52a19374fbd68cba40f7ad9250b56b12"
+      },
+      {
+        "path": "backend/app/gates/draft_export.py",
+        "sha256": "7022ce3f574ce2becbfc3a3b10320e48239627a94f263218328d3afe8f0a5f2a"
+      },
+      {
+        "path": "backend/app/gates/draft_gate.py",
+        "sha256": "e9d4d8911eee7667f4fd59cf60933baf0ff0dd385d69421b4256808089f9b2e8"
+      },
+      {
+        "path": "backend/app/gates/draft_normalizer.py",
+        "sha256": "396e2ff5094cb0a558e5d71d27a8178ab283c59414084c8302c93f06ad8c9da3"
+      },
+      {
+        "path": "backend/app/gates/draft_sections.py",
+        "sha256": "27dab6f296b1e99c81a0689bd35b49c3995bedfe9a778de8b735341056b0f625"
+      },
+      {
+        "path": "backend/app/gates/draft_template.py",
+        "sha256": "a8e848edadcc4fd4c9efbe734883a75bc8a59c55a17d2f17bba5b21e15e4055b"
+      },
+      {
+        "path": "backend/app/gates/draft_vocabulary.py",
+        "sha256": "19f0637ed1b2d96d0df58715530e497dbb4fea0404198038dd6af322a555f38b"
+      },
+      {
+        "path": "backend/app/gates/evidence_gate.py",
+        "sha256": "12cd2a7385e02beb39ebb42c3b296d918c5e85dc1f0c8648a914adb960b896b1"
+      },
+      {
+        "path": "backend/app/gates/final_text_gate.py",
+        "sha256": "793323e8bede216e0d27903e8776607acef3696f3024fe6d9c36c766ec4ef544"
+      },
+      {
+        "path": "backend/app/gates/input_gate.py",
+        "sha256": "69faf53ee7f63da367c6c510f85549b0edf181f0237f59ada7ed9cf06e3f824e"
+      },
+      {
+        "path": "backend/app/gates/numeral_reader.py",
+        "sha256": "58c36b25e7cad3bb2d554b1908439ef8b0b4c35b33f0470eb02f7a92aa0ae4d2"
+      },
+      {
+        "path": "backend/app/gates/protection.py",
+        "sha256": "a4e6975d82db3ce8db816e4e31bcf74583ad9590617bebbe02d650b5717338aa"
+      },
+      {
+        "path": "backend/app/gates/revision_gate.py",
+        "sha256": "7f9416120b8e2bdb12e902ce0217318f14d686754ee533ab97d845b4ae41d6fb"
+      },
+      {
+        "path": "backend/app/gates/source_role_gate.py",
+        "sha256": "36cd3c0c0d14119fa42b04ca73c6e39a7cd9271ee560b142019b975ceecbe8b8"
+      },
+      {
+        "path": "backend/app/harness/__init__.py",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "backend/app/harness/article_parser.py",
+        "sha256": "1aec6e64b7495eb902bb4801cf4e6653c018003d4c79aea6d7c218aad6266d1e"
+      },
+      {
+        "path": "backend/app/harness/contract_loader.py",
+        "sha256": "a49a8ed1b9d204d4fdfdef91fab4d914f0ececca971bdd5630cbfa9a8d33383a"
+      },
+      {
+        "path": "backend/app/harness/contracts.py",
+        "sha256": "02bbddf2c47f55003126f058ce9d9a242191b8eb338d9a4895f995f9648662f2"
+      },
+      {
+        "path": "backend/app/harness/draft_contracts.py",
+        "sha256": "80d4db00fc6ace89a352cf5bbeba3fee7e3c14d6957a98b3f34ccf0153ec3c64"
+      },
+      {
+        "path": "backend/app/harness/fact_contracts.py",
+        "sha256": "21c9e191ec8cf65ac29d6ff08a202f1f4308ec71a7560565a0dd4bf722b411ae"
+      },
+      {
+        "path": "backend/app/harness/legal_contracts.py",
+        "sha256": "907626b58a7c0e40ee611c36e332cc878a32d243da868b6c79a6a2bfcb1ad930"
+      },
+      {
+        "path": "backend/app/harness/orchestrator.py",
+        "sha256": "13d690f669596fcd5e95c96d5213e0e376c10ea82ded0c381b81ba18f53f39dd"
+      },
+      {
+        "path": "backend/app/harness/review_contracts.py",
+        "sha256": "158fb1224984499e6cf76dd1ce007b9355b1f760d9fe6f4e323cb0254285d28f"
+      },
+      {
+        "path": "backend/app/harness/runtime.py",
+        "sha256": "adb8394f5c16e73ad4969e14f62940d7a82c6177fb7f328422e1cbd417a24b2c"
+      },
+      {
+        "path": "backend/app/harness/source_normalizer.py",
+        "sha256": "dd1d9513b6598f94fd7f8430283c38270211b5341c4143898069869839f9713d"
+      },
+      {
+        "path": "backend/app/harness/states.py",
+        "sha256": "a75afd52f696b966b507326ba31e1dc42976986ec50b1dfb015cd2c428adad03"
+      },
+      {
+        "path": "backend/app/infrastructure/__init__.py",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "backend/app/infrastructure/fake_agents.py",
+        "sha256": "39f5f56c50095ec3b4e00ad63c50ff22ec503705c3f8f78a6f87c4200673c355"
+      },
+      {
+        "path": "backend/app/infrastructure/fake_draft.py",
+        "sha256": "398bef2344b5e99affc0a04750be6cea4640bd8b51767450a0813a33250934fb"
+      },
+      {
+        "path": "backend/app/infrastructure/fake_revision.py",
+        "sha256": "9f49e814b809967970f9a902fa7df118f51021658fc4a9f517e783991c527d46"
+      },
+      {
+        "path": "backend/app/infrastructure/model_gateway.py",
+        "sha256": "ec8804f1b6949a0a6dc53b04cbb279946140535fd8728737eb4791f128eace1e"
+      },
+      {
+        "path": "backend/app/infrastructure/openai_gateway.py",
+        "sha256": "f66e4c48220c0a2af48db8f75c46947608898b1d56c4217d8424f19a5ce14193"
+      },
+      {
+        "path": "backend/app/infrastructure/run_store.py",
+        "sha256": "518fea31c2af082ca83333c03bcf6ae4563131135dda07455d67cc337fac984a"
+      },
+      {
+        "path": "backend/app/main.py",
+        "sha256": "ffd270496f91b039e5e2e364374375fbf572b80993d4060392afee8cad96ef7d"
+      },
+      {
+        "path": "backend/app/writing_contracts/assembly_law_amendment_v1/contract.yaml",
+        "sha256": "9065fa6d7d3f31d8d487517ef43c770a1003aec034d099ab21eadf579a5af6bc"
+      },
+      {
+        "path": "backend/app/writing_contracts/assembly_law_amendment_v1/profile.yaml",
+        "sha256": "29c13548a7504677bf12dd80016c989071d8fb1b37cd557527b812f5237a507c"
+      },
+      {
+        "path": "backend/app/writing_contracts/assembly_law_amendment_v1/style.yaml",
+        "sha256": "13434349ee3564b2fd389889eb4e1cd286ca4d618466435ceef4fc57dd7cb9ba"
+      },
+      {
+        "path": "backend/app/writing_contracts/assembly_law_amendment_v1/template.yaml",
+        "sha256": "0fe4f17dd0d01e1cb6255fd4e541a102ccedde6891f9a6933749b7e5e980c7ef"
+      },
+      {
+        "path": "backend/app/writing_contracts/assembly_law_amendment_v1/validation.yaml",
+        "sha256": "fa672e462157407ab4edb70965cbbf34ce69febdc4e87a2c079419fb0b2246bf"
+      },
+      {
+        "path": "backend/pyproject.toml",
+        "sha256": "c68ce8bca861b20f51d72c0a9aa7128bd400661cba47051b2e464036f87e4c3b"
+      },
+      {
+        "path": "frontend/src/App.test.tsx",
+        "sha256": "5757d1c5047c2801becaa189b8cfdcbadc8b9545862e64f71dff18995f9cfc4e"
+      },
+      {
+        "path": "frontend/src/App.tsx",
+        "sha256": "1736b42c64bee3cd580201bdcd6a6cb44f1c91c59fe7dc91ed896441b621fc4f"
+      },
+      {
+        "path": "frontend/src/api/client.ts",
+        "sha256": "4ca6321ee9b2a63029d25229c56d5d23a18f42c697538d3bf2ddb61bc9e3ea94"
+      },
+      {
+        "path": "frontend/src/chat/conversation.test.ts",
+        "sha256": "9c686cff9ca5e73f23181e051ce72b8f70e684398fa2eae7d14a5986c22476dd"
+      },
+      {
+        "path": "frontend/src/chat/conversation.ts",
+        "sha256": "d592116d6d4bc46d0aa891c41ad1e7f2a7f1685af37ea3a0bf43ca5f86944c7c"
+      },
+      {
+        "path": "frontend/src/chat/split.ts",
+        "sha256": "3f043cf79bab578b291711748cf6b5ea8559e368f41fae5cdbe75003c4c2771c"
+      },
+      {
+        "path": "frontend/src/main.tsx",
+        "sha256": "8070aefba6d43f5300a919f02adb3071318bee89f10cffe07c64df74e85a1635"
+      },
+      {
+        "path": "frontend/src/screens/ChatScreen.tsx",
+        "sha256": "f32e93487f1a48c731e17a2a8abf2e571107488e48fe96478e9f13b363b201ea"
+      },
+      {
+        "path": "frontend/src/screens/DraftPanel.test.tsx",
+        "sha256": "1896547f5772b21643bf2005499e7e6e14e3f8a208c41091f962fd08df4949bc"
+      },
+      {
+        "path": "frontend/src/screens/DraftPanel.tsx",
+        "sha256": "d4f7f590eff6f3fff4d8c1e4fc519d59fc0684f24488daffe209505d16387f46"
+      },
+      {
+        "path": "frontend/src/styles.css",
+        "sha256": "fedbd9fa8702cd6f1de71a5062cfa5aa64f53ba9289c8f9bf07983b39dd17c93"
+      },
+      {
+        "path": "frontend/src/test-setup.ts",
+        "sha256": "977afde26bba6a51325908cd7713cbfdc87d18f06b78b237c8f364c44864b7de"
+      },
+      {
+        "path": "frontend/src/types.ts",
+        "sha256": "a1cfe0fea6d019906a7f12ae4a4556de0589595e50c719711d1f65ebc81bb354"
+      },
+      {
+        "path": "scripts/compare_runs.py",
+        "sha256": "9f68ea4c6b755241ca2166c6b49aa3151da63b8204ce55451a02904a6b68b108"
+      },
+      {
+        "path": "scripts/run_audit_draft.py",
+        "sha256": "d386cf6eb66413cd92b776f065d958228f98c3ad545ea8bc29bb59a2841ef45a"
+      },
+      {
+        "path": "scripts/verify-day1.ps1",
+        "sha256": "43052aa77675dea40d1a449c037a140d6c22c67e29b1768c74e3ee6e61ca7706"
+      },
+      {
+        "path": "start-local-ai.cmd",
+        "sha256": "a81acb79334250a1c4cd9246e4bd977e30e7a5e71af29c1a6580e7169ffcceb8"
+      },
+      {
+        "path": "start-local.cmd",
+        "sha256": "bf6f2dfbd57aba02018dfde5fd69668b498f6fd6a51462e26feb935a4d1b10a9"
+      },
+      {
+        "path": "stop-local.cmd",
+        "sha256": "08c4daa5d14b3699c7a090612ea52faebbb09aac867b277af0f7a8394a1b6669"
+      },
+      {
+        "path": "tests/test_audit_compare.py",
+        "sha256": "76af2de46449b7d4b24408edc375d1e4e09bb95e5840fab39015f32eae4bca50"
+      },
+      {
+        "path": "tests/test_audit_drafting.py",
+        "sha256": "9c8371e08de9f8a746d78e85c4ee1d26da933eb129d43155c3e848e96d8dd057"
+      },
+      {
+        "path": "tests/test_audit_export.py",
+        "sha256": "9073436e097556be9db871e7e114578919e65990ec3d7086955a5df87723e0e2"
+      },
+      {
+        "path": "tests/test_audit_extraction.py",
+        "sha256": "4155127d0b7be7cbececf2bbef90b3b1f6c4f2286ce58bfef0462ac1b59510b2"
+      },
+      {
+        "path": "tests/test_audit_gate.py",
+        "sha256": "d036f360a0427d4903931ca5aa6459a86ad69194a078efe9e9fadf05e90f5b81"
+      },
+      {
+        "path": "tests/test_audit_material.py",
+        "sha256": "49a706ccb70633bb2bccf8ea0289dc9cfae709dfbd6aac61418be199c83cd0cf"
+      },
+      {
+        "path": "tests/test_audit_slots.py",
+        "sha256": "a5dbbb9c1780f71210b9008df2581767ffcdf3570a0ae9608e4e1f38f5907672"
+      },
+      {
+        "path": "tests/test_day1_gate.py",
+        "sha256": "bd7b2b75f4485f113c6a84ec86de6421c8985c06fdc8538187c60e5189aeeeb5"
+      },
+      {
+        "path": "tests/test_document_text.py",
+        "sha256": "f5f20261d410563a9edc088623981a66a60c29a79c4d3ddc1ce6908f3aef0081"
+      },
+      {
+        "path": "tests/test_draft.py",
+        "sha256": "3ee9bf2f1bd2e1bb9e01e80b31bc6b4d1213ead27bb7ccb354d4f0f5c2c76df7"
+      },
+      {
+        "path": "tests/test_fact_extraction.py",
+        "sha256": "92db0858571712903a8b278a8d44cb4532e01620961c5848ba3273d5f4b814d3"
+      },
+      {
+        "path": "tests/test_harness_flow.py",
+        "sha256": "2e8482fbdd3a7e2871c54221acb9578bda92a43f553533f5fa015ef842af53cd"
+      },
+      {
+        "path": "tests/test_openai_gateway.py",
+        "sha256": "d57d81892048ad7d11cf1de6040564aff3c79dfa73ac9aecb55769f8bfdcb4bd"
+      },
+      {
+        "path": "tests/test_review_api.py",
+        "sha256": "ea9a59bb026ce2c60175f0affe5fb59483abe38cce3f9655a06d669031f53744"
+      },
+      {
+        "path": "tests/test_revision.py",
+        "sha256": "d27efc4ba404147c688bdae7bdd408825dbaa99b2377336c5f822e454d9810ed"
+      },
+      {
+        "path": "verification/day-gate-result.schema.json",
+        "sha256": "1c0f59930f119be9f8d725e5c1c848725f02b76c674298e9d31b97e202773dd7"
+      },
+      {
+        "path": "verification/day-gate-verifier.md",
+        "sha256": "1b0e7934decea5a2711b5cf8c579ceb39d73be9e6c1db7bd5fb9b44ddee3b149"
+      }
+    ]
+  },
+  "verdict": "BLOCKED",
+  "checks": [
+    {
+      "check_id": "D1G-01",
+      "title": "필수 파일과 실행 진입점 — 그리고 6일차 종료 조건인 TS-V-01~05 기록의 존재",
+      "status": "FAIL",
+      "commands": [
+        {
+          "command": "grep -rl \"TS-V\" . | grep -v node_modules | grep -v ^./.git/",
+          "exit_code": 0,
+          "summary": "일치 파일 ./README.md 하나뿐. tests·scripts·verification 어디에도 없음"
+        },
+        {
+          "command": "git log --all --diff-filter=A --name-only --format=\"\" | sort -u | grep -i \"ts-v|tsv\"",
+          "exit_code": 1,
+          "summary": "0건. TS-V 결과 파일이 git 이력에서 한 번도 추가된 적 없음"
+        },
+        {
+          "command": "ls verification/day6/",
+          "exit_code": 0,
+          "summary": "NEXT.md 1개뿐"
+        },
+        {
+          "command": "git show c936a2f:README.md | grep -n '시연판 개발 5일차(누적 영업일 6) 시연 전'",
+          "exit_code": 0,
+          "summary": "1745줄이 '- [ ]' 미체크 상태. 작업트리 1902줄도 동일"
+        }
+      ],
+      "evidence": [
+        "README 1350줄(작업트리)·1225줄(커밋본)의 6일차 종료 확인은 'TS-V-01~05 결과와 실행 ID가 남고'와 '정상 입력 1건의 종단 경로' 두 조건이다.",
+        "TS-V 문자열은 작업트리 전체에서 README.md에만 존재한다 (grep -rl 결과 1개 파일).",
+        "git 이력 전체(--all --diff-filter=A)에 TS-V 관련 결과 파일이 추가된 기록이 0건이다. 지워진 것이 아니라 만들어진 적이 없다.",
+        "verification/day6/ 에는 NEXT.md 파일 하나만 있고 실행 결과·실행 ID 기록이 없다.",
+        "README 자체 확인 목록(커밋본 1745줄)이 지금도 '- [ ] TS-V-01~05 실행·전부 통과·실행 ID와 결과 기록'으로 미체크다. 인접한 줄들은 [x]로 채워져 있다.",
+        "결론: 실행 결과가 기록된 TS-V 0건, 실행 ID가 기록된 것 0건. 6일차 종료 조건 두 개 중 하나가 통째로 비어 있다.",
+        "확인 못 한 것: 시험 571개 중 어느 것이 TS-V-02~05의 합격 기준을 만족하는지. 매핑 기록이 없어 추적 불가."
+      ]
+    },
+    {
+      "check_id": "D1G-02",
+      "title": "한 주소에서 시작·종료 — 그리고 정상 입력 1건의 종단 경로(6일차 종료 조건 ②)",
+      "status": "PASS",
+      "commands": [
+        {
+          "command": "python -m uvicorn app.main:app --host 127.0.0.1 --port <임의> --workers 1 (검사원이 띄우고 검사원이 종료)",
+          "exit_code": 0,
+          "summary": "/api/health 200, model_gateway=fake, external_api_calls=0"
+        },
+        {
+          "command": "POST /api/runs (ACTUAL-PASS-001 자료 4건) -> GET /runs/{id} -> POST /revisions -> GET /draft.md -> POST /fact-review -> POST /complete -> GET /draft.md -> DELETE /runs/{id}",
+          "exit_code": 0,
+          "summary": "202 CREATED -> REVIEW_READY dv1 -> dv2 -> 409 REVIEW_NOT_FINISHED -> 200 -> DRAFT_READY -> 200 588자 -> 200"
+        }
+      ],
+      "evidence": [
+        "시험 코드를 부르지 않고 실제 HTTP 서버를 127.0.0.1에 띄워 밟았다. POLICY_AGENT_LIVE=0으로 못 박고 매 단계 /api/health로 가짜임을 재확인했다.",
+        "GET /api/health -> 200 {\"status\":\"ok\",\"contract_id\":\"assembly_member_partial_amendment_plenary_v1@1.0.0\",\"writing_contract_files\":[contract/profile/style/template/validation .yaml 5개],\"model_gateway\":\"fake\",\"external_api_calls\":0}",
+        "POST /api/runs -> 202, run_id=RUN-AC49BDEFC3A2. 처리 완료 state=REVIEW_READY, draft_version=1, issues=0, failure=None, 사실 10건.",
+        "POST /runs/{id}/revisions (안전한 제목 수정) -> 200, state=REVIEW_READY, draft_version=2.",
+        "사실 확인 전 GET /runs/{id}/draft.md -> 409 REVIEW_NOT_FINISHED '아직 확인하지 않은 사실이 10건 있습니다.' — 5일차 M1이 지켜짐.",
+        "fact-review 10건 OK -> POST /complete -> 200 DRAFT_READY -> GET /draft.md -> 200, 588자, 첫 줄 '> **DRAFT / 내부 검토용**', Content-Disposition에 파일명 보도자료초안_RUN-AC49BDEFC3A2_v2.md.",
+        "내려받은 Markdown에 의안번호·의결일·변경 조문·부칙이 근거대로 실렸고 문의처·보도예정일은 [확인 필요]로 비워 뒀다.",
+        "종료 시 external_api_calls=0 유지. 검사원이 띄운 uvicorn 프로세스 하나만 종료했다."
+      ]
+    },
+    {
+      "check_id": "D1G-03",
+      "title": "실제 국회 PDF 입력 — C1 의안번호 조건이 실제 자료를 받는가",
+      "status": "FAIL",
+      "commands": [
+        {
+          "command": "python -c \"read_bill_numbers(tmp/2207285_의안원문.txt)\"",
+          "exit_code": 0,
+          "summary": "실제 PDF 원문에서 읽힌 의안번호 0개. 고정 시험자료에서는 {'2207285'}"
+        },
+        {
+          "command": "실제 PDF 원문을 발의안 자리에 넣고 orchestrator.process 완주",
+          "exit_code": 0,
+          "summary": "state=NEEDS_INPUT, draft_version=0, Issue FACT_CONFLICT/bill_title"
+        }
+      ],
+      "evidence": [
+        "backend/app/gates/final_text_gate.py:68 BILL_NUMBER_PATTERNS = [r'의안\\s*번호[^0-9]{0,10}(\\d{6,8})', r'제\\s*(\\d{6,8})\\s*호'] — 여섯 자리 이상만 의안번호로 읽는다.",
+        "tmp/2207285_의안원문.txt 4~6줄의 인쇄 모습: '의 안' / '7285' / '번 호  발 의 자 : …'. 숫자가 네 자리이고, 글자 순서가 의안 -> 숫자 -> 번호다.",
+        "문제가 둘 겹쳐 있다. (1) 자릿수: 7285는 네 자리라 \\d{6,8}에 안 걸린다. (2) 순서: 패턴은 의안 -> 번호 -> 숫자를 요구하는데 실제 PDF는 그 사이에 숫자가 있다. 자릿수만 고쳐도 이 패턴은 여전히 못 읽는다. NEXT.md는 (1)만 적었다.",
+        "final_text_gate.py:352가 len(found) != 1이면 즉시 차단하므로 실제 PDF는 '0개 발견'으로 막힌다. 7285를 읽어도 distinct={7285,2207285}로 '자료마다 의안번호가 다릅니다'에서 다시 막힌다.",
+        "실제 PDF 원문을 발의안 자리에 넣고 끝까지 돌린 결과 state=NEEDS_INPUT, draft_version=0. 이번 실행은 의안번호 검사보다 앞선 FACT_CONFLICT/bill_title에서 먼저 멈췄으나 결론은 같다 — 실제 국회 PDF를 그대로 넣으면 초안이 나오지 않는다."
+      ]
+    },
+    {
+      "check_id": "D1G-04",
+      "title": "Harness와 가짜 AI — C2 H1 구멍, C3 다는/라는 오탐, C6 가짜 AI 식별",
+      "status": "FAIL",
+      "commands": [
+        {
+          "command": "정상 초안의 AI 문단에 '이 법은 법률이 되었다.'를 붙여 orchestrator.process 완주",
+          "exit_code": 0,
+          "summary": "state=REVIEW_READY, validation_findings=[] (경고 0건). to_markdown 결과에 문장이 그대로 실림"
+        },
+        {
+          "command": "문단의 '조계원 의원실은(는)' 유무만 바꿔 같은 문장 6종 대조",
+          "exit_code": 0,
+          "summary": "의원 있음일 때만 STATEMENT_WITHOUT_SOURCE가 켜짐"
+        }
+      ],
+      "evidence": [
+        "C2 — backend/app/gates/draft_gate.py:69 EFFECT_STEMS = (공포,시행,개정,확정,효력,통과,제정,발효,적용). '이 법은 법률이 되었다'에는 이 아홉 개가 하나도 없다.",
+        "C2 재현: '이 법은 법률이 되었다.' -> state=REVIEW_READY, rules=[] (경고 0건). '이 법은 법률이 됐다.' -> 동일. 대조군 '이 법은 공포되었다.'/'이 법은 시행되었다.'는 PREMATURE_EFFECT_CLAIM으로 막힘.",
+        "C2 결과물 확인: effect_status=NOT_A_LAW인 초안의 to_markdown 출력에 '조계원 의원실은(는) 2025. 10. 26 의안번호 2207285이(가) 원안가결로 처리된 사실을 알린다. 이 법은 법률이 되었다.' 가 그대로 실렸다. 자기 모순 문서가 내려간다.",
+        "C2 부가: 다른 5종('이제 법률이 되었습니다' 등)이 막힌 것은 H1이 아니라 낱말 허용 목록 WORD_NOT_IN_LEDGER가 우연히 잡은 것이다. H1 자체는 이 계열을 하나도 못 막는다.",
+        "C3 — draft_gate.py:1205가 speaker_here를 문단 전체(packed_part)에서 계산한 뒤 :1239에서 문장마다 재사용한다. 문단 어딘가에 '의원'이 있으면 그 문단의 모든 문장이 화자를 가진 것으로 취급된다.",
+        "C3 격리 재현: '조계원 의원실은(는) 원안가결이라는 결과를 알린다.' -> rules에 STATEMENT_WITHOUT_SOURCE 포함. '원안가결이라는 결과를 알린다.' -> 포함 안 됨. '조계원 의원실은(는) 제7조가 바뀐 사실을 알린다.'(어미 없음) -> 포함 안 됨. 조건이 정확히 (문단에 의원) AND (문장에 다는|라는)임이 확인된다.",
+        "C3 — 걸린 '라는'은 관형형 어미이며 남의 말을 옮기지 않는다. 지금은 지시문으로 우회 중이고 그것이 초안 문체가 뻣뻣해지는 원인과 같은 뿌리다.",
+        "C6 — backend/app/main.py:51은 live_enabled()로 갈라진다. 항상 FakeModelGateway를 만들지 않는다. 보고된 상태가 아니다.",
+        "C6 — 사람이 알아챌 수단 3겹 확인: /api/health의 model_gateway (실제 응답으로 확인), frontend/src/App.tsx:515 화면 배지, frontend/src/chat/conversation.ts:148 동의 문구. 모두 서버가 준 값으로만 적는다.",
+        "C6 — openai_gateway.py:615 ENV_KEYS=('OPENAI_API_KEY',)이므로 .env에 POLICY_AGENT_LIVE=1을 적어도 켜지지 않는다. 의도된 설계다.",
+        "C6 미해소 — fake_agents.py·fake_draft.py·fake_revision.py가 그대로 있고 삭제 시점을 정한 기록이 없다. day7/NEXT.md는 '시험 496개가 쓰고 있어 지우면 안 된다'고만 적었고 그 시험 수도 이미 571개로 낡았다."
+      ]
+    },
+    {
+      "check_id": "D1G-05",
+      "title": "Writing Contract manifest와 설정 — 그리고 audit 경로(D1·D2·D3)의 기록 방식",
+      "status": "FAIL",
+      "commands": [
+        {
+          "command": "GET /api/health (writing_contract_files)",
+          "exit_code": 0,
+          "summary": "contract/profile/style/template/validation .yaml 5개를 서버가 읽음"
+        },
+        {
+          "command": "python -c \"_line_of(재료-2025-국세수입.txt, 각 근거 문구)\"",
+          "exit_code": 0,
+          "summary": "AF-01=4, AF-18=32, AF-19=31, AF-21=26 — 결과물의 틀린 숫자를 그대로 재현. 진짜 줄은 15/37/38/40"
+        },
+        {
+          "command": "grep -rn \"중복|dup|seen|distinct|unique\" backend/app/audit/*.py",
+          "exit_code": 0,
+          "summary": "3건 전부 _line_of 내부 변수 packed_seen. 중복 검사 코드 0줄"
+        }
+      ],
+      "evidence": [
+        "Writing Contract 5개 파일은 정상이다. /api/health가 contract.yaml·profile.yaml·style.yaml·template.yaml·validation.yaml 다섯을 돌려주고 서버가 이를 읽지 못하면 기동하지 않는다(main.py:44).",
+        "D1 — backend/app/audit/slots.py:57 SLOT_NEEDS[SlotKind.EXTRA] = {AuditFactKind.CASE: 1}. backend/app/audit/prompts.py:32의 CASE 정의가 'scope에 위치와 시설·기관 이름을 함께' 적으라고 요구한다(태양광 벤치마크 기준).",
+        "D1 — 재료 34~40줄 「4. 세목별 주요 사례」는 장소·기관명이 없어 추출기가 전부 BREAKDOWN으로 붙였다. 실행로그-진짜자료.txt: AF-16~AF-21 모두 [BREAKDOWN], 칸 판정 '[못 채움] EXTRA  개별 사례 1건 이상 (지금 0건)'.",
+        "D1 근본 — backend/app/audit/extraction.py:112가 AI가 준 kind를 enum 안에 있으면 그대로 받는다. 주석 스스로 '지어낸 종류를 받으면 없는 칸이 열린다'고만 적어 지어낸 종류만 막고 틀린 종류는 못 막음을 밝힌다. slots.py 첫머리와 포트폴리오 설명서 24줄의 '코드가 정한다'는, 세는 것은 코드지만 종류표는 AI가 붙인다는 뜻이다.",
+        "D2 — backend/app/audit/extraction.py:74 _line_of()가 head = packed_quote[:8]로 근거 문구의 앞 8글자만 보고 줄을 정한다. 재료에 같은 세목이 3절과 4절에 두 번 나오므로 먼저 나온 3절 줄에서 걸린다.",
+        "D2 재현 — 실제 함수를 재료에 돌려 결과물의 숫자를 그대로 재현했다. AF-01: 적힌 4 / 진짜 15, AF-18: 32 / 37, AF-19: 31 / 38, AF-21: 26 / 40. AF-16·AF-20은 앞 8글자가 유일해 일치한다.",
+        "D2 위험 — AF-19의 근거는 '추경예산 대비 0.5조원(11.4%) 초과'인데 표가 가리킨 31줄에는 '(0.5조원 증가)'가 있다. 초과와 증가는 다른 말이며, 확인하러 간 사람이 값과 세목이 맞으니 넘긴다. 근거 표가 오독을 막는 대신 유도한다.",
+        "D2 부가 원인 — packed_seen이 앞줄을 계속 이어 붙여, 줄을 넘나드는 문구는 시작 줄이 아니라 끝난 줄 번호가 나온다.",
+        "D3 — backend/app/audit/ 열 개 파일 어디에도 중복 검사 코드가 없다. verify_facts는 통과한 후보에 전부 새 AF-NN 번호를 준다.",
+        "D3 재현 — 같은 종류(BREAKDOWN) 안 같은 값이 정확히 4쌍이다. 79.2조원(AF-09/AF-21), 7.6조원(AF-13/AF-20), 4.7조원(AF-14/AF-19), 3.4조원(AF-15/AF-18). NEXT.md의 '중복 계상 4건'과 일치한다. 373.9조원(AF-01 TOTAL / AF-06 TIME_SERIES)은 종류가 달라 중복으로 세지 않았다.",
+        "D3 위험 — SLOT_NEEDS[DETAIL]={BREAKDOWN:2}가 세는 값이 15건인데 서로 다른 세목은 11개다. 또한 AF-09와 AF-21은 D2 때문에 적힌 줄 번호까지 26으로 같아 근거 표에서 사람 눈에 구분되지 않는다."
+      ]
+    },
+    {
+      "check_id": "D1G-06",
+      "title": "반복 가능한 코드 검사 — 기준선 재현과 의존성 선언",
+      "status": "FAIL",
+      "commands": [
+        {
+          "command": "cd backend && python -m pytest -q",
+          "exit_code": 0,
+          "summary": "571 passed, 1 skipped, 3 warnings in 15.29s"
+        },
+        {
+          "command": "cd frontend && npm test",
+          "exit_code": 0,
+          "summary": "Test Files 3 passed (3), Tests 20 passed (20)"
+        },
+        {
+          "command": "cd frontend && npx tsc --noEmit",
+          "exit_code": 0,
+          "summary": "타입 오류 0건"
+        },
+        {
+          "command": "cd frontend && npm run build",
+          "exit_code": 0,
+          "summary": "34 modules transformed, built in 490ms"
+        },
+        {
+          "command": "grep -rn \"pdfplumber|from openai|jsonschema\" backend/ tests/ --include=*.py",
+          "exit_code": 0,
+          "summary": "document_text.py:104, openai_gateway.py:509, test_openai_gateway.py:362 — 셋 다 pyproject.toml에 없음"
+        }
+      ],
+      "evidence": [
+        "기준선 재현 성공: 백엔드 571 passed / 1 skipped, 화면 20 passed. 건너뛴 1건은 tests/test_document_text.py:93 'PDF를 만들 도구가 없는 환경'이다.",
+        "화면 typecheck(tsc --noEmit)와 production build 모두 exit 0.",
+        "git rev-parse HEAD = c936a2f2fbd9102561d30d08e2a201b4493e13f9, 브랜치 feature/day1-web-entry.",
+        "작업트리 상태: README.md 미커밋 변경 1건(+290/-126줄)과 미추적 zip 1개(verification/day7/포트폴리오-2025-국세수입.zip). 코드 변경 0건.",
+        "C4 — backend/pyproject.toml dependencies는 fastapi·uvicorn·pydantic·pyyaml·python-multipart 다섯, dev는 pytest·httpx·pytest-asyncio 셋뿐이다.",
+        "C4 — pdfplumber는 제품 코드 backend/app/gates/document_text.py:104가 import한다. openai는 backend/app/infrastructure/openai_gateway.py:509가 'from openai import AsyncOpenAI'로 import한다. jsonschema는 tests/test_openai_gateway.py:362가 importorskip 없이 그냥 import한다. 셋 다 선언에 없다.",
+        "C4 위험 — document_text.py:112의 except Exception이 ImportError까지 받아 'PDF를 읽지 못했습니다. 파일이 손상되지 않았는지 확인하시거나…'로 바꾼다. pyproject.toml대로만 설치한 새 환경에서는 모든 PDF가 이 메시지를 낸다. 진짜 원인은 라이브러리 없음인데 사람은 자기 파일을 의심한다.",
+        "C4 위험 — jsonschema는 importorskip이 없어 새 환경에서 건너뛰지 않고 오류로 죽는다. 그 시험이 재는 것이 '가짜 AI 응답이 우리가 보내는 형식을 통과하는가'라는 계약 검사다."
+      ]
+    },
+    {
+      "check_id": "D1G-07",
+      "title": "비밀·네트워크·기록 — 그리고 C5 2차 검토 미실시, 자동 검사 script의 .env 검사",
+      "status": "FAIL",
+      "commands": [
+        {
+          "command": "grep -rEn \"sk-[A-Za-z0-9_-]{20,}\" backend/app frontend/src frontend/dist scripts tests verification/reports",
+          "exit_code": 1,
+          "summary": "0건"
+        },
+        {
+          "command": "grep -rn 'allow_origins=[\"*\"]' backend/",
+          "exit_code": 1,
+          "summary": "wildcard CORS 0건"
+        },
+        {
+          "command": "grep -rniE \"life ?science|genom|clinical trial\" backend/app frontend/src",
+          "exit_code": 1,
+          "summary": "생명과학 전용 잔재 0건"
+        },
+        {
+          "command": "ls verification/reports/day5-to-day6/",
+          "exit_code": 0,
+          "summary": "day5-gate1-20260826-182047 한 벌뿐. 2차 검토 보고서 없음"
+        },
+        {
+          "command": "grep -rn \"load_dotenv|dotenv\" backend/app frontend/src",
+          "exit_code": 1,
+          "summary": "0건 — 그래서 verify-day1.ps1:423이 '.env를 열지 않음'으로 통과 처리한다"
+        }
+      ],
+      "evidence": [
+        "검증 중 외부 AI 호출 0회, 비용 0달러. 검사원은 .env를 열거나 읽거나 출력하지 않았고 start-local-ai.cmd를 실행하지 않았다.",
+        "소스·브라우저 bundle·보고서의 API 키 패턴 0건, wildcard CORS 0건, 생명과학 전용 잔재 0건. 'terra'는 모델 이름 gpt-5.6-terra이며 잔재가 아니다.",
+        "C5 — verification/reports/day5-to-day6/ 에 day5-gate1-20260826-182047.{json,md} 한 벌만 있다. 그 판정은 BLOCKED이고 어긴 항목은 L1·M3·M4·K2 넷이다.",
+        "C5 — 커밋 81f7ca0 '5일차 검토 4건을 닫았다고 적는다' 이후 코드에 메운 흔적은 있다. orchestrator.py:849가 revise()에서도 _with_harness_sections를 부르고 주석이 '5일차 검토 L1·M3'를 직접 가리킨다. api/runs.py:660 download_draft가 REVIEW_NOT_FINISHED·WRONG_FACT_STILL_USED를 검사하며 전자는 D1G-02에서 실제로 걸리는 것을 확인했다.",
+        "C5 — 그러나 이를 확인한 독립 보고서가 없다. '고쳤다'는 구현 담당자 본인의 선언이고, verification/day-gate-verifier.md는 '같은 담당자가 자기 작업을 스스로 합격시킬 수 없다'고 못 박는다. 5일차 관문의 마지막 공식 판정은 지금도 BLOCKED다.",
+        "추가 발견(경고) — scripts/verify-day1.ps1:423의 .env 검사가 라이브러리 이름 load_dotenv|dotenv만 찾는다. 6일차가 넣은 .env 읽기는 직접 만든 함수다: openai_gateway.py:606 ENV_FILE = SCHEMA_DIR.parent / '.env', :618 load_env_file(), :633 target.read_text(). main.py:49가 서버 기동마다 부른다.",
+        "추가 발견(경고) — grep 결과 load_dotenv|dotenv가 0건이므로 script는 지금도 '1일차 코드는 .env를 열지 않음'이라는 통과 증거를 적는다. 이는 사실과 다르다. .env를 읽는 것 자체는 6일차의 의도된 설계이므로 문제 삼지 않는다. 문제는 자동 검사가 그 사실을 못 본 채 거짓 통과 증거를 만든다는 것이다.",
+        "scripts/verify-day1.ps1은 돌리지 않았다. 두 가지 이유다. (1) 보고서를 verification/reports/day1-to-day2에 쓰는데(:19) 이번 검토에 허용된 폴더가 아니다. (2) 1일차를 판정하는 script이고 이번 관문은 6일차다. 대신 그 script가 재는 항목을 직접 따로 돌려 D1G-02·D1G-06·D1G-07에 증거로 남겼다."
+      ]
+    }
+  ],
+  "blockers": [
+    {
+      "check_id": "D1G-01",
+      "message": "A: 6일차 종료 조건 미충족. TS-V-01~05의 실행 결과 기록 0건, 실행 ID 기록 0건. TS-V 문자열은 작업트리 전체에서 README.md에만 있고 git 이력 전체에 결과 파일이 추가된 적이 없다. README 자체 확인 목록(커밋본 1745줄)도 '- [ ]' 미체크다."
+    },
+    {
+      "check_id": "D1G-03",
+      "message": "C1: 실제 국회 발의안 PDF는 지금도 초안이 안 나온다. 원문에 인쇄된 의안번호는 7285(네 자리)인데 BILL_NUMBER_PATTERNS는 여섯~여덟 자리만 읽고, 게다가 PDF는 '의 안 / 7285 / 번 호' 순서라 패턴의 글자 순서와도 어긋난다. 자릿수만 고쳐도 못 읽는다. 실제 실행 결과 NEEDS_INPUT, draft_version=0."
+    },
+    {
+      "check_id": "D1G-04",
+      "message": "C2: 4일차 H1 구멍이 살아 있다. effect_status=NOT_A_LAW인 초안에 '이 법은 법률이 되었다'를 넣으면 경고 0건으로 REVIEW_READY가 되고 내려받는 Markdown에 그대로 실린다. EFFECT_STEMS 아홉 낱말에 해당 표현이 없다."
+    },
+    {
+      "check_id": "D1G-04",
+      "message": "C3: 다는/라는 오탐이 살아 있다. draft_gate.py:1205가 speaker_here를 문단 전체에서 계산해 문장마다 재사용하므로, 문단에 '의원'이 있고 어느 문장에든 관형형 어미 '다는'·'라는'이 있으면 STATEMENT_WITHOUT_SOURCE로 막힌다. '의원' 유무만 바꾼 대조로 격리 확인했다."
+    },
+    {
+      "check_id": "D1G-05",
+      "message": "D1: audit 경로의 사실 종류를 AI가 붙이고 코드는 그것을 세기만 한다(extraction.py:112). CASE 정의가 태양광 벤치마크의 위치·기관명을 요구해(prompts.py:32) 「세목별 주요 사례」 6건이 전부 BREAKDOWN으로 분류됐고 slots.py:57의 EXTRA 칸이 잠겼다."
+    },
+    {
+      "check_id": "D1G-05",
+      "message": "D2: extraction.py:74 _line_of가 근거 문구의 앞 8글자만 보고 줄 번호를 정해 AF-01·18·19·21 네 건이 틀린 줄을 가리킨다(적힌 4/32/31/26, 진짜 15/37/38/40). AF-19는 '초과'를 확인하러 간 사람을 '증가'가 적힌 줄로 보낸다."
+    },
+    {
+      "check_id": "D1G-05",
+      "message": "D3: backend/app/audit/ 어디에도 중복 검사 코드가 없어 같은 종류·같은 값이 4쌍 중복 계상된다(79.2/7.6/4.7/3.4조원). SLOT_NEEDS[DETAIL]의 정족수가 부풀려지고, D2와 겹쳐 AF-09와 AF-21은 줄 번호까지 같아 근거 표에서 구분되지 않는다."
+    },
+    {
+      "check_id": "D1G-06",
+      "message": "C4: backend/pyproject.toml에 openai·pdfplumber·jsonschema 셋 다 없는데 코드가 실제로 import한다. pdfplumber의 ImportError는 document_text.py:112의 except Exception에 걸려 'PDF를 읽지 못했습니다. 파일이 손상되지 않았는지 확인하시거나…'로 바뀌어 사람이 원인을 알 수 없다."
+    },
+    {
+      "check_id": "D1G-07",
+      "message": "C5: 5일차 2차 검토가 실시되지 않았다. verification/reports/day5-to-day6/에 1차 보고서 한 벌(판정 BLOCKED, L1·M3·M4·K2)뿐이다. 코드에 메운 흔적은 있으나 이를 확인한 독립 보고서가 없어 5일차 관문의 마지막 공식 판정은 지금도 BLOCKED다."
+    }
+  ],
+  "warnings": [
+    "C6 절반 해소: main.py:51이 live_enabled()로 갈라지므로 항상 FakeModelGateway를 만들지 않는다. 실수로 가짜인 채 돌 때 알아챌 수단도 세 겹(/api/health의 model_gateway, App.tsx:515 화면 배지, conversation.ts:148 동의 문구) 갖춰져 있다. 다만 fake_*.py를 언제 지울지는 여전히 정해진 기록이 없고, day7/NEXT.md의 '시험 496개' 근거는 이미 571개로 낡았다.",
+    "scripts/verify-day1.ps1:423의 .env 검사가 load_dotenv|dotenv만 찾아, 직접 만든 load_env_file()(openai_gateway.py:618)을 못 본다. 그래서 지금도 '1일차 코드는 .env를 열지 않음'이라는 거짓 통과 증거를 적는다. .env를 읽는 것 자체는 의도된 설계이며 문제는 자동 검사의 눈이 먼 것이다.",
+    "verification/day-gate-result.schema.json은 gate_id를 'DEMO-DAY1-GATE' 상수로, check_id를 D1G-01~07로 1일차에 고정한다. 6일차 관문을 담을 칸이 schema에 없어 gate_id를 그대로 썼다. gate_id의 DAY1은 검사 대상이 1일차라는 뜻이 아니며 실제 대상은 run_id(day6-gate1-…)와 동명 .md가 가리킨다. 참고로 5일차 보고서는 schema를 따르지 않고 DEMO-DAY5-GATE를 썼다. schema를 하루별로 확장할지 정하는 것이 남은 일이다.",
+    "작업트리에 미커밋 README.md 변경 1건(+290/-126줄)과 미추적 zip 1개가 있다. 문서 담당(Codex)의 방향 전환 작업이며 코드가 아니다. 관문 판정은 커밋 c936a2f의 코드와 저장소 기록 기준으로 했고, 이 미커밋 상태 자체는 사실로 기록한다.",
+    "확인하지 못한 것: TS-V-01의 live 실행(외부 AI 금지), 시험 571개와 TS-V-02~05의 매핑(기록 없음), 5일차 K2 부칙 보존의 실제 수정 여부(2차 검토 범위), start-local.cmd로 브라우저가 실제 열리는지(사람 확인 항목). 추측으로 채우지 않았다.",
+    "검토 범위에서 뺀 것: backend/app/infrastructure/fake_agents.py의 가짜 추출기 추출 품질. Gate는 (kind, value, evidence, source_id)의 순수 함수라 추출기 어휘와 무관하다.",
+    "검사원은 제품 소스·시험·Writing Contract·README를 한 줄도 고치지 않았다. 재현 script 3개는 scratchpad에만 쓰고 저장소에 남기지 않았다. 패키지 설치·lock 파일 변경 0건."
+  ],
+  "external_api_calls": 0,
+  "estimated_cost_usd": 0
+}

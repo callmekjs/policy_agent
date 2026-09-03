@@ -1,0 +1,87 @@
+{
+  "recorded_at": "2026-09-01T02:02:00.548206+00:00",
+  "purpose": "README §3.7 누적 6일차 하루 종료 확인 — TS-V 결과와 실행 ID",
+  "scenarios_run": [
+    "01"
+  ],
+  "live_01": false,
+  "total_ai_calls": 3,
+  "total_estimated_cost_usd": 0.0,
+  "all_passed": true,
+  "results": {
+    "TS-V-01": {
+      "scenario": "TS-V-01",
+      "description": "정상 1건 종단 — 입력→초안→수정→확인→다운로드",
+      "gateway": "FakeModelGateway",
+      "live": false,
+      "ai_calls": 3,
+      "estimated_cost_usd": 0.0,
+      "call_detail": [
+        {
+          "agent": "FactExtractionAgent",
+          "estimated_cost_usd": 0.0
+        },
+        {
+          "agent": "DraftWritingAgent",
+          "estimated_cost_usd": 0.0
+        },
+        {
+          "agent": "RevisionAgent",
+          "estimated_cost_usd": 0.0
+        }
+      ],
+      "observed": {
+        "run_id": "RUN-24AD70DF705D",
+        "steps": [
+          {
+            "action": "PROCESS",
+            "expect_state": "REVIEW_READY",
+            "run_id": "RUN-24AD70DF705D",
+            "state": "REVIEW_READY",
+            "failure": null,
+            "issues": [],
+            "draft_version": 1,
+            "fact_count": 10
+          },
+          {
+            "action": "REVISE",
+            "expect": "새 판",
+            "run_id": "RUN-24AD70DF705D",
+            "state": "REVIEW_READY",
+            "failure": null,
+            "issues": [],
+            "draft_version": 2,
+            "fact_count": 10
+          },
+          {
+            "action": "FACT_REVIEW",
+            "reviewed": 10,
+            "run_id": "RUN-24AD70DF705D",
+            "state": "REVIEW_READY",
+            "failure": null,
+            "issues": [],
+            "draft_version": 2,
+            "fact_count": 10
+          },
+          {
+            "action": "PREPARE_DRAFT",
+            "expect_state": "DRAFT_READY",
+            "run_id": "RUN-24AD70DF705D",
+            "state": "DRAFT_READY",
+            "failure": null,
+            "issues": [],
+            "draft_version": 2,
+            "fact_count": 10
+          }
+        ],
+        "download_status": 200,
+        "draft_first_line": "> **DRAFT / 내부 검토용**",
+        "draft_label_present": true,
+        "markdown_bytes": 1192,
+        "passed": true
+      },
+      "error": null,
+      "passed": true
+    }
+  }
+}

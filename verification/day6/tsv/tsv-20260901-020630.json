@@ -1,0 +1,130 @@
+{
+  "recorded_at": "2026-09-01T02:06:30.890792+00:00",
+  "purpose": "README §3.7 누적 6일차 하루 종료 확인 — TS-V 결과와 실행 ID",
+  "scenarios_run": [
+    "01"
+  ],
+  "live_01": true,
+  "total_ai_calls": 3,
+  "total_estimated_cost_usd": 0.071434,
+  "all_passed": false,
+  "results": {
+    "TS-V-01": {
+      "scenario": "TS-V-01",
+      "description": "정상 1건 종단 — 입력→초안→수정→확인→다운로드",
+      "gateway": "OpenAIModelGateway",
+      "live": true,
+      "ai_calls": 3,
+      "estimated_cost_usd": 0.071434,
+      "call_detail": [
+        {
+          "agent": "FactExtractionAgent",
+          "estimated_cost_usd": 0.028215
+        },
+        {
+          "agent": "DraftWritingAgent",
+          "estimated_cost_usd": 0.027499
+        },
+        {
+          "agent": "RevisionAgent",
+          "estimated_cost_usd": 0.01572
+        }
+      ],
+      "observed": {
+        "run_id": "RUN-66225F9E2B73",
+        "steps": [
+          {
+            "action": "PROCESS",
+            "expect_state": "REVIEW_READY",
+            "run_id": "RUN-66225F9E2B73",
+            "state": "REVIEW_READY",
+            "failure": null,
+            "issues": [],
+            "draft_version": 1,
+            "fact_count": 7,
+            "validation_findings": [],
+            "actual_model_calls": 2,
+            "estimated_cost_usd": 0.055714,
+            "revision_attempts": []
+          },
+          {
+            "action": "REVISE",
+            "expect": "새 판",
+            "run_id": "RUN-66225F9E2B73",
+            "state": "REVIEW_READY",
+            "failure": null,
+            "issues": [],
+            "draft_version": 1,
+            "fact_count": 7,
+            "validation_findings": [],
+            "actual_model_calls": 3,
+            "estimated_cost_usd": 0.071434,
+            "revision_attempts": [
+              {
+                "attempt_id": "RA-001",
+                "instruction": "제목을 더 짧고 분명하게 다듬어 주세요. 숫자와 날짜는 그대로 두세요.",
+                "outcome": "APPLIED",
+                "blocking_rule_ids": [],
+                "blocking_messages": [],
+                "resulting_version": 2
+              }
+            ]
+          },
+          {
+            "action": "FACT_REVIEW",
+            "reviewed": 7,
+            "run_id": "RUN-66225F9E2B73",
+            "state": "REVIEW_READY",
+            "failure": null,
+            "issues": [],
+            "draft_version": 1,
+            "fact_count": 7,
+            "validation_findings": [],
+            "actual_model_calls": 3,
+            "estimated_cost_usd": 0.071434,
+            "revision_attempts": [
+              {
+                "attempt_id": "RA-001",
+                "instruction": "제목을 더 짧고 분명하게 다듬어 주세요. 숫자와 날짜는 그대로 두세요.",
+                "outcome": "APPLIED",
+                "blocking_rule_ids": [],
+                "blocking_messages": [],
+                "resulting_version": 2
+              }
+            ]
+          },
+          {
+            "action": "PREPARE_DRAFT",
+            "expect_state": "DRAFT_READY",
+            "run_id": "RUN-66225F9E2B73",
+            "state": "DRAFT_READY",
+            "failure": null,
+            "issues": [],
+            "draft_version": 1,
+            "fact_count": 7,
+            "validation_findings": [],
+            "actual_model_calls": 3,
+            "estimated_cost_usd": 0.071434,
+            "revision_attempts": [
+              {
+                "attempt_id": "RA-001",
+                "instruction": "제목을 더 짧고 분명하게 다듬어 주세요. 숫자와 날짜는 그대로 두세요.",
+                "outcome": "APPLIED",
+                "blocking_rule_ids": [],
+                "blocking_messages": [],
+                "resulting_version": 2
+              }
+            ]
+          }
+        ],
+        "download_status": 200,
+        "draft_first_line": "> **DRAFT / 내부 검토용**",
+        "draft_label_present": true,
+        "markdown_bytes": 1096,
+        "passed": false
+      },
+      "error": null,
+      "passed": false
+    }
+  }
+}

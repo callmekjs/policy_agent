@@ -1,0 +1,99 @@
+{
+  "recorded_at": "2026-09-01T02:05:09.887125+00:00",
+  "purpose": "README §3.7 누적 6일차 하루 종료 확인 — TS-V 결과와 실행 ID",
+  "scenarios_run": [
+    "01"
+  ],
+  "live_01": true,
+  "total_ai_calls": 3,
+  "total_estimated_cost_usd": 0.045005,
+  "all_passed": false,
+  "results": {
+    "TS-V-01": {
+      "scenario": "TS-V-01",
+      "description": "정상 1건 종단 — 입력→초안→수정→확인→다운로드",
+      "gateway": "OpenAIModelGateway",
+      "live": true,
+      "ai_calls": 3,
+      "estimated_cost_usd": 0.045005,
+      "call_detail": [
+        {
+          "agent": "FactExtractionAgent",
+          "estimated_cost_usd": 0.017805
+        },
+        {
+          "agent": "DraftWritingAgent",
+          "estimated_cost_usd": 0.013004
+        },
+        {
+          "agent": "RevisionAgent",
+          "estimated_cost_usd": 0.014196
+        }
+      ],
+      "observed": {
+        "run_id": "RUN-678607EA3CF0",
+        "steps": [
+          {
+            "action": "PROCESS",
+            "expect_state": "REVIEW_READY",
+            "run_id": "RUN-678607EA3CF0",
+            "state": "REVIEW_READY",
+            "failure": null,
+            "issues": [],
+            "draft_version": 1,
+            "fact_count": 7,
+            "validation_findings": [],
+            "actual_model_calls": 2,
+            "estimated_cost_usd": 0.030809
+          },
+          {
+            "action": "REVISE",
+            "expect": "새 판",
+            "run_id": "RUN-678607EA3CF0",
+            "state": "REVIEW_READY",
+            "failure": null,
+            "issues": [],
+            "draft_version": 1,
+            "fact_count": 7,
+            "validation_findings": [],
+            "actual_model_calls": 3,
+            "estimated_cost_usd": 0.045005
+          },
+          {
+            "action": "FACT_REVIEW",
+            "reviewed": 7,
+            "run_id": "RUN-678607EA3CF0",
+            "state": "REVIEW_READY",
+            "failure": null,
+            "issues": [],
+            "draft_version": 1,
+            "fact_count": 7,
+            "validation_findings": [],
+            "actual_model_calls": 3,
+            "estimated_cost_usd": 0.045005
+          },
+          {
+            "action": "PREPARE_DRAFT",
+            "expect_state": "DRAFT_READY",
+            "run_id": "RUN-678607EA3CF0",
+            "state": "DRAFT_READY",
+            "failure": null,
+            "issues": [],
+            "draft_version": 1,
+            "fact_count": 7,
+            "validation_findings": [],
+            "actual_model_calls": 3,
+            "estimated_cost_usd": 0.045005
+          }
+        ],
+        "download_status": 200,
+        "draft_first_line": "> **DRAFT / 내부 검토용**",
+        "draft_label_present": true,
+        "markdown_bytes": 1137,
+        "passed": false
+      },
+      "error": null,
+      "passed": false
+    }
+  }
+}

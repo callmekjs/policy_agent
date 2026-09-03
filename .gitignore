@@ -39,3 +39,6 @@ Thumbs.db
 
 # 실행 바로가기가 남기는 서버 번호 파일
 .local-server.pid
+
+# 이메일 첨부용으로 만든 묶음. 산출물은 verification/day7/포트폴리오/ 에 그대로 있다.
+verification/day7/*.zip
