@@ -70,21 +70,36 @@ def _packed(text: str) -> str:
 
 
 def _line_of(raw_text: str, quote: str) -> int:
-    """근거 문구가 시작되는 줄 번호. 못 찾으면 0.
+    """근거 문구가 **시작되는** 줄 번호. 못 찾으면 0.
 
-    공백을 없앤 자리로 찾았으므로 원문에서 다시 세어야 한다. 문구의 앞 몇
-    글자가 처음 나오는 줄을 쓴다.
+    공백을 없앤 자리로 찾았으므로 원문에서 다시 세어야 한다.
+
+    전에는 문구의 **앞 8글자**만 보고 줄을 정했고, 그것도 누적한 글에서 처음
+    나오는 곳이라 문구가 **끝나는** 줄을 돌려줬다. 재료에 `종합부동산세…`처럼
+    같은 말로 시작하는 문장이 여럿이면 엉뚱한 줄을 가리켰다 — 근거를 확인하러
+    간 사람이 `초과`를 찾으러 가서 `증가`를 보고 맞다고 넘겼다
+    (2026-09-01 관문 검토 `D2`, 근거 표 4건 불일치).
+
+    이제 **문구 전체**로 찾고 시작 자리를 돌려준다. 못 찾으면 0이다.
+    **틀린 줄을 가리키느니 없다고 하는 편이 낫다.**
     """
     packed_quote = _packed(quote)
     if not packed_quote:
         return 0
-    head = packed_quote[: min(8, len(packed_quote))]
-    packed_seen = ""
+
+    # 공백을 없앤 전체 글과, 그 글의 각 글자가 몇 번째 줄에서 왔는지를 함께 만든다.
+    # 이 표가 있어야 찾은 자리를 원문 줄 번호로 되돌릴 수 있다.
+    packed_lines: list[str] = []
+    line_of_char: list[int] = []
     for number, line in enumerate(raw_text.splitlines(), start=1):
-        packed_seen += _packed(line)
-        if head in packed_seen:
-            return number
-    return 0
+        packed_line = _packed(line)
+        packed_lines.append(packed_line)
+        line_of_char.extend([number] * len(packed_line))
+
+    start = "".join(packed_lines).find(packed_quote)
+    if start < 0:
+        return 0
+    return line_of_char[start]
 
 
 def verify_facts(
