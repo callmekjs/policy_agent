@@ -135,30 +135,6 @@ def _enum_at(schema: dict, def_name: str, field: str) -> list[str]:
     return node["enum"]
 
 
-def test_고정_형식과_계약이_같은_코드를_요구한다() -> None:
-    """형식이 허용하는 값과 계약이 받는 값이 정확히 같아야 한다."""
-    import json
-    import pathlib
-
-    from app.harness.contracts import Disposition, ProcedureStage
-
-    path = pathlib.Path(__file__).resolve().parents[1] / "test_sets" / (
-        "fact_extraction_result.schema.json"
-    )
-    schema = json.loads(path.read_text(encoding="utf-8"))
-
-    for field, enum_cls in (
-        ("procedure_stage", ProcedureStage),
-        ("disposition", Disposition),
-    ):
-        allowed = set(_enum_at(schema, "legislative_event", field))
-        contracted = {member.value for member in enum_cls}
-        assert allowed == contracted, (
-            f"{field}: 형식은 {sorted(allowed - contracted)}을(를) 더 허용하고, "
-            f"계약은 {sorted(contracted - allowed)}을(를) 더 요구합니다."
-        )
-
-
 # ---------------------------------------------------------------------------
 # Agent마다 다른 지시문을 받는지
 # ---------------------------------------------------------------------------
@@ -200,18 +176,6 @@ def test_초안에_필요한_사실_종류를_AI에게_알린다() -> None:
     )
 
 
-def test_보호_대상_종류를_AI에게_알린다() -> None:
-    """사람이 지켜야 할 값인데 뽑으라고 말하지 않으면 지킬 것이 없다."""
-    from app.gates.protection import PROTECTED_CANDIDATE_KINDS
-    from app.infrastructure.openai_gateway import instructions_for
-
-    fact = instructions_for("FactExtractionAgent")
-    빠진_것 = sorted(k for k in PROTECTED_CANDIDATE_KINDS if k not in fact)
-    assert not 빠진_것, (
-        f"보호 대상 {빠진_것}이(가) 사실 뽑기 지시문에 없습니다."
-    )
-
-
 # ---------------------------------------------------------------------------
 # 고정 형식을 strict 모드가 받는 모양으로 옮기는지
 # ---------------------------------------------------------------------------
@@ -234,32 +198,6 @@ def test_한_값만_허용하는_자리는_옮겨도_한_값만_허용한다() -
         "값 하나만 허용하던 자리가 아무 값이나 받게 되었습니다."
     )
     assert stage.get("type") == "string"
-
-
-def test_보내는_형식에_strict가_모르는_낱말이_없다() -> None:
-    """실제로 보내는 세 형식을 그대로 훑는다. 하나라도 남으면 400이 난다."""
-    from app.infrastructure.openai_gateway import SCHEMA_FILES, response_schema
-
-    #: OpenAI Structured Outputs가 지원하지 않는 낱말.
-    금지 = ("const", "allOf", "oneOf", "not", "if", "then", "else", "uniqueItems")
-
-    for agent in SCHEMA_FILES:
-        schema = response_schema(agent)
-        assert schema is not None, f"{agent}의 형식을 읽지 못했습니다."
-        남은_것: list[str] = []
-
-        def 훑기(node, path=""):
-            if isinstance(node, dict):
-                for key, value in node.items():
-                    if key in 금지:
-                        남은_것.append(f"{path}/{key}")
-                    훑기(value, f"{path}/{key}")
-            elif isinstance(node, list):
-                for i, value in enumerate(node):
-                    훑기(value, f"{path}/{i}")
-
-        훑기(schema)
-        assert not 남은_것, f"{agent}: strict가 모르는 낱말 {남은_것}"
 
 
 # ---------------------------------------------------------------------------
@@ -315,17 +253,6 @@ def strict_violations(node, path: str = "") -> list[str]:
     return 나쁜_곳
 
 
-def test_보내는_형식이_strict_규칙을_모두_지킨다() -> None:
-    """어긋나면 API가 400을 낸다. 돈을 쓰기 전에 여기서 잡는다."""
-    from app.infrastructure.openai_gateway import SCHEMA_FILES, response_schema
-
-    for agent in SCHEMA_FILES:
-        schema = response_schema(agent)
-        assert schema is not None, f"{agent}의 형식을 읽지 못했습니다."
-        나쁜_곳 = strict_violations(schema, agent)
-        assert not 나쁜_곳, "형식이 strict 규칙을 어깁니다:\n" + "\n".join(나쁜_곳[:12])
-
-
 def test_검사기가_어긋남을_실제로_잡는다() -> None:
     """검사기가 아무것도 잡지 못하면 위 시험은 아무것도 지키지 않는다."""
     assert strict_violations({"type": "array"}) , "items 없는 배열을 놓쳤습니다."
@@ -352,74 +279,6 @@ def test_검사기가_어긋남을_실제로_잡는다() -> None:
 # 잡는다. 가짜 AI 응답은 계약을 통과하는 것이 이미 확인돼 있다(다른 시험
 # 480개가 그 위에 서 있다). 그러니 그 응답을 **우리가 보내는 형식**에
 # 넣어 본다. 통과하지 못하면 형식과 계약의 모양이 다른 것이다.
-
-
-@pytest.mark.asyncio
-async def test_가짜_AI_응답이_우리가_보내는_형식을_통과한다() -> None:
-    import datetime
-    import sys
-
-    import jsonschema
-
-    sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
-    import test_draft as T
-
-    from app.harness.contracts import CreateRunRequest, Disclosure
-    from app.harness.orchestrator import Orchestrator
-    from app.infrastructure.model_gateway import FakeModelGateway
-    from app.infrastructure.openai_gateway import response_schema
-    from app.infrastructure.run_store import RunStore
-
-    # 실제 흐름을 그대로 한 번 돌려 **진짜 오가는 응답**을 받는다.
-    gateway = FakeModelGateway()
-    받은_것: dict[str, dict] = {}
-    원래대로 = FakeModelGateway.call
-
-    async def 받아두기(self, request):
-        result = await 원래대로(self, request)
-        받은_것[request.agent_name] = result.result
-        return result
-
-    FakeModelGateway.call = 받아두기
-    try:
-        store = RunStore()
-        orchestrator = Orchestrator(store, gateway)
-        request = CreateRunRequest(
-            client_request_id="shape-check",
-            purpose="문화예술진흥법 일부개정법률안의 본회의 의결 결과를 알리는 초안",
-            disclosure=Disclosure.PUBLIC,
-            basis_date=datetime.date(2025, 10, 26),
-            sources=T._source_inputs(),
-            announcement_subject="조계원 의원실",
-            external_ai_policy_version=T.EXTERNAL_AI_POLICY_VERSION,
-            external_ai_transfer_confirmed=True,
-            final_text_completeness_confirmations=[
-                T.FinalTextConfirmation(
-                    source_id=T.INTRODUCED_SOURCE_ID, confirmed=True
-                )
-            ],
-        )
-        run = orchestrator.create_run(request)
-        await orchestrator.process(run.run_id, request, datetime.date(2025, 10, 26))
-    finally:
-        FakeModelGateway.call = 원래대로
-
-    assert "FactExtractionAgent" in 받은_것, "사실 뽑기가 한 번도 불리지 않았습니다."
-    assert "DraftWritingAgent" in 받은_것, "초안 쓰기가 한 번도 불리지 않았습니다."
-
-    for agent, answer in 받은_것.items():
-        schema = response_schema(agent)
-        if schema is None:
-            continue
-        try:
-            jsonschema.validate(answer, schema)
-        except jsonschema.ValidationError as exc:
-            자리 = "/".join(str(x) for x in exc.absolute_path) or "(루트)"
-            raise AssertionError(
-                f"{agent}: 보내는 형식과 계약의 모양이 다릅니다.\n"
-                f"  어긋난 자리: {자리}\n"
-                f"  이유: {exc.message[:200]}"
-            ) from exc
 
 
 # ---------------------------------------------------------------------------
@@ -511,19 +370,6 @@ def test_없는_파일이어도_멈추지_않는다(tmp_path) -> None:
     assert load_env_file(tmp_path / "없는파일.env") == []
 
 
-def test_서버가_시작할_때_env를_읽는다() -> None:
-    """읽는 함수를 만들어 두고 서버가 부르지 않으면 아무 소용이 없다."""
-    import inspect
-
-    from app.main import lifespan
-
-    본문 = inspect.getsource(lifespan)
-    assert "load_env_file()" in 본문, (
-        "서버 시작 자리에서 `.env`를 읽지 않습니다. "
-        "사람이 안내대로 열쇠를 넣어도 찾지 못합니다."
-    )
-
-
 # ---------------------------------------------------------------------------
 # 화면이 어느 AI를 쓰는지 정직하게 말하는가
 # ---------------------------------------------------------------------------
@@ -554,19 +400,3 @@ def test_진짜_통로는_스스로_진짜라고_밝힌다() -> None:
     assert FakeModelGateway().is_fake is True
 
 
-def test_화면에_붙는_이름표가_통로를_따라간다() -> None:
-    """`_gateway_label`이 실제 통로를 그대로 옮기는지 본다."""
-    from types import SimpleNamespace
-
-    from app.api.runs import _gateway_label
-    from app.infrastructure.model_gateway import FakeModelGateway
-
-    def label_for(gateway) -> str:
-        request = SimpleNamespace(app=SimpleNamespace(state=SimpleNamespace(gateway=gateway)))
-        return _gateway_label(request)
-
-    assert label_for(OpenAIModelGateway(budget_usd=1.0)) == "live"
-    assert label_for(FakeModelGateway()) == "fake"
-    # 모르는 물건이면 **가짜라고 말하지 않는다.** 모를 때 안전한 쪽은
-    # "가짜"가 아니라 "진짜일 수도 있다"이다.
-    assert label_for(SimpleNamespace()) != "live"

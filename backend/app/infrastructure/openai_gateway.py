@@ -53,13 +53,23 @@ PRICE_PER_MILLION = {"input": 1.25, "output": 10.00}
 PRICE_BASIS_DATE = "2026-08-22"
 
 
+#: 저장소 뿌리.
+ROOT_DIR = Path(__file__).resolve().parents[3]
+
 #: Agent별 응답 schema가 있는 곳. 기계가 읽는 원본은 이 파일들이다.
-SCHEMA_DIR = Path(__file__).resolve().parents[3] / "test_sets"
-SCHEMA_FILES = {
-    "FactExtractionAgent": "fact_extraction_result.schema.json",
-    "DraftWritingAgent": "draft_candidate.schema.json",
-    "RevisionAgent": "draft_candidate.schema.json",
-}
+SCHEMA_DIR = ROOT_DIR / "test_sets"
+
+#: Agent별 응답 schema 파일.
+#:
+#: **2026-09-01 현재 비어 있다.** 여기 있던 셋(`FactExtractionAgent`,
+#: `DraftWritingAgent`, `RevisionAgent`)은 본회의형 전용이라 그 코드와 함께
+#: 지웠다. 지금 쓰는 `AuditFactAgent`·`AuditDraftAgent`는 **처음부터 여기에
+#: 없었다** — 새 자료분석형 경로는 고정 형식을 쓴 적이 없다.
+#:
+#: 이것은 빈칸이 아니라 **구멍**이다. 같은 날 관문 검토에서, 진짜 AI가 정해진
+#: 네 값 중 하나를 넣어야 할 자리에 빈 문자열을 줘서 초안이 통째로 막히는 일이
+#: 실행 네 번 중 두 번 일어났다. 고정 형식이 있으면 애초에 못 준다.
+SCHEMA_FILES: dict[str, str] = {}
 
 #: Agent별 지시문. 공통 한 문단만 주면 AI는 **무엇을 뽑아야 하는지 모른다.**
 #: 실제로 그랬다. 발의안 전문을 주고도 사실 3건만 돌려주었고, 의안번호·의결일·
@@ -603,7 +613,7 @@ def _format_arg(agent_name: str) -> dict:
 
 
 #: 프로그램이 열쇠를 찾는 자리. 저장소 뿌리에 둔다.
-ENV_FILE = SCHEMA_DIR.parent / ".env"
+ENV_FILE = ROOT_DIR / ".env"
 
 #: `.env`에서 읽어 올 이름. **열쇠 하나뿐이다.**
 #:

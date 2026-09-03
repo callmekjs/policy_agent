@@ -9,6 +9,9 @@ dependencies = [
     "pydantic>=2.9",
     "pyyaml>=6.0",
     "python-multipart>=0.0.12",
+    # 함수 안에서 늦게 import 하지만 **제품 기능이 실제로 쓴다.**
+    # 빠져 있으면 진짜 AI는 켜는 순간 죽는다.
+    "openai>=2.21",  # infrastructure/openai_gateway.py — 진짜 AI
 ]
 
 [project.optional-dependencies]
