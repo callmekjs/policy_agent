@@ -57,19 +57,22 @@ PRICE_BASIS_DATE = "2026-08-22"
 ROOT_DIR = Path(__file__).resolve().parents[3]
 
 #: Agent별 응답 schema가 있는 곳. 기계가 읽는 원본은 이 파일들이다.
-SCHEMA_DIR = ROOT_DIR / "test_sets"
+#:
+#: 전에는 `test_sets/`에 뒀는데, 그건 시험자료지 제품 계약이 아니었다.
+#: 본회의형과 함께 그 폴더가 사라지면서 형식도 같이 날아갔다. 이제 **그것을
+#: 쓰는 코드 옆**에 둔다.
+SCHEMA_DIR = Path(__file__).resolve().parents[1] / "audit" / "schemas"
 
 #: Agent별 응답 schema 파일.
 #:
-#: **2026-09-01 현재 비어 있다.** 여기 있던 셋(`FactExtractionAgent`,
-#: `DraftWritingAgent`, `RevisionAgent`)은 본회의형 전용이라 그 코드와 함께
-#: 지웠다. 지금 쓰는 `AuditFactAgent`·`AuditDraftAgent`는 **처음부터 여기에
-#: 없었다** — 새 자료분석형 경로는 고정 형식을 쓴 적이 없다.
-#:
-#: 이것은 빈칸이 아니라 **구멍**이다. 같은 날 관문 검토에서, 진짜 AI가 정해진
-#: 네 값 중 하나를 넣어야 할 자리에 빈 문자열을 줘서 초안이 통째로 막히는 일이
-#: 실행 네 번 중 두 번 일어났다. 고정 형식이 있으면 애초에 못 준다.
-SCHEMA_FILES: dict[str, str] = {}
+#: 2026-09-01 관문 검토에서, 진짜 AI가 정해진 네 값 중 하나를 넣어야 할 자리에
+#: **빈 문자열**을 줘서 초안이 통째로 막히는 일이 실행 네 번 중 두 번 일어났다.
+#: 검사가 막은 것은 옳지만, 애초에 못 주게 하는 쪽이 낫다. 그래서 자료분석형
+#: 두 Agent에도 고정 형식을 붙인다.
+SCHEMA_FILES = {
+    "AuditFactAgent": "audit_facts.schema.json",
+    "AuditDraftAgent": "audit_draft.schema.json",
+}
 
 #: Agent별 지시문. 공통 한 문단만 주면 AI는 **무엇을 뽑아야 하는지 모른다.**
 #: 실제로 그랬다. 발의안 전문을 주고도 사실 3건만 돌려주었고, 의안번호·의결일·
@@ -365,13 +368,12 @@ def _strict(node):
     return out
 
 
-#: 형식 파일이 **알맹이**만 적은 Agent들. 계약은 봉투로 받으므로 씌워 보낸다.
+#: 형식 파일이 **알맹이**만 적어서 봉투를 씌워 보내야 하는 Agent들.
 #:
-#: `draft_candidate.schema.json`은 이름 그대로 초안 후보 하나의 모양이다
-#: (`test_sets/README.md`). 그런데 `DraftEnvelope`는 `{schema_version, result}`를
-#: 받는다. 알맹이를 그대로 보내면 AI는 형식을 지키고도 **매번** 거절당한다.
-#: 실제로 그랬고, 한 번에 25건씩 "Extra inputs are not permitted"가 났다.
-ENVELOPE_AGENTS = frozenset({"DraftWritingAgent", "RevisionAgent"})
+#: **지금은 없다.** 봉투가 필요했던 둘은 본회의형이라 함께 지웠다. 자료분석형
+#: 두 Agent는 `{"facts": [...]}`·`{"slots": [...]}`를 통째로 받으므로 봉투가
+#: 필요 없다. 장치는 남겨 둔다 — 봉투를 쓰는 계약이 다시 생길 수 있다.
+ENVELOPE_AGENTS: frozenset[str] = frozenset()
 
 
 def _envelope(candidate: dict) -> dict:
@@ -400,16 +402,12 @@ def _known_shapes() -> dict[str, dict]:
     Gate가 이미 거절하는 값을 형식에도 적는다. 그러면 AI가 그 값을 **쓸 수
     없다.** 나중에 거절하는 것보다 아예 못 쓰게 하는 쪽이 낫다.
     """
-    from app.harness.draft_contracts import SIX_W_KEYS, STATUS_CODES
+    from app.audit.contracts import AuditFactKind
+    from app.audit.slots import SLOT_ORDER
 
-    codes = sorted(STATUS_CODES)
     return {
-        "six_w_status": {
-            "type": "object",
-            "properties": {
-                key: {"type": "string", "enum": codes} for key in sorted(SIX_W_KEYS)
-            },
-        }
+        "kind": {"type": "string", "enum": [k.value for k in AuditFactKind]},
+        "slot": {"type": "string", "enum": [s.value for s in SLOT_ORDER]},
     }
 
 
