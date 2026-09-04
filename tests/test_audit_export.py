@@ -15,6 +15,7 @@ from __future__ import annotations
 
 from app.audit.contracts import (
     DRAFT_LABEL,
+    FACT_KIND_LABELS,
     AuditDraft,
     AuditFact,
     AuditFactKind,
@@ -112,8 +113,8 @@ _FIXED_BOILERPLATE = """
 ⚠ 못 채움 — 필요한 자료:
 〈끝〉
 ## 근거
-| 사실 | 값 | 출처 | 줄 | 원문 |
-|---|---|---|---|---|
+| 사실 | 종류 | 값 | 출처 | 줄 | 원문 |
+|---|---|---|---|---|---|
 ---
 **DRAFT / 내부 검토용** · 사람이 확인해야 하는 초안입니다.
 """
@@ -148,9 +149,14 @@ def test_글을_새로_만들지_않는다() -> None:
             f"{fact.evidence.line}".split()
         )
 
-    # 3) 칸 이름. 계약이 정한 고정 낱말이다.
+    # 3) 칸 이름과 사실 종류 이름. 둘 다 계약이 정한 고정 낱말이라 **AI가
+    #    지어낸 글이 아니다.** 종류를 표에 보이는 이유는, 같은 숫자가 두 줄에
+    #    나올 때 그것이 중복인지 역할이 다른 별개 사실인지 사람이 가릴 수
+    #    있어야 하기 때문이다.
     for label in SLOT_LABELS.values():
         allowed.update(f"({label})".split())
+    for label in FACT_KIND_LABELS.values():
+        allowed.update(label.split())
 
     # 4) 고정 머리글.
     allowed.update(_FIXED_BOILERPLATE.split())

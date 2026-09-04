@@ -16,6 +16,7 @@ from __future__ import annotations
 
 from app.audit.contracts import (
     DRAFT_LABEL,
+    FACT_KIND_LABELS,
     SLOT_LABELS,
     AuditDraft,
     AuditLedger,
@@ -60,15 +61,20 @@ def to_markdown(draft: AuditDraft, ledger: AuditLedger) -> str:
     if ledger.facts:
         lines.append("## 근거")
         lines.append("")
-        lines.append("| 사실 | 값 | 출처 | 줄 | 원문 |")
-        lines.append("|---|---|---|---|---|")
+        # **종류를 함께 보인다.** 같은 숫자가 두 줄에 나오는 일이 있는데,
+        # 종류가 없으면 사람은 그것이 중복인지 역할이 다른 별개 사실인지
+        # 가릴 수 없다. 실제로 검토가 이것을 중복 4건으로 읽었고, 실제로는
+        # `항목·지역별 수치`와 `개별 사례`로 나뉘는 것이었다.
+        lines.append("| 사실 | 종류 | 값 | 출처 | 줄 | 원문 |")
+        lines.append("|---|---|---|---|---|---|")
         for fact in ledger.facts:
             # 표 한 칸에 줄바꿈이 들어가면 Markdown 표가 깨진다. 재료는 사람이
             # 만든 문서라 문장 한가운데 줄바꿈이 흔하다.
             quote = " ".join(fact.evidence.quote.split())
+            kind = FACT_KIND_LABELS.get(fact.kind, str(fact.kind))
             lines.append(
-                f"| {fact.fact_id} | {fact.value} | {fact.evidence.source_name} "
-                f"| {fact.evidence.line} | {quote} |"
+                f"| {fact.fact_id} | {kind} | {fact.value} "
+                f"| {fact.evidence.source_name} | {fact.evidence.line} | {quote} |"
             )
         lines.append("")
 
