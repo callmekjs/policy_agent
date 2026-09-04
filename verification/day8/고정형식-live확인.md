@@ -1,4 +1,4 @@
-# 고정 형식(strict schema) live 확인 — 2026-09-01
+# 고정 형식(strict schema) live 확인 — 2026-09-04
 
 자료분석형 두 Agent(`AuditFactAgent`·`AuditDraftAgent`)에 응답 형식을 붙인 뒤,
 **OpenAI가 그 형식을 실제로 받는지** 한 번 돌려 확인한 기록이다.
