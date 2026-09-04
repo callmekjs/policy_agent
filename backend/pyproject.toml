@@ -1,24 +1,19 @@
 [project]
 name = "policy-agent-backend"
 version = "0.1.0"
-description = "국회 법률 개정·개선 보도자료 초안 작성 Agent — FastAPI 백엔드"
+description = "국정감사·자료분석형 보도자료 초안 작성 도구 — 명령줄"
 requires-python = ">=3.12"
+# 웹 서버(fastapi·uvicorn·python-multipart)와 yaml은 본회의형과 함께 지웠다.
+# 남은 것은 이 둘뿐이다. 쓰지 않는 것을 적어 두면 설치가 무거워지고,
+# 무엇이 진짜 필요한지 아무도 모르게 된다.
 dependencies = [
-    "fastapi>=0.115",
-    "uvicorn>=0.34",
-    "pydantic>=2.9",
-    "pyyaml>=6.0",
-    "python-multipart>=0.0.12",
-    # 함수 안에서 늦게 import 하지만 **제품 기능이 실제로 쓴다.**
-    # 빠져 있으면 진짜 AI는 켜는 순간 죽는다.
+    "pydantic>=2.9",  # 계약·원장 모양
     "openai>=2.21",  # infrastructure/openai_gateway.py — 진짜 AI
 ]
 
 [project.optional-dependencies]
 dev = [
     "pytest>=8.3",
-    "httpx>=0.28",
-    "pytest-asyncio>=0.24",
 ]
 
 [build-system]
@@ -31,4 +26,3 @@ include = ["app*"]
 [tool.pytest.ini_options]
 testpaths = ["../tests"]
 pythonpath = ["."]
-asyncio_mode = "auto"
